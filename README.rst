@@ -5,6 +5,8 @@
      :target: https://www.apache.org/licenses/LICENSE-2.0
      :alt: License
 
+|
+
 .. image:: https://raw.githubusercontent.com/capitalone/giraffez/master/docs/logo.png
 
 Giraffez is a client library for `Teradata <http://www.teradata.com/>`_, made to be fast and user-friendly. It shares many features with the official Teradata tools, but makes them available in an easy-to-use command-line interface and Python API.
