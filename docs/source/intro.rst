@@ -41,18 +41,14 @@ giraffez attempts to find the required Teradata libraries automatically during i
 Install / Update
 ----------------
 
-For **first time installation,** clone the giraffez repository::
+To install or update via pip::
+
+   pip install --upgrade giraffez
+
+To install from source::
 
    git clone https://github.com/capitalone/giraffez
-
-**If you are updating**, first navigate to the repository folder and run::
-
-   git pull origin master
-
-This will ensure that your clone is up to date with the latest version.
-
-From the root of the cloned repository, the same command is used for initial install and update::
-
+   cd giraffez
    python setup.py install
 
 Bash auto-completion
@@ -60,7 +56,7 @@ Bash auto-completion
 
 A bash auto-complete script is provided that can be installed fairly easily into the system by copying it into the bash-completion folder::
 
-   $ cp giraffez-completion.bash /etc/bash_completion.d/
+   cp giraffez-completion.bash /etc/bash_completion.d/
 
 
 It will be installed the next time you open a new terminal or if you want to activate in the current session::
