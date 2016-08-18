@@ -82,7 +82,7 @@ def save_history():
 
 
 class GiraffeShell(_cmd.Cmd):
-    """Interactive shell for Giraffe"""
+    """Interactive shell for giraffez"""
 
     prompt = "giraffez> "
     intro = "giraffez-shell version: {}".format(get_version_info()[1])
