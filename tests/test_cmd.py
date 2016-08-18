@@ -4,6 +4,7 @@ import pytest
 
 import giraffez
 from giraffez.constants import *
+from giraffez.errors import *
 from giraffez.types import Columns
 
 @pytest.mark.usefixtures('config')
@@ -30,4 +31,9 @@ class TestCmd(object):
         connect_mock.assert_called_with('db1', 'user123', 'pass456')
 
     def test_invalid_credentials(self, mocker):
-        pass
+        connect_mock = mocker.patch('giraffez.Cmd._connect')
+        connect_mock.side_effect = InvalidCredentialsError("test")
+
+        with pytest.raises(InvalidCredentialsError):
+            cmd = giraffez.Cmd(protect=True)
+            cmd.close()
