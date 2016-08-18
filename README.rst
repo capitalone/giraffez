@@ -51,10 +51,14 @@ of software distributed by Capital One, You reserve all right, title,
 and interest in and to Your Contributions; this Agreement does not
 impact Your rights to use Your own Contributions for any other purpose
 
-`Download the Agreement <https://docs.google.com/forms/d/e/1FAIpQLSfwtl1s6KmpLhCY6CjiY8nFZshDwf_wrmNYx1ahpsNFXXmHKw/viewform>`_
+`Sign the Agreement <https://docs.google.com/forms/d/e/1FAIpQLSfwtl1s6KmpLhCY6CjiY8nFZshDwf_wrmNYx1ahpsNFXXmHKw/viewform>`_
 
 Code of Conduct
 ###############
 
-This project adheres to the `Open Code of Conduct <http://www.capitalone.io/codeofconduct/>`_ By participating, you are
+This project adheres to the `Open Code of Conduct <https://developer.capitalone.com/single/code-of-conduct/>`_ By participating, you are
 expected to honor this code.
+
+----
+
+Teradata is a registered trademark of Teradata Corporation
