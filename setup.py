@@ -157,7 +157,7 @@ class EncoderExtension(Extension):
         "src/encoder/unpack_dict.c",
         "src/encoder/unpack_str.c",
         "src/encoder/util.c",
-        "src/teradata/stmt_info.c",
+        "src/encoder/stmt_info.c",
         "giraffez/encoderobject.c",
         "giraffez/encodermodule.c",
     ]
@@ -168,7 +168,7 @@ class EncoderExtension(Extension):
         "src/encoder/indicator.h",
         "src/encoder/unpack.h",
         "src/encoder/util.h",
-        "src/teradata/stmt_info.h",
+        "src/encoder/stmt_info.h",
         "giraffez/encoderobject.h",
         "giraffez/encodermodule.c",
     ]
