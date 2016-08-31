@@ -1,5 +1,6 @@
 import os
 import sys
+import io
 import logging
 import re
 import platform
@@ -157,7 +158,7 @@ class EncoderExtension(Extension):
         "src/encoder/unpack_dict.c",
         "src/encoder/unpack_str.c",
         "src/encoder/util.c",
-        "src/teradata/stmt_info.c",
+        "src/encoder/stmt_info.c",
         "giraffez/encoderobject.c",
         "giraffez/encodermodule.c",
     ]
@@ -168,7 +169,7 @@ class EncoderExtension(Extension):
         "src/encoder/indicator.h",
         "src/encoder/unpack.h",
         "src/encoder/util.h",
-        "src/teradata/stmt_info.h",
+        "src/encoder/stmt_info.h",
         "giraffez/encoderobject.h",
         "giraffez/encodermodule.c",
     ]
@@ -264,7 +265,7 @@ class TPTExtension(Extension):
 
     def setup(self):
         if TERADATA_HOME is None:
-            raise Exception("Unable to find the teradata.")
+            raise TeradataNotFound("Unable to find the Teradata files.")
 
         if platform.system() == 'Windows':
             if is_64bit():
@@ -365,10 +366,13 @@ if __name__ == '__main__':
     with open('requirements.txt') as f:
         requirements = f.read().splitlines()
 
+    with io.open("README.rst", encoding="utf-8") as f:
+        long_description = f.read()
+
     setup(
         name="giraffez",
         description="a user-friendly and fast Teradata client for Python",
-        long_description=open("README.rst").read(),
+        long_description=long_description,
         license="Apache 2.0",
         url="https://github.com/capitalone/giraffez",
         version=get_version(),

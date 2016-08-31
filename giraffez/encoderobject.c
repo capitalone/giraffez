@@ -18,7 +18,7 @@
 #include "compat.h"
 #include "encoder/columns.h"
 #include "encoder/unpack.h"
-#include "teradata/stmt_info.h"
+#include "encoder/stmt_info.h"
 
 
 static void Encoder_dealloc(Encoder* self) {

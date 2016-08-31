@@ -44,7 +44,7 @@ Contributors
 ############
 
 We welcome Your interest in Capital One’s Open Source Projects (the
-“Project”). Any Contributor to the Project must accept and sign an
+"Project"). Any Contributor to the Project must accept and sign an
 Agreement indicating agreement to the license terms below. Except for
 the license granted in this Agreement to Capital One and to recipients
 of software distributed by Capital One, You reserve all right, title,
