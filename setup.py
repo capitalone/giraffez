@@ -310,15 +310,8 @@ class TPTExtension(Extension):
 
 
 class BuildExt(build_ext):
-    attempted = False
-    errors = []
-
     def run(self):
-        BuildExt.attempted = True
-        try:
-            build_ext.run(self)
-        except DistutilsPlatformError as error:
-            BuildExt.errors.append(traceback.format_exc())
+        build_ext.run(self)
 
     def get_inplace_path(self, ext_name):
         fullname = self.get_ext_fullname(ext_name)
@@ -337,27 +330,22 @@ class BuildExt(build_ext):
         return fullpath
 
     def build_extension(self, ext):
-        try:
-            ext.setup()
-            if ext.depends_on:
-                for dep in ext.depends_on:
-                    objs = getattr(dep, 'objects', [])
-                    ext.extra_objects += objs 
-            build_ext.build_extension(self, ext)
-            if getattr(self, '_built_objects', None):
-                ext.set_objects(self._built_objects)
+        ext.setup()
+        if ext.depends_on:
+            for dep in ext.depends_on:
+                objs = getattr(dep, 'objects', [])
+                ext.extra_objects += objs
+        build_ext.build_extension(self, ext)
+        if getattr(self, '_built_objects', None):
+            ext.set_objects(self._built_objects)
 
-            # This ensures that the shared objects are *also* built
-            # in the path to avoid provides with path resolution when
-            # working with local files.
-            src = self.get_ext_fullpath(ext.name) 
-            dst = self.get_inplace_path(ext.name)
-            self.mkpath(os.path.dirname(dst))
-            self.copy_file(src, dst, preserve_mode=False)
-
-            ext.success = True
-        except (CCompilerError, DistutilsExecError, DistutilsPlatformError, GiraffeBuildError) as error:
-            BuildExt.errors.append(traceback.format_exc())
+        # This ensures that the shared objects are *also* built
+        # in the path to avoid provides with path resolution when
+        # working with local files.
+        src = self.get_ext_fullpath(ext.name)
+        dst = self.get_inplace_path(ext.name)
+        self.mkpath(os.path.dirname(dst))
+        self.copy_file(src, dst, preserve_mode=False)
 
 
 if __name__ == '__main__':
@@ -411,14 +399,3 @@ if __name__ == '__main__':
             'Topic :: Utilities'
         ]
     )
-
-    if BuildExt.attempted:
-        sys.stderr.write("\n  {:25s}| Installed\n".format("C-Extension"))
-        sys.stderr.write("  =========================================\n")
-        for ext in ext_modules:
-            sys.stderr.write("  {:25s}|   {}\n".format(ext.__class__.__name__, ext.success))
-        if any(x.success is False for x in ext_modules):
-            sys.stderr.write("\ngiraffez was not successfully installed ...\n\nBUILD ERRORS:\n")
-            for err in BuildExt.errors:
-                sys.stderr.write(err)
-                sys.stderr.write("\n")
