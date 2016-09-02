@@ -113,6 +113,12 @@ def readable_time(t):
         return "{:.3f}s".format(t)
 
 def register_graceful_shutdown_signal():
+    """
+    Registers graceful shutdown handler using C signals. The first
+    SIGINT will attempt to close the Teradata connections before
+    exiting, and the second will shutdown whether the connections
+    have been closed or not.
+    """
     from ._common import register_graceful_shutdown_signal as _register
     _register()
 
