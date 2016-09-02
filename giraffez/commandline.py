@@ -52,6 +52,14 @@ from ._compat import *
 
 setup_logging()
 
+# Registers graceful shutdown handler using C signals. This allows for
+# the behavior where Ctrl+C pressed once will attempt to shutdown
+# Teradata connections properly, and pressed again exits the process
+# whether the connections have closed or not. This is in commandline.py
+# because otherwise this would be a default signal handler for any
+# library that imports giraffez.
+register_graceful_shutdown_signal()
+
 class CmdCommand(Command):
     name = "cmd"
     description = "Execute Teradata commands"

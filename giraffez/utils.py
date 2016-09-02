@@ -32,7 +32,8 @@ from ._compat import *
 
 
 __all__ = ['disable_warnings', 'get_version_info', 'import_string', 'infer_delimiter', 'pipeline',
-    'prompt', 'prompt_bool', 'readable_time', 'show_warning', 'suppress_context', 'timer']
+    'prompt', 'prompt_bool', 'readable_time', 'register_graceful_shutdown_signal', 'show_warning',
+    'suppress_context', 'timer']
 
 
 def disable_warnings(category=UserWarning):
@@ -110,6 +111,10 @@ def readable_time(t):
         return "{}m".format(t//60)
     else:
         return "{:.3f}s".format(t)
+
+def register_graceful_shutdown_signal():
+    from ._common import register_graceful_shutdown_signal as _register
+    _register()
 
 def show_warning(message, category):
     def send_warnings_to_log(message, category, filename, lineno, file=None):

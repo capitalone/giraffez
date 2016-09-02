@@ -8,6 +8,7 @@ import traceback
 from setuptools import setup, Extension as _Extension, find_packages
 from distutils.command.build_ext import build_ext
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
+from Cython.Build import cythonize
 
 
 WIN = sys.platform.startswith('win')
@@ -108,6 +109,7 @@ def is_64bit():
 
 TERADATA_HOME = os.environ.get('TERADATA_HOME', get_teradata_home())
 
+
 class Extension(_Extension):
     name = None
 
@@ -115,7 +117,9 @@ class Extension(_Extension):
 
     depends_on = []
 
+    compiled = False
     success = False
+    shared_object = True
 
     def __init__(self, *args, **kwargs):
         _Extension.__init__(self, self.name, self.sources, **kwargs)
@@ -145,6 +149,13 @@ class Extension(_Extension):
 
     def setup(self):
         pass
+
+
+class CommonExtension(Extension):
+    name = "giraffez._common"
+    sources = [
+        "giraffez/commonmodule.c",
+    ]
 
 
 class EncoderExtension(Extension):
@@ -310,7 +321,10 @@ class TPTExtension(Extension):
 
 
 class BuildExt(build_ext):
+    cache = {}
+
     def run(self):
+        self.parallel = 8
         build_ext.run(self)
 
     def get_inplace_path(self, ext_name):
@@ -329,18 +343,47 @@ class BuildExt(build_ext):
         fullpath = os.path.join(package_dir, filename)
         return fullpath
 
+    def compile(self, ext):
+        objects = self.compiler.compile(ext.sources,
+            macros=ext.define_macros,
+            include_dirs=ext.include_dirs,
+            extra_postargs=ext.extra_compile_args,
+            depends=ext.depends)
+        self.cache[ext.name] = objects
+        return objects
+
     def build_extension(self, ext):
         ext.setup()
+        objects = self.compile(ext)
+        ext_path = self.get_ext_fullpath(ext.name)
         if ext.depends_on:
             for dep in ext.depends_on:
-                objs = getattr(dep, 'objects', [])
-                ext.extra_objects += objs
-        build_ext.build_extension(self, ext)
-        if getattr(self, '_built_objects', None):
-            ext.set_objects(self._built_objects)
+                if dep.name not in self.cache:
+                    objects += self.compile(dep())
+                else:
+                    objects += self.cache[dep.name]
+
+        # Return early when a shared object is not being created. This
+        # is useful when dealing with Extensions that need to have
+        # object files built for another Extension that will be creating
+        # a shared object.
+        if not ext.shared_object:
+            return
+
+        self.compiler.link_shared_object(
+            objects,
+            ext_path,
+            libraries=self.get_libraries(ext),
+            library_dirs=ext.library_dirs,
+            runtime_library_dirs=ext.runtime_library_dirs,
+            extra_postargs=ext.extra_link_args,
+            export_symbols=self.get_export_symbols(ext),
+            debug=self.debug,
+            build_temp=self.build_temp,
+            target_lang=ext.language)
 
         # This ensures that the shared objects are *also* built
-        # in the path to avoid provides with path resolution when
+        # in the path to avoid problems with path resolution when
         # working with local files.
         src = self.get_ext_fullpath(ext.name)
         dst = self.get_inplace_path(ext.name)
@@ -349,7 +392,7 @@ class BuildExt(build_ext):
 
 
 if __name__ == '__main__':
-    ext_modules = [EncoderExtension(), CLIExtension(), TPTExtension()]
+    ext_modules = [CommonExtension(), EncoderExtension(), CLIExtension(), TPTExtension()]
 
     with open('requirements.txt') as f:
         requirements = f.read().splitlines()
