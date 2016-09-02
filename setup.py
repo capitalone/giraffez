@@ -5,6 +5,7 @@ import logging
 import re
 import platform
 import traceback
+import multiprocessing
 from setuptools import setup, Extension as _Extension, find_packages
 from distutils.command.build_ext import build_ext
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
@@ -323,7 +324,7 @@ class BuildExt(build_ext):
     cache = {}
 
     def run(self):
-        self.parallel = os.cpu_count()
+        self.parallel = multiprocessing.cpu_count()
         build_ext.run(self)
 
     def get_inplace_path(self, ext_name):
