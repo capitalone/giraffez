@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import platform
 
 import pytest
 import yaml
@@ -63,6 +64,11 @@ class TestConfig(object):
                 pass
 
     def test_config_conf_bad_permissions(self, tmpfiles):
+        # Tests for permissions on linux or unix-like system only. Windows
+        # requires the use of Windows-only APIs to determine and set the
+        # permissions on files.
+        if platform.system() == 'Windows':
+            return
         with pytest.raises(ConfigurationError):
             os.chmod(tmpfiles.conf, 0o655)
             with giraffez.Config(tmpfiles.conf, "r", tmpfiles.key) as config:
@@ -71,6 +77,11 @@ class TestConfig(object):
         os.chmod(tmpfiles.conf, 0o600)
 
     def test_config_key_bad_permissions(self, tmpfiles):
+        # Tests for permissions on linux or unix-like system only. Windows
+        # requires the use of Windows-only APIs to determine and set the
+        # permissions on files.
+        if platform.system() == 'Windows':
+            return
         with pytest.raises(ConfigurationError):
             os.chmod(tmpfiles.key, 0o655)
             with giraffez.Config(tmpfiles.conf, "r", tmpfiles.key) as config:
