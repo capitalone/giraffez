@@ -345,6 +345,7 @@ class BuildExt(build_ext):
 
     def compile(self, ext):
         objects = self.compiler.compile(ext.sources,
+            output_dir=os.path.join(os.getcwd(), "build"),
             macros=ext.define_macros,
             include_dirs=ext.include_dirs,
             extra_postargs=ext.extra_compile_args,
