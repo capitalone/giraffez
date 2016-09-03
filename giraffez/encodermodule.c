@@ -30,6 +30,12 @@ static PyMethodDef module_methods[] = {
     {NULL}  /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT, "_encoder", "", -1, module_methods
+};
+#endif
+
 MOD_INIT(_encoder)
 {
     PyObject* m;
@@ -38,7 +44,11 @@ MOD_INIT(_encoder)
         return MOD_ERROR_VAL;
     }
 
-    MOD_DEF(m, "_encoder", "", module_methods);
+#if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef);
+#else
+    m = Py_InitModule("_encoder", module_methods);
+#endif
 
     if (m == NULL) {
         return MOD_ERROR_VAL;
