@@ -20,6 +20,7 @@ import argparse
 
 from .constants import *
 from .errors import *
+from .logging import *
 from .utils import *
 
 from ._compat import *
@@ -151,7 +152,7 @@ class Command(ArgumentParser):
                     c = command()
                     self.add_command(c)
                 except ImportError as error:
-                    log.debug(error)
+                    log.info(error)
             else:
                 command.global_arguments = self.global_arguments
                 c = command()
