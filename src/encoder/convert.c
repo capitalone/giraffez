@@ -16,7 +16,7 @@
 
 #include "convert.h"
 #include <Python.h>
-#ifdef _WIN32
+#if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
 #include <stdint.h>

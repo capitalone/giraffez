@@ -129,7 +129,10 @@ class Extension(_Extension):
 
         # Windows compatbility
         if WIN:
-            self.define_macros.append(('_WIN32', 1))
+            if is_64bit():
+                self.define_macros.append(('WIN64', 1))
+            else:
+                self.define_macros.append(('WIN32', 1))
         else:
             self.extra_compile_args = ['-Wfatal-errors']
 
@@ -285,6 +288,8 @@ class TPTExtension(Extension):
             else:
                 tptapi_inc = os.path.join(TERADATA_HOME, "Teradata Parallel Transporter/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "Teradata Parallel Transporter/bin")
+                if not os.path.isdir(tptapi_lib):
+                    tptapi_lib = os.path.join(TERADATA_HOME, "bin")
         elif platform.system() == 'Linux':
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
