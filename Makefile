@@ -24,7 +24,7 @@ upload: test
 clean:
 	@echo "Cleaning up existing build files..."
 	@rm -rf build dist MANIFEST *.egg-info htmlcov tests/tmp .cache .benchmarks .coverage .eggs
-	@rm -f $(PYMODULE)/*.so $(PYMODULE)/*.o
+	@rm -f $(PYMODULE)/*.so $(PYMODULE)/*.pyd
 	@find . -name '__pycache__' -delete -o -name '*.pyc' -delete
 
 test:
