@@ -69,11 +69,21 @@ static PyMethodDef module_methods[] = {
     {NULL}  /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT, "_common", "", -1, module_methods
+};
+#endif
+
 MOD_INIT(_common)
 {
     PyObject* m;
 
-    MOD_DEF(m, "_common", "", module_methods);
+#if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef);
+#else
+    m = Py_InitModule("_common", module_methods);
+#endif
 
     if (m == NULL) {
         return MOD_ERROR_VAL;
