@@ -58,7 +58,7 @@ static void warm_shutdown(int signum) {
     signal(SIGINT, cold_shutdown);
 }
 
-static void register_shutdown(PyObject* self) {
+static PyObject* register_shutdown(PyObject* self) {
     signal(SIGINT, &warm_shutdown);
     signal(SIGTERM, &warm_shutdown);
     Py_RETURN_NONE;
