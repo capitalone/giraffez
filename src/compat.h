@@ -52,7 +52,7 @@
 #endif    
 
 
-#ifdef _WIN32
+#if defined(WIN32) || defined(WIN64)
 #define strdup _strdup
 #define snprintf _snprintf
 #define llabs _abs64

@@ -24,6 +24,16 @@ The console logging messages can also be used with the Python `logging <https://
     log.addHandler(...)
     log.setLevel(logging.DEBUG)
 
+Using the graceful shutdown
+---------------------------
+
+The signal handler used by the giraffez command-line tool is available to the API as well.  This is what allows the giraffez command to attempt closing Teradata connections down safely before exiting the process (and shutting down cold on the next Ctrl+C).  To use this add this towards the beginning of the project:
+
+.. code-block:: python
+
+    import giraffez
+
+    giraffez.register_graceful_shutdown_signal()
 
 giraffez modules
 ----------------

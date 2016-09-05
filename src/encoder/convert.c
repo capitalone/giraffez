@@ -16,7 +16,7 @@
 
 #include "convert.h"
 #include <Python.h>
-#ifdef _WIN32
+#if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
 #include <stdint.h>
@@ -109,13 +109,17 @@ static PyObject* decimal64_to_pystring(unsigned char** data, const uint16_t colu
     PyObject* s;
     unpack_int64_t(data, &q);
     if (column_scale > 0) {
-        const char* fmt = q < 0 ? "-%ld.%0*ld" : "%ld.%0*ld";
+        const char* fmt = q < 0 ? "-%lld.%0*lld" : "%lld.%0*lld";
         int64_t scale = (int64_t)pow(10, column_scale);
         int64_t x = llabs(q / scale);
         int64_t y = llabs(q % scale);
         s = pystring_from_cformat(fmt, x, column_scale, y);
     } else {
-        s = PyUnicode_FromFormat("%ld", q);
+        // PyUnicode_FromFormat does not have a format character for
+        // types like long long in Python 2.7, so instead using
+        // pystring_from_cformat. Also, %lld should be available on
+        // MSVC compilers after Visual Studio 2003.
+        s = pystring_from_cformat("%lld", q);
     }
     return s;
 }

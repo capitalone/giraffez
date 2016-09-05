@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import platform
 import pytest
 
 from giraffez.__main__ import main
@@ -18,6 +19,13 @@ class TestCommandLine(object):
 
     @pytest.mark.usefixtures('config')
     def test_cmd_error(self, mocker, tmpfiles):
+        # Windows throws a PermissionError when trying to reopen this
+        # file. On other unix-like systems this does not fail because
+        # the underlying directory entry is removed but the file
+        # remains until no longer in use. For now, this test should
+        # be skipped on Windows systems.
+        if platform.system() == 'Windows':
+            return
         os.remove(tmpfiles.key)
         create_key_file(tmpfiles.key)
         with pytest.raises(TeradataError):

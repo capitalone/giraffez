@@ -1,4 +1,4 @@
-.PHONY: all clean build test cover cover-html docs
+.PHONY: all clean build test cover docs
 
 PYMODULE=giraffez
 GH_PAGES_SOURCES=docs/source $(PYMODULE) docs/Makefile
@@ -11,37 +11,33 @@ build:
 	@echo "Building giraffez extension..."
 	@python setup.py build --force
 
-build-wheel:
-	@python setup.py bdist_wheel
-
-install: build-wheel
+install:
 	@echo "Installing giraffez..."
-	@pip install --ignore-installed --upgrade --no-deps --user .
+	@python setup.py install
 
-upload: test
-	@python setup.py bdist_wheel upload
+wheel:
+	@echo "Building giraffez wheel..."
+	@python setup.py bdist_wheel
 
 clean:
 	@echo "Cleaning up existing build files..."
-	@rm -rf build dist MANIFEST *.egg-info htmlcov tests/tmp .cache .benchmarks .coverage .eggs
-	@rm -f $(PYMODULE)/*.so
-	@find . -name '__pycache__' -delete -o -name '*.pyc' -delete
+	@rm -rf build MANIFEST *.egg-info htmlcov tests/tmp .cache .benchmarks .coverage .eggs
+	@rm -f $(PYMODULE)/*.so $(PYMODULE)/*.pyd $(PYMODULE)/*.pyc
 
-test:
+test: wheel
 	@echo "Running unit tests..."
 	@py.test tests/
 
-test-deps:
-	@echo "Installing test dependencies..."
-	@pip install --user --force --upgrade mock pytest pytest-cov pytest-mock pytest-benchmark sphinx_rtd_theme wheel
-
 bench:
-	@echo "Running unit tests..."
+	@echo "Running benchmark tests..."
 	@py.test tests/benchmarks.py
 
-cover: install-wheel
+cover: wheel
 	@echo "Analyzing coverage (html)"
 	@py.test --cov $(PYMODULE) --cov-report html
+
+upload: test
+	@python setup.py bdist_wheel upload
 
 docs:
 	$(MAKE) -C docs html
