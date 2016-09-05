@@ -24,7 +24,7 @@ clean:
 	@rm -rf build MANIFEST *.egg-info htmlcov tests/tmp .cache .benchmarks .coverage .eggs
 	@rm -f $(PYMODULE)/*.so $(PYMODULE)/*.pyd $(PYMODULE)/*.pyc
 
-test:
+test: wheel
 	@echo "Running unit tests..."
 	@py.test tests/
 
@@ -32,7 +32,7 @@ bench:
 	@echo "Running benchmark tests..."
 	@py.test tests/benchmarks.py
 
-cover: install-wheel
+cover: wheel
 	@echo "Analyzing coverage (html)"
 	@py.test --cov $(PYMODULE) --cov-report html
 
