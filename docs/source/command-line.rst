@@ -13,12 +13,6 @@ There are certain shared options that any of the following commands will receive
 
 - ``-v`` or ``--verbose`` (``-vv`` for DEBUG level output) 
    sets the log output level to "verbose", for more informative feedback while executing commands
-- ``--host <host>`` 
-   specifies a host to use. If specifed, username and password should be passed similarly as below
-- ``--username <username>`` 
-   overrides the default username from the user's configuration file, to be used with ``--host ...``
-- ``--password <password>`` 
-   overrides the default username from the user's configuration file, to be used with ``--host ...``
 - ``-D <connection name>`` or ``--dsn <connection name>`` 
    specifies a connection from the ``.girafferc`` file to be used in place of the one designated ``default``
 - ``-c <config file>`` or ``--conf <config file>`` 
