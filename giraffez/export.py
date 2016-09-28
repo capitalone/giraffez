@@ -58,8 +58,9 @@ class TeradataExport(Connection):
         'text' encoding. Defaults to 'NULL'
     :param str encoding: The encoding format in which to export the data.
         Defaults to 'text'.  Possible values are 'text' - delimited text 
-        output, 'json' - to output each row as a JSON object, and 'archive' to 
-        output in giraffez archive format
+        output, 'dict' - to output each row as a `dict` object mapping column names
+        to values, 'json' - to output each row as a JSON encoded string, and 
+        'archive' to output in giraffez archive format
     :param int log_level: Specify the desired level of output from the job.
         Possible values are `giraffez.SILENCE`, `giraffez.INFO` (default),
         `giraffez.VERBOSE`, and `giraffez.DEBUG`

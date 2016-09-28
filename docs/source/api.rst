@@ -35,6 +35,38 @@ The signal handler used by the giraffez command-line tool is available to the AP
 
     giraffez.register_graceful_shutdown_signal()
 
+Working with other packages
+---------------------------
+
+Results from :class:`giraffez.Cmd` and :class:`giraffez.Export` can be
+used with other packages that accept common Python data structures.
+
+Using :class:`giraffez.Cmd` with pandas:
+
+.. code-block:: python
+
+    import giraffez
+    import pandas as pd
+
+    with giraffez.Cmd() as cmd:
+        result = cmd.execute_one("select infokey, character_length(infodata) as charcount from dbc.dbcinfo")
+        # Convert a Result object to a list of dicts
+        df = pd.DataFrame(result.to_json())
+        print(df)
+        print(df.mean())        
+
+Using :class:`giraffez.Export` with pandas:
+
+.. code-block:: python
+
+    with giraffez.Export() as export:
+        # Output results as a Python dictionary
+        export.encoding = "dict"
+        export.query = "select infokey, character_length(infodata) from dbc.dbcinfo"
+        df = pd.DataFrame(export.results())
+        print(df)
+        print(df.mean())
+ 
 giraffez modules
 ----------------
 
@@ -143,17 +175,6 @@ Write results as JSON:
            # Each row is a JSON encoded string
            for row in export.results():
                f.write("{0}\n".format(row))
-
-Export data directly into pandas:
-
-.. code-block:: python
-
-   with giraffez.Export() as export:
-       export.encoding = "dict"
-       export.query = "select infokey, character_length(infodata) from dbc.dbcinfo"
-       df = pd.DataFrame(export.results())
-       print(df)
-       print(df.mean())
 
 Cmd
 ###
