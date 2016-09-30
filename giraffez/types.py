@@ -35,9 +35,9 @@ class Column(object):
     An object containing the column information used by Teradata for
     encoding, decoding, and identifying data.
 
-    Implements the `__eq__` magic method for comparison with other instances
-    (validating that each field holds the same data), and the `__str__` and
-    `__repr__` magic methods for coersion to string values and more pleasant
+    Implements the :code:`__eq__` magic method for comparison with other instances
+    (validating that each field holds the same data), and the :code:`__str__` and
+    :code:`__repr__` magic methods for coersion to string values and more pleasant
     visual presentation.
 
     **Fields:**
@@ -183,10 +183,10 @@ class Columns(object):
 
     def get(self, column_name):
         """
-        Retrieve a column from the list with name value `column_name`
+        Retrieve a column from the list with name value :code:`column_name`
 
         :param str column_name: The name of the column to get
-        :return: :class:`~giraffez.types.Column` with the specified name, or `None` if it does not exist.
+        :return: :class:`~giraffez.types.Column` with the specified name, or :code:`None` if it does not exist.
         """
         column_name = column_name.lower()
         for c in self.columns:
@@ -215,7 +215,7 @@ class Columns(object):
         Set the names of columns to be used when iterating through the list,
         retrieving names, etc.
 
-        :param list names: A list of names to be used, or `None` for all
+        :param list names: A list of names to be used, or :code:`None` for all
         """
         _names = []
         if names:
@@ -488,27 +488,27 @@ class Result(object):
     """
     Contains the result of a Teradata query
 
-    Defines the `__len__` magic method to get the number of rows returned:
+    Defines the :code:`__len__` magic method to get the number of rows returned:
 
     .. code-block:: python
 
        result = cli.execute("select * from tablename;")
        num_rows = len(result)
 
-    Defines the `__iter__` magic method to iterate through the returned rows:
+    Defines the :code:`__iter__` magic method to iterate through the returned rows:
 
     .. code-block:: python
 
        for row in result:
            print row
 
-    Defines the `__getattr__` magic method to return a list of values for a given column:
+    Defines the :code:`__getattr__` magic method to return a list of values for a given column:
 
     .. code-block:: python
 
        print results.first_name # ['alice', 'bob', 'charlie', ...]
 
-    Defines the `__getitem__` magic method to return a list of values for a given column, or numeric index:
+    Defines the :code:`__getitem__` magic method to return a list of values for a given column, or numeric index:
 
     .. code-block:: python
 
@@ -532,7 +532,7 @@ class Result(object):
 
     def first(self):
         """
-        Return the first row (or `None`) if no rows in result
+        Return the first row (or :code:`None`) if no rows in result
 
         :return: The first row in the results
         :rtype: :class:`~giraffez.types.Row`
@@ -593,7 +593,7 @@ class Results(object):
     """
     A set of :class:`~giraffez.types.Result` objects returned by queries
 
-    Defines the `__iter__` magic method for convenience:
+    Defines the :code:`__iter__` magic method for convenience:
 
     .. code-block:: python
 
@@ -602,7 +602,7 @@ class Results(object):
        for result in results:
            print result.rows
 
-    Defines the `__getitem__` magic method to allow numeric indexing:
+    Defines the :code:`__getitem__` magic method to allow numeric indexing:
 
     .. code-block:: python
 
@@ -655,7 +655,7 @@ class Row(object):
     """
     A wrapper for a single row within a :class:`~giraffez.types.Result` object.
 
-    Defines the `__iter__` magic method for convenience:
+    Defines the :code:`__iter__` magic method for convenience:
 
     .. code-block:: python
 
@@ -663,7 +663,7 @@ class Row(object):
        for item in row:
            print item
 
-    Defines the `__getattr__` magic method to return a particular field:
+    Defines the :code:`__getattr__` magic method to return a particular field:
 
     .. code-block:: python
 
@@ -673,7 +673,7 @@ class Row(object):
        for row in results:
            print row.first_name # 'alice', 'bob', 'charlie', ...
 
-    Defines the `__getitem__` magic method to return a particular field by name or numeric index:
+    Defines the :code:`__getitem__` magic method to return a particular field by name or numeric index:
 
     .. code-block:: python
 

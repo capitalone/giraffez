@@ -47,29 +47,29 @@ class TeradataMLoad(Connection):
     Exposed under the alias :class:`giraffez.MLoad`.
 
     :param str table: The name of the target table for loading.
-    :param str host: Omit to read from `~/.girafferc` configuration file.
-    :param str username: Omit to read from `~/.girafferc` configuration file.
-    :param str password: Omit to read from `~/.girafferc` configuration file.
+    :param str host: Omit to read from :code:`~/.girafferc` configuration file.
+    :param str username: Omit to read from :code:`~/.girafferc` configuration file.
+    :param str password: Omit to read from :code:`~/.girafferc` configuration file.
     :param int log_level: Specify the desired level of output from the job.
-        Possible values are `giraffez.SILENCE`, `giraffez.INFO` (default),
-        `giraffez.VERBOSE`, and `giraffez.DEBUG`
+        Possible values are :code:`giraffez.SILENCE`, :code:`giraffez.INFO` (default),
+        :code:`giraffez.VERBOSE`, and :code:`giraffez.DEBUG`
     :param str config: Specify an alternate configuration file to be read from,
         when previous paramaters are omitted.
     :param str key_file: Specify an alternate key file to use for configuration decryption
     :param string dsn: Specify a connection name from the configuration file to be
         used, in place of the default.
-    :param bool protect: If authentication with Teradata fails and `protect` is `True`, 
+    :param bool protect: If authentication with Teradata fails and :code:`protect` is :code:`True`, 
         locks the connection used in the configuration file. This can be unlocked using the
-        command `giraffez config --unlock <connection>`, changing the connection password,
+        command :code:`giraffez config --unlock <connection>`, changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
     :raises `giraffez.errors.TeradataError`: if the connection cannot be established
 
     If the target table is currently under an MLoad lock (such as if the
-    previous operation failed), a `release mload` statement will be 
+    previous operation failed), a :code:`release mload` statement will be 
     executed on the table, and the load job will be re-attempted.
 
-    Meant to be used, where possible, with python's `with` context handler
+    Meant to be used, where possible, with python's :code:`with` context handler
     to guarantee that connections will be closed gracefully when operation
     is complete.
     """
@@ -194,7 +194,7 @@ class TeradataMLoad(Connection):
     def cleanup(self):
         """
         Drops any existing work tables, as returned by 
-        :meth:`~giraffez.load.TeradataMLoad.tables`.
+        :meth:`~giraffez.mload.TeradataMLoad.tables`.
 
         :raises `giraffez.errors.TeradataError`: if a Teradata error ocurred
         """
@@ -217,16 +217,18 @@ class TeradataMLoad(Connection):
         The list of columns in use.
 
         :getter: Return the list of columns in use.
-            :rtype: `~giraffez.cmd.Columns`
         :setter: Set the columns to be loaded into, as well as their order. If
             loading from a file, these will be determined from the file header.
             Not necessary if you are loading into all columns, in the original
-            order.
+            order. The value must be a :code:`list` of names in the order that
+            the fields of data will be presented in each row.
 
-            :param list field_names: A list of names of columns to be loaded into,
-                in the order that the fields of data will be presented in each row
-            :raises `giraffez.errors.GiraffeError`: if `field_names` is not a `list`
-            :raises `giraffez.errors.GiraffeError`: if the target table has not been set.
+            Raises :class:`~giraffez.errors.GiraffeError` if :code:`field_names` 
+            is not a :code:`list`.
+
+            Raises :class:`~giraffez.errors.GiraffeError` if the target table
+            has not been set.
+        :type: :class:`~giraffez.types.Columns`
         """
         return self._columns
 
@@ -245,11 +247,12 @@ class TeradataMLoad(Connection):
 
         :getter: Returns the name of the encoding being used.
         :setter: Set the encoding of the input file if not specified to the 
-            constructor of the instance.
+            constructor of the instance. Accepted values are :code:`'text'`
+            or :code:`'archive'`.
 
-            :param str value: Either 'text' or 'archive'
-            :raises `giraffez.errors.GiraffeError`: if the `enc` is not one
-                of the above
+            Raises :class:`~giraffez.errors.GiraffeError` if :code:`enc` is not one
+            of the above.
+        :type: str
         """
         return self._encoding
 
@@ -304,17 +307,17 @@ class TeradataMLoad(Connection):
         :param str null: The string that indicates a null value in the rows being
             inserted from a file. Defaults to 'NULL'
         :param str delimiter: When loading a file, indicates that fields are
-            separated by this delimiter. Defaults to `None`, which causes the
+            separated by this delimiter. Defaults to :code:`None`, which causes the
             delimiter to be determined from the header of the file. In most
             cases, this behavior is sufficient
-        :param bool panic: If `True`, when an error is encountered it will be
-            raised. Otherwise, the error will be logged and `self.error_count`
+        :param bool panic: If :code:`True`, when an error is encountered it will be
+            raised. Otherwise, the error will be logged and :code:`self.error_count`
             is incremented.
         :return: The output of the call to
-            :meth:`~giraffez.load.TeradataMLoad.finish`
-        :raises `giraffez.errors.GiraffeError`: if table was not set and `table`
-            is `None`, or if a Teradata error ocurred while retrieving table info.
-        :raises `giraffez.errors.GiraffeEncodeError`: if `panic` is `True` and there
+            :meth:`~giraffez.mload.TeradataMLoad.finish`
+        :raises `giraffez.errors.GiraffeError`: if table was not set and :code:`table`
+            is :code:`None`, or if a Teradata error ocurred while retrieving table info.
+        :raises `giraffez.errors.GiraffeEncodeError`: if :code:`panic` is :code:`True` and there
             are format errors in the row values.
         """
         if not self.table:
@@ -352,11 +355,11 @@ class TeradataMLoad(Connection):
         Load a single row into the target table.
 
         :param list items: A list of values in the row corresponding to the
-            fields specified by `~giraffez.load.TeradataMLoad.columns`
-        :param bool panic: If `True`, when an error is encountered it will be
-            raised. Otherwise, the error will be logged and `self.error_count`
+            fields specified by :code:`self.columns`
+        :param bool panic: If :code:`True`, when an error is encountered it will be
+            raised. Otherwise, the error will be logged and :code:`self.error_count`
             is incremented.
-        :raises `giraffez.errors.GiraffeEncodeError`: if `panic` is `True` and there
+        :raises `giraffez.errors.GiraffeEncodeError`: if :code:`panic` is :code:`True` and there
             are format errors in the row values.
         :raises `giraffez.errors.GiraffeError`: if table name is not set.
         :raises `giraffez.errors.TeradataError`: if there is a problem
@@ -381,7 +384,7 @@ class TeradataMLoad(Connection):
 
         :raises `giraffez.errors.GiraffeError`: if table was not set by
             the constructor, the :code:`TeradataMLoad.table`, or
-            :meth:`~giraffez.load.TeradataMLoad.from_file`.
+            :meth:`~giraffez.mload.TeradataMLoad.from_file`.
         """
         if self.table is None:
             raise GiraffeError("Cannot release. Target table has not been set.")
@@ -401,7 +404,7 @@ class TeradataMLoad(Connection):
             with the added suffixes, "_wt", "_log", "_e1", and "_e2"
         :raises `giraffez.errors.GiraffeError`: if table was not set by
             the constructor, the :code:`TeradataMLoad.table`, or
-            :meth:`~giraffez.load.TeradataMLoad.from_file`.
+            :meth:`~giraffez.mload.TeradataMLoad.from_file`.
         """
         if self.table is None:
             raise GiraffeError("Target table has not been set.")
@@ -421,16 +424,16 @@ class TeradataMLoad(Connection):
             has not been set.
         :setter: Set the name of the target table, if the table name
             was not given to the constructor of the
-            :class:`~giraffez.load.TeradataMLoad` instance or
-            :meth:`~giraffez.load.TeradataMLoad.from_file`.
+            :class:`~giraffez.mload.TeradataMLoad` instance or
+            :meth:`~giraffez.mload.TeradataMLoad.from_file`. The value given
+            must include all qualifiers such as database name. 
 
-            :param str table_name: Name of the table to load into, must include
-                all qualifiers such as database name
-            :raises `giraffez.errors.GiraffeError`: if the MLoad connection has
-                already been initiated, or the :class:`giraffez.Cmd` connection cannot
-                be established
-            :raises `giraffez.errors.TeradataError`: if the column data could not be
-                retrieved from Teradata
+            Raises :class:`~giraffez.errors.GiraffeError` if the MLoad connection has
+            already been initiated, or the :class:`~giraffez.cmd.TeradataCmd` connection cannot
+            be established.
+
+            Raises :class:`~giraffez.errors.TeradataError` if the column data could not be
+            retrieved from Teradata
         :type: str
         """
         return self._table_name

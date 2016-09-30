@@ -102,8 +102,8 @@ class Config(object):
     'apikey', or 'key', as well as any values nested under the key 'secure' (i.e. setting
     'secure.teradata.user' will encrypt the value.)
 
-    Implements the `__enter__` and `__exit__` magic methods so that it can be used
-    by Python's `with` context-handler:
+    Implements the :code:`__enter__` and :code:`__exit__` magic methods so that it can be used
+    by Python's :code:`with` context-handler:
 
     .. code-block:: python
 
@@ -232,7 +232,7 @@ class Config(object):
     @classmethod
     def lock_connection(cls, conf, dsn, key=None):
         """
-        A class method to lock a connection (given by `dsn`) in the specified
+        A class method to lock a connection (given by :code:`dsn`) in the specified
         configuration file. Automatically opens the file and writes to it before
         closing.
 
@@ -296,7 +296,7 @@ class Config(object):
     @classmethod
     def unlock_connection(cls, conf, dsn, key=None):
         """
-        A class method to unlock a connection (given by `dsn`) in the specified
+        A class method to unlock a connection (given by :code:`dsn`) in the specified
         configuration file. Automatically opens the file and writes to it before
         closing.
 
@@ -341,13 +341,13 @@ class Config(object):
 
     def write(self, settings=None):
         """
-        Save the current configuration to its file (as given by `self._config_file`).
+        Save the current configuration to its file (as given by :code:`self._config_file`).
         Optionally, settings may be passed in to override the current settings before
-        writing. Returns `None` if the file could not be written to, either due to
-        permissions, or if the :class:`~giraffez.config.Config` object has the `mode`
+        writing. Returns :code:`None` if the file could not be written to, either due to
+        permissions, or if the :class:`~giraffez.config.Config` object has the :code:`mode`
         'r'.
 
-        :param dict settings: Defaults to `None`, if not `None` this will replace
+        :param dict settings: Defaults to :code:`None`, if not :code:`None` this will replace
             `self.settings` prior to writing to the file
         """
         if "r" in self.mode:
@@ -367,7 +367,7 @@ class Config(object):
         A class method to write a default configuration file structure to a file.
         Note that the contents of the file will be overwritten if it already exists.
 
-        :param str conf: The name of the file to write to. Defaults to `None`, for ~/.girafferc
+        :param str conf: The name of the file to write to. Defaults to :code:`None`, for ~/.girafferc
         :return: The content written to the file
         :rtype: str
         """

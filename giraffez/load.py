@@ -44,7 +44,7 @@ class TeradataLoad(TeradataCmd):
 
     See :class:`~giraffez.cmd.TeradataCmd` for constructor arguments.
 
-    Meant to be used, where possible, with python's `with` context handler
+    Meant to be used, where possible, with python's :code:`with` context handler
     to guarantee that connections will be closed gracefully when operation
     is complete:
 
@@ -61,7 +61,7 @@ class TeradataLoad(TeradataCmd):
     def from_file(self, table_name, input_file_name, delimiter=None, null=DEFAULT_NULL,
             date_conversion=False):
         """
-        Load a text file into the specified `table_name`
+        Load a text file into the specified :code:`table_name`
 
         For most insertions, this will be faster and produce less strain on
         Teradata than using :class:`~giraffez.load.TeradataMLoad` (:class:`giraffez.MLoad`).
@@ -72,12 +72,12 @@ class TeradataLoad(TeradataCmd):
 
         :param str table_name: The name of the destination table
         :param str input_file_name: The name of the file to read rows from
-        :param str delimiter: The delimiter used by the input file (or `None` 
+        :param str delimiter: The delimiter used by the input file (or :code:`None` 
             to infer it from the header).
         :param str null: The string used to indicated nulled values in the
-            file (defaults to `'NULL'`).
-        :param bool date_conversion: If `True`, attempts to coerce date fields
-            into a standard format (defaults to `False`).
+            file (defaults to :code:`'NULL'`).
+        :param bool date_conversion: If :code:`True`, attempts to coerce date fields
+            into a standard format (defaults to :code:`False`).
         :return: A dictionary containing counts of applied rows and errors
         :rtype: dict
         """
@@ -89,20 +89,20 @@ class TeradataLoad(TeradataCmd):
 
     def insert(self, table_name, rows, fields=None, date_conversion=True):
         """
-        Insert Python `list`s as rows into the specified `table_name`
+        Insert Python :code:`list` rows into the specified :code:`table_name`
 
         :param str table_name: The name of the destination table
-        :param list rows: A list of rows. Each row must be a list of 
+        :param list rows: A list of rows. Each row must be a :code:`list` of 
             field values.
         :param list fields: The names of the target fields, in the order that 
-            the data will be presented (defaults to `None` for all columns in the table).
-        :param bool date_conversion: If `True`, attempts to coerce date fields
-            into a standard format (defaults to `False`).
+            the data will be presented (defaults to :code:`None` for all columns in the table).
+        :param bool date_conversion: If :code:`True`, attempts to coerce date fields
+            into a standard format (defaults to :code:`False`).
         :return: A dictionary containing counts of applied rows and errors
         :rtype: dict
-        :raises `giraffez.errors.FormatError`: if the number of values in a row does not match 
-            the length of `fields`
-        :raises `giraffez.errors.GiraffeError`: if `panic` is set and the insert statement 
+        :raises `giraffez.errors.GiraffeEncodeError`: if the number of values in a row does not match 
+            the length of :code:`fields`
+        :raises `giraffez.errors.GiraffeError`: if :code:`panic` is set and the insert statement 
             caused an error.
         """
         columns = self.get_columns(table_name)

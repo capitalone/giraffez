@@ -49,33 +49,33 @@ class TeradataExport(Connection):
 
     :param str query: Either SQL query to execute and return results of, **or** the
         name of a table to export in its entirety
-    :param str host: Omit to read from `~/.girafferc` configuration file.
-    :param str username: Omit to read from `~/.girafferc` configuration file.
-    :param str password: Omit to read from `~/.girafferc` configuration file.
+    :param str host: Omit to read from :code:`~/.girafferc` configuration file.
+    :param str username: Omit to read from :code:`~/.girafferc` configuration file.
+    :param str password: Omit to read from :code:`~/.girafferc` configuration file.
     :param str delimiter: The delimiter to use when exporting with the 'text'
         encoding. Defaults to '|'
     :param str null: The string to use to represent a null value with the
         'text' encoding. Defaults to 'NULL'
     :param str encoding: The encoding format in which to export the data.
         Defaults to 'text'.  Possible values are 'text' - delimited text 
-        output, 'dict' - to output each row as a `dict` object mapping column names
+        output, 'dict' - to output each row as a :code:`dict` object mapping column names
         to values, 'json' - to output each row as a JSON encoded string, and 
         'archive' to output in giraffez archive format
     :param int log_level: Specify the desired level of output from the job.
-        Possible values are `giraffez.SILENCE`, `giraffez.INFO` (default),
-        `giraffez.VERBOSE`, and `giraffez.DEBUG`
+        Possible values are :code:`giraffez.SILENCE` :code:`giraffez.INFO` (default),
+        :code:`giraffez.VERBOSE` and :code:`giraffez.DEBUG`
     :param str config: Specify an alternate configuration file to be read from, when previous paramters are omitted.
     :param str key_file: Specify an alternate key file to use for configuration decryption
     :param string dsn: Specify a connection name from the configuration file to be
         used, in place of the default.
-    :param bool protect: If authentication with Teradata fails and `protect` is `True`, 
+    :param bool protect: If authentication with Teradata fails and :code:`protect` is :code:`True` 
         locks the connection used in the configuration file. This can be unlocked using the
-        command `giraffez config --unlock <connection>`, changing the connection password,
+        command :code:`giraffez config --unlock <connection>` changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
     :raises `giraffez.errors.TeradataError`: if the connection cannot be established
 
-    Meant to be used, where possible, with Python's `with` context handler
+    Meant to be used, where possible, with Python's :code:`with` context handler
     to guarantee that connections will be closed gracefully when operation
     is complete:
 
@@ -190,7 +190,7 @@ class TeradataExport(Connection):
         Return the header for the resulting data.
 
         :return: String containing the formatted header, either column names
-            separated by the current `delimiter` value if `encoding` is 'text',
+            separated by the current :code:`delimiter` value if :code:`encoding` is 'text',
             or the serialized :class:`~giraffez.types.Columns` object for
             'archive' encoding
         :rtype: str
@@ -206,7 +206,7 @@ class TeradataExport(Connection):
     @property
     def query(self):
         """
-        :return: The current query if it has been set, otherwise `None`
+        :return: The current query if it has been set, otherwise :code:`None`
         :rtype: str
         """
         return self._query
