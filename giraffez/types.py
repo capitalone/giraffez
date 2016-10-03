@@ -553,8 +553,16 @@ class Result(object):
         """
         return self.result["rows"]
 
+    def items(self):
+        for row in self.rows:
+            yield row.to_dict()
+
     def to_json(self):
-        return [row.to_json() for row in self.rows]
+        """
+        .. deprecated:: 1.0.5
+            Use :meth:`~giraffez.types.Result.items` instead.
+        """
+        return self.items()
 
     def __getattr__(self, name):
         try:
@@ -688,8 +696,15 @@ class Row(object):
         self.column_map = columns._column_map
         self.row = row
 
-    def to_json(self):
+    def to_dict(self):
         return {k.name: v for k, v in zip(self.columns, self)}
+
+    def to_json(self):
+        """
+        .. deprecated:: 1.0.5
+            Use :meth:`~giraffez.types.Row.to_dict` instead.
+        """
+        return self.to_dict()
 
     def __getattr__(self, name):
         try:
@@ -716,7 +731,7 @@ class Row(object):
         return len(self.row)
 
     def __repr__(self):
-        return str(self.to_json())
+        return str(self.to_dict())
 
     def __str__(self):
         return self.__repr__()
