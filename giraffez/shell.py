@@ -119,7 +119,6 @@ class GiraffeShell(_cmd.Cmd):
     @timer
     @spinner
     def command(self, query):
-        # TODO: Add tests for execute vs. execute_one
         return self.cmd.execute_one(query)
 
     def complete_table(self, text, line, begidx, endidx):
@@ -135,7 +134,7 @@ class GiraffeShell(_cmd.Cmd):
             ec = sum([line.count(c) for c in self.end_chars])
             if sc != ec:
                 while True:
-                    q = raw_input("       > ")
+                    q = input("       > ")
                     if not q:
                         break
                     line += q
