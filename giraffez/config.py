@@ -97,10 +97,18 @@ def _read_config_dict(d, fn, path=[], level=0):
 class Config(object):
     """
     An object for reading, writing, and encrypting giraffez configuration
-    files (YAML files). Creates an encryption key at ~/.giraffepg if one does not
-    exist, and uses the key to encrypt and decrypt values keyed as 'password', 'pass',
-    'apikey', or 'key', as well as any values nested under the key 'secure' (i.e. setting
-    'secure.teradata.user' will encrypt the value.)
+    files (YAML files). Uses the encryption key at ~/.giraffepg to encrypt
+    and decrypt values keyed as 'password', 'pass', 'apikey', or 'key', as
+    well as any values nested under the key 'secure'
+    (i.e. setting 'secure.teradata.user' will encrypt the value.)
+
+    Raises :code:`giraffez.errors.KeyNotFound` if there is no ~/.giraffepg file.
+    To create a key, use :code:`giraffez.crypto.create_key_file`:
+
+    .. code-block:: python
+
+       from giraffez.encrypt import create_key_file
+       create_key_file('/path/to/home/.giraffepg')
 
     Implements the :code:`__enter__` and :code:`__exit__` magic methods so that it can be used
     by Python's :code:`with` context-handler:
