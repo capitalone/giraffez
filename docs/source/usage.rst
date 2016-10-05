@@ -180,33 +180,33 @@ In cases where :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` raises a :
 Archiving tables
 ----------------
 
+Teradata storage space can be expensive and often times data will be stored in Teradata because it needs a permanent home.  However, for infrequently used data giraffez gives the ability to safely archive very large tables to less expensive secondary storage as a giraffez archive file.  Before exporting the table you should save the table schema to flat file (so the table can be recreated later)::
 
+    giraffez cmd "show table database.large_table" > database_large_table.sql
 
+Now you can use :ref:`export <export-command>` to save the data to a compressed archive::
 
+    giraffez export database.large_table database_large_table.gd.gz -az
 
+Always try to verify the contents of the file using :ref:`fmt <fmt-command>` before removing any tables.  You can use ``--count`` to get a full count of how many rows are in the archive file and ``--head <n>`` will print the first ``n`` rows to the console.
 
+If everything looks ok then you can `drop` your original table. All that is necessary to recreate this table later is to use :ref:`cmd <cmd-command>` to recreate the table::
 
-giraffez can be used to store tables outside of Teradata, for archival purposes or simply in order to save space. In order to optimize the speed of these operations, the size of the archived files, and the retention of original data without alteration, the original Teradata binary encoding of rows is used alongside special binary headers and row indicators which preserve the format and schema of the data.
+    giraffez cmd database_large_table.sql
 
-To export a table using the archive output format::
-
-    giraffez export database.table_name database.table_name.gd --archive
-
-This is equivalent to specifying the encoding as 'archive' (``-e archive``) when exporting. Note that because no decoding of the row data is necessary this process is very fast.
-
-To further reduce the size of the resulting archive file, the ``-z`` (``--gzip``) option can be used::
-
-    giraffez export database.table_name database.table_name.gd.gz -az
-
-In order to read an archive file as a delimited text file, use giraffez :ref:`fmt-command`::
-
-    giraffez fmt database.table_name.gd > database.table_name.txt
-
-Loading a file stored in the giraffez archive format is just as easy::
+and then load the file back with :ref:`mload <mload-command>`::
 
     giraffez mload database.table_name.gd database.another_table_name
 
-Note that because the giraffez archive format is recognized by the ``mload`` module automatically, it is not necessary to specify the encoding of the input file.
+The :ref:`mload <mload-command>` command automatically detects the files type as a giraffez archive file so it doesn't need any additional options.
+
+You can also archive only a portion of a large table and use `delete` to remove only the parts of the table that have been archived::
+
+    giraffez export "select * from database.large_table where report_dt >= '2015-01-01' and report_dt < '2016-01-01'" 20150101_20160101_database_large_table.gd.gz -az
+    giraffez cmd "delete * from database.large_table where report_dt >= '2015-01-01' and report_dt < '2016-01-01'"
+
+
+**Note:** As always be **very** careful with any type of actions that remove valuable data.
 
 Generating config/key files
 ---------------------------
