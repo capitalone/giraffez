@@ -18,7 +18,7 @@ Third-party libraries
 
 Please note that giraffez will install successfully without these libraries. They were made optional to allow the ``giraffez config`` and ``giraffez secret`` features to be accessible without needing the Teradata libraries installed.
 
-More information on these libraries can be found :ref:`here <teradata-libraries>`
+More information on these libraries can be found :ref:`here <teradata-libraries>`.
 
 If installing giraffez from a `Python Wheel <http://pythonwheels.com/>`_ there are some additional requirements:
 
