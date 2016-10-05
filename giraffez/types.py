@@ -256,6 +256,9 @@ class Columns(object):
     def __str__(self):
         return ",".join([c.name for c in self.columns])
 
+    def __repr__(self):
+        return "\n".join([repr(c) for c in self.columns])
+
     def serialize(self):
         """
         Serializes the columns into the giraffez archive header
@@ -651,6 +654,9 @@ class Results(object):
     def __iter__(self):
         for result in self.results:
             yield result
+
+    def __len__(self):
+        return len(self.results)
 
     def __repr__(self):
         return "\n".join([str(x) for x in self.results])

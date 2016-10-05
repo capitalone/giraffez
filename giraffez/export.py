@@ -81,8 +81,8 @@ class TeradataExport(Connection):
 
     .. code-block:: python
 
-       with giraffez.Export('db.table1') as export:
-           print export.header
+       with giraffez.Export('dbc.dbcinfo') as export:
+           print(export.header)
            for row in export.results():
                print(row)
     """
@@ -194,7 +194,7 @@ class TeradataExport(Connection):
             or the serialized :class:`~giraffez.types.Columns` object for
             'archive' encoding
         :rtype: str
-        :raises `giraffez.errors.giraffez`: if the query or table
+        :raises `giraffez.errors.GiraffeError`: if the query or table
             has not been specified
         """
         if self.query is None:
@@ -251,14 +251,14 @@ class TeradataExport(Connection):
         Teradata and processed. 
         
         :return: A generator that can be iterated over or coerced into a list.
-        :rtype: iterator (yields rows as strings)
+        :rtype: iterator (yields ``string`` or ``dict``)
 
         .. code-block:: python
 
            # iterate over results
-           with giraffez.Export('db.table1') as export:
+           with giraffez.Export('dbc.dbcinfo') as export:
                for row in export.results():
-                   print row
+                   print(row)
 
            # retrieve results as a list
            with giraffez.Export('db.table2') as export:

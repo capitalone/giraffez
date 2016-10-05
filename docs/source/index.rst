@@ -13,6 +13,8 @@ Contents:
 
    intro
    command-line
+   quickstart
+   usage
    api
    FAQ <FAQ>
    GitHub <http://github.com/capitalone/giraffez>
