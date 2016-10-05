@@ -1,6 +1,45 @@
 giraffez Changelog
 ======================
 
+Version 1.0.5
+-------------
+Oct 5 2016
+
+- Fix Python3 incompatible raw_input
+- Add new methods to Row/Result to replace to_json
+
+
+Version 1.0.4
+-------------
+Sep 5 2016
+
+- Improve build tools and add graceful shutdown (no longer registered by default)
+- Fix MOD_DEF macros not working in MSVC 10 compiler
+- Add missing import in giraffez/parser.py
+- Fix decimal64 overflow on MSVC
+
+
+Version 1.0.3
+-------------
+Sep 1 2016
+
+- All C extensions now required for successful build
+
+
+Version 1.0.2
+-------------
+Sep 1 2016
+
+- Fixes #3
+
+
+Version 1.0.1
+-------------
+Aug 31 2016
+
+- Fixes #1
+
+
 Version 1.0
 -----------
 Aug 11 2016
