@@ -7,7 +7,7 @@ Oct 5 2016
 
 - Fix Python3 incompatible raw_input
 - Add new methods to Row/Result to replace to_json
-
+- Fix Export overwriting the same column names when using dict output
 
 Version 1.0.4
 -------------
