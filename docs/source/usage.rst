@@ -227,4 +227,6 @@ and creating a new encryption key can be achieved with:
     from giraffez.encrypt import create_key_file
     create_key_file(".giraffepg")
 
-While giraffez does look by default for these files in `$HOME/{.girafferc,.giraffepg}` there is no particular naming scheme for these files being enforced and the path specified when creating these files can be someting else completely.
+While giraffez does look by default for these files in :code:`$HOME/{.girafferc,.giraffepg}` there is no particular naming scheme for these files being enforced and the path specified when creating these files can be someting else completely.
+
+**Note:** the giraffez configuration file must have permissions 0600 set, and encryption key files must have the permissions 0400. These are applied automatically when the methods above are used.
