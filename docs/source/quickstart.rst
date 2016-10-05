@@ -61,7 +61,7 @@ It is important to note that :meth:`execute <giraffez.cmd.TeradataCmd.execute>` 
     {'infodata': 'Standard', 'infokey': 'LANGUAGE SUPPORT MODE'}
     {'total': 3}
 
-This behavior of Teradata is the reason why :meth:`execute <giraffez.cmd.TeradataCmd.execute>` returns a :class:`Results <giraffez.types.Results>` object instead of a single :class:`Result <giraffez.types.Result>`.  The :class:`Results <giraffez.types.Results>` provies a convenient method for retreiving only the first result (:meth:`one <giraffez.types.Results.one>`) or :meth:`execute_one <giraffez.cmd.TeradataCmd.execute_one>` can be used instead:
+This behavior of Teradata is the reason why :meth:`execute <giraffez.cmd.TeradataCmd.execute>` returns a :class:`Results <giraffez.types.Results>` object instead of a single :class:`Result <giraffez.types.Result>`.  The :class:`Results <giraffez.types.Results>` provies a convenient method for retrieving only the first result (:meth:`one <giraffez.types.Results.one>`) or :meth:`execute_one <giraffez.cmd.TeradataCmd.execute_one>` can be used instead:
 
 .. code-block:: python
 
