@@ -50,6 +50,14 @@ Using :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` with pandas:
         result = cmd.execute_one("select infokey, character_length(infokey) as nchars from dbc.dbcinfo")
         df = pd.DataFrame(result.items())
 
+.. code-block:: python
+
+    >>> print(df)
+                     infokey  nchars
+    0                VERSION       7
+    1                RELEASE       7
+    2  LANGUAGE SUPPORT MODE      21
+
 Using :class:`giraffez.Export <giraffez.export.TeradataExport>` with pandas:
 
 .. code-block:: python
@@ -61,20 +69,24 @@ Using :class:`giraffez.Export <giraffez.export.TeradataExport>` with pandas:
 .. code-block:: python
 
     >>> print(df)
-                     infokey  nchars
-    0                VERSION       7
-    1                RELEASE       7
-    2  LANGUAGE SUPPORT MODE      21
+                     infokey  infokey_1
+    0                VERSION          7
+    1                RELEASE          7
+    2  LANGUAGE SUPPORT MODE         21
     >>> print(df.mean())
     nchars    11.666667
     dtype: float64
+
+.. _export-aliasing:
+
+**Note:** because of the way the TPT Export driver functions, the provided alias "nchars" for the computed column in the query is not available. In this case, the source column "infokey" is used. Rather than allow duplicate column names, :class:`giraffez.Export <giraffez.export.TeradataExport>` detects this and enumerates the offending columns. If this behavior is unacceptable or the alias is needed, you may need to use :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` or modify your query.
  
 
 Exporting to different formats
 ------------------------------
 
 
-Using the Python standard library `csv <https://docs.python.org/3/library/csv.html>`:
+Using the Python standard library `csv <https://docs.python.org/3/library/csv.html>`_:
 
 .. code-block:: python
 

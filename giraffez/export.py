@@ -21,6 +21,8 @@ try:
 except ImportError:
     GIRAFFE_NOT_FOUND = True
 
+from collections import defaultdict
+
 from .config import *
 from .connection import *
 from .constants import *
@@ -116,6 +118,11 @@ class TeradataExport(Connection):
         if not self.initiated:
             self._initiate()
         columns = Columns(self.export.columns())
+        _columns = defaultdict(int)
+        for column in columns:
+            if column.original_name in _columns:
+                column.title = "{}_{}".format(column.original_name, _columns[column.original_name])
+            _columns[column.original_name] += 1
         for column in columns:
             log.verbose("Debug[1]", repr(column))
         self.export.set_columns(columns)
