@@ -28,6 +28,12 @@ __all__ = ['create_key_file', 'generate_key', 'Crypto']
 
 
 def create_key_file(path):
+    """
+    Creates a new encryption key in the path provided and sets the file
+    permissions.  Setting the file permissions currently does not work
+    on Windows platforms because of the differences in how file
+    permissions are read and modified.
+    """
     iv = "{}{}".format(os.urandom(32), time.time())
     new_key = generate_key(ensure_bytes(iv))
     with open(path, "wb") as f:

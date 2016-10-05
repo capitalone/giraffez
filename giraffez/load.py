@@ -97,7 +97,7 @@ class TeradataLoad(TeradataCmd):
         :param list fields: The names of the target fields, in the order that 
             the data will be presented (defaults to :code:`None` for all columns in the table).
         :param bool date_conversion: If :code:`True`, attempts to coerce date fields
-            into a standard format (defaults to :code:`False`).
+            into a standard format (defaults to :code:`True`).
         :return: A dictionary containing counts of applied rows and errors
         :rtype: dict
         :raises `giraffez.errors.GiraffeEncodeError`: if the number of values in a row does not match 

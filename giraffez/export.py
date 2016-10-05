@@ -21,6 +21,8 @@ try:
 except ImportError:
     GIRAFFE_NOT_FOUND = True
 
+from collections import defaultdict
+
 from .config import *
 from .connection import *
 from .constants import *
@@ -81,8 +83,8 @@ class TeradataExport(Connection):
 
     .. code-block:: python
 
-       with giraffez.Export('db.table1') as export:
-           print export.header
+       with giraffez.Export('dbc.dbcinfo') as export:
+           print(export.header)
            for row in export.results():
                print(row)
     """
@@ -116,6 +118,11 @@ class TeradataExport(Connection):
         if not self.initiated:
             self._initiate()
         columns = Columns(self.export.columns())
+        _columns = defaultdict(int)
+        for column in columns:
+            if column.original_name in _columns:
+                column.title = "{}_{}".format(column.original_name, _columns[column.original_name])
+            _columns[column.original_name] += 1
         for column in columns:
             log.verbose("Debug[1]", repr(column))
         self.export.set_columns(columns)
@@ -194,7 +201,7 @@ class TeradataExport(Connection):
             or the serialized :class:`~giraffez.types.Columns` object for
             'archive' encoding
         :rtype: str
-        :raises `giraffez.errors.giraffez`: if the query or table
+        :raises `giraffez.errors.GiraffeError`: if the query or table
             has not been specified
         """
         if self.query is None:
@@ -251,14 +258,14 @@ class TeradataExport(Connection):
         Teradata and processed. 
         
         :return: A generator that can be iterated over or coerced into a list.
-        :rtype: iterator (yields rows as strings)
+        :rtype: iterator (yields ``string`` or ``dict``)
 
         .. code-block:: python
 
            # iterate over results
-           with giraffez.Export('db.table1') as export:
+           with giraffez.Export('dbc.dbcinfo') as export:
                for row in export.results():
-                   print row
+                   print(row)
 
            # retrieve results as a list
            with giraffez.Export('db.table2') as export:

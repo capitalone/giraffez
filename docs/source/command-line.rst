@@ -1,9 +1,3 @@
-************
-Command Line
-************
-
-.. contents::
-
 Commands
 ========
 
@@ -223,30 +217,3 @@ When accessing settings from ``giraffez secret``, keys will first be checked rel
 Any value set under the ``secure`` root key will be encrypted so that it can be used to protect any kind of sensitive information. While reading from ``secure`` can be accomplished from ``giraffez secret``, the values must be set by ``giraffez config`` like so::
 
     giraffez config --set secure.sso.username abc123
-
-.. _archiving:
-
-Archiving
-=========
-
-giraffez can be used to store tables outside of Teradata, for archival purposes or simply in order to save space. In order to optimize the speed of these operations, the size of the archived files, and the retention of original data without alteration, the original Teradata binary encoding of rows is used alongside special binary headers and row indicators which preserve the format and schema of the data.
-
-To export a table using the archive output format::
-
-    giraffez export database.table_name database.table_name.gd --archive
-
-This is equivalent to specifying the encoding as 'archive' (``-e archive``) when exporting. Note that because no decoding of the row data is necessary this process is very fast.
-
-To further reduce the size of the resulting archive file, the ``-z`` (``--gzip``) option can be used::
-
-    giraffez export database.table_name database.table_name.gd.gz -az
-
-In order to read an archive file as a delimited text file, use giraffez :ref:`fmt-command`::
-
-    giraffez fmt database.table_name.gd > database.table_name.txt
-
-Loading a file stored in the giraffez archive format is just as easy::
-
-    giraffez mload database.table_name.gd database.another_table_name
-
-Note that because the giraffez archive format is recognized by the ``mload`` module automatically, it is not necessary to specify the encoding of the input file.

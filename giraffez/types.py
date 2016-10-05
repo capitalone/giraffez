@@ -256,6 +256,9 @@ class Columns(object):
     def __str__(self):
         return ",".join([c.name for c in self.columns])
 
+    def __repr__(self):
+        return "\n".join([repr(c) for c in self.columns])
+
     def serialize(self):
         """
         Serializes the columns into the giraffez archive header
@@ -553,8 +556,24 @@ class Result(object):
         """
         return self.result["rows"]
 
+    def items(self):
+        """
+        Generator method for iterating over the :code:`dict` representations of
+        each row in the result
+
+        :return: a generator yielding each row with 
+            :meth:`~giraffez.types.Row.to_dict` called on each
+        :rtype: generator of :code:`dict`
+        """
+        for row in self.rows:
+            yield row.to_dict()
+
     def to_json(self):
-        return [row.to_json() for row in self.rows]
+        """
+        .. deprecated:: 1.0.5
+            Use :meth:`~giraffez.types.Result.items` instead.
+        """
+        return self.items()
 
     def __getattr__(self, name):
         try:
@@ -644,6 +663,9 @@ class Results(object):
         for result in self.results:
             yield result
 
+    def __len__(self):
+        return len(self.results)
+
     def __repr__(self):
         return "\n".join([str(x) for x in self.results])
 
@@ -688,8 +710,23 @@ class Row(object):
         self.column_map = columns._column_map
         self.row = row
 
-    def to_json(self):
+    def to_dict(self):
+        """
+        Represents the contents of the row as a :code:`dict` with the column
+        names as keys, and the row's fields as values. Used by 
+        :meth:`~giraffez.types.Result.items` and useful for passing row data to
+        functions which expect dictionaries.
+
+        :rtype: dict
+        """
         return {k.name: v for k, v in zip(self.columns, self)}
+
+    def to_json(self):
+        """
+        .. deprecated:: 1.0.5
+            Use :meth:`~giraffez.types.Row.to_dict` instead.
+        """
+        return self.to_dict()
 
     def __getattr__(self, name):
         try:
@@ -716,7 +753,7 @@ class Row(object):
         return len(self.row)
 
     def __repr__(self):
-        return str(self.to_json())
+        return str(self.to_dict())
 
     def __str__(self):
         return self.__repr__()
