@@ -557,6 +557,14 @@ class Result(object):
         return self.result["rows"]
 
     def items(self):
+        """
+        Generator method for iterating over the :code:`dict` representations of
+        each row in the result
+
+        :return: a generator yielding each row with 
+            :meth:`~giraffez.types.Row.to_dict` called on each
+        :rtype: generator of :code:`dict`
+        """
         for row in self.rows:
             yield row.to_dict()
 
@@ -703,6 +711,14 @@ class Row(object):
         self.row = row
 
     def to_dict(self):
+        """
+        Represents the contents of the row as a :code:`dict` with the column
+        names as keys, and the row's fields as values. Used by 
+        :meth:`~giraffez.types.Result.items` and useful for passing row data to
+        functions which expect dictionaries.
+
+        :rtype: dict
+        """
         return {k.name: v for k, v in zip(self.columns, self)}
 
     def to_json(self):
