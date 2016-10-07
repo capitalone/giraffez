@@ -96,9 +96,8 @@ class TeradataCmd(Connection):
         self.panic = panic
 
     def _connect(self, host, username, password):
-        self.cmd = _cli.Cmd()
         try:
-            self.cmd.connect(host, username, password)
+            self.cmd = _cli.Cmd(host, username, password)
         except _cli.error as error:
             raise TeradataError(error)
 

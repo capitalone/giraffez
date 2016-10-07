@@ -18,16 +18,29 @@
 #define __GIRAFFE_LOAD_H
 
 #include <Python.h>
-#include "teradata/load.h"
+#include <connection.h>
+#include <schema.h>
+#include <DMLGroup.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+using namespace teradata::client::API;
+
 
 typedef struct {
     PyObject_HEAD
-    TeradataUpdate* update;
+    char* select_stmt;
+    Schema* table_schema;
+    DMLGroup* dml_group;
+    Connection* conn;
+    char* error_msg;
+    TD_ErrorType error_type;
+    bool table_set;
+    bool connected;
+    int connection_status;
+    int row_status;
 } Load;
 
 extern PyTypeObject LoadType;

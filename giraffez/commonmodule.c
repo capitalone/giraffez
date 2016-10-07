@@ -65,7 +65,7 @@ static PyObject* register_shutdown(PyObject* self) {
 }
 
 static PyMethodDef module_methods[] = {
-    {"register_graceful_shutdown_signal", register_shutdown, METH_NOARGS, NULL},
+    {"register_graceful_shutdown_signal", (PyCFunction)register_shutdown, METH_NOARGS, NULL},
     {NULL}  /* Sentinel */
 };
 

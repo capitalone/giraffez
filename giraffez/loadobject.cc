@@ -16,11 +16,18 @@
 
 #include "loadobject.h"
 #include "compat.h"
-#include "teradata/load.h"
+#include <connection.h>
+#include <schema.h>
+#include <DMLGroup.h>
 
 
 static void Load_dealloc(Load* self) {
-    delete self->update;
+    if (self->connected) {
+        self->connection_status = self->conn->Terminate();
+        delete self->conn;
+        delete self->table_schema;
+    }
+    self->connected = false;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -32,7 +39,27 @@ static PyObject* Load_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     }
     Load* self;
     self = (Load*)type->tp_alloc(type, 0);
-    self->update = new TeradataUpdate(host, username, password);
+    self->error_msg = strdup(string("").c_str());
+    self->connection_status = 0;
+    self->connected = false;
+    self->table_set = false;
+    self->table_schema = new Schema(strdup(string("input").c_str()));
+    self->conn = new Connection();
+    self->conn->AddAttribute(TD_SYSTEM_OPERATOR, TD_UPDATE);
+
+    self->conn->AddAttribute(TD_DROPLOGTABLE, strdup(string("Y").c_str()));
+    self->conn->AddAttribute(TD_DROPWORKTABLE, strdup(string("Y").c_str()));
+    self->conn->AddAttribute(TD_DROPERRORTABLE, strdup(string("Y").c_str()));
+
+    self->conn->AddAttribute(TD_USER_NAME, username);
+    self->conn->AddAttribute(TD_USER_PASSWORD, password);
+    self->conn->AddAttribute(TD_TDP_ID, host);
+
+    self->conn->AddAttribute(TD_TENACITY_HOURS, 1);
+    self->conn->AddAttribute(TD_TENACITY_SLEEP, 1);
+    self->conn->AddAttribute(TD_ERROR_LIMIT, 1);
+    self->conn->AddAttribute(TD_MAX_DECIMAL_DIGITS, 38);
+    self->conn->AddAttribute(TD_MAX_SESSIONS, 20);
     return (PyObject*)self;
 }
 
@@ -42,57 +69,68 @@ static int Load_init(Load* self, PyObject* args, PyObject* kwds) {
 
 static PyObject* Load_add_attribute(Load* self, PyObject* args, PyObject* kwds) {
     int key = -1;
-    char* value = NULL;
+    PyObject* value = NULL;
 
-    if (!PyArg_ParseTuple(args, "is", &key, &value)) {
-        Py_RETURN_NONE;
+    if (!PyArg_ParseTuple(args, "iO", &key, &value)) {
+        return NULL;
     }
-    self->update->add_attribute(key, strdup(value));
+    if PyLong_Check(value) {
+        self->conn->AddAttribute((TD_Attribute)key, (int)PyLong_AsLong(value));
+    } else {
+        self->conn->AddAttribute((TD_Attribute)key, PyUnicode_AsUTF8(value));
+    }
     Py_RETURN_NONE;
 }
 
 static PyObject* Load_apply_rows(Load* self, PyObject* args, PyObject* kwds) {
-    self->update->apply_rows();
+    self->conn->ApplyRows();
     Py_RETURN_NONE;
 }
 
 static PyObject* Load_checkpoint(Load* self, PyObject* args, PyObject* kwds) {
-    int result = self->update->checkpoint();
+    int result;
+    char* data;
+    TD_Length length = 0;
+    result = self->conn->Checkpoint(&data, &length);
     return Py_BuildValue("i", result);
 }
 
 static PyObject* Load_close(Load* self, PyObject* args, PyObject* kwds) {
-    self->update->close();
+    if (self->connected) {
+        self->connection_status = self->conn->Terminate();
+        delete self->conn;
+        delete self->table_schema;
+    }
+    self->connected = false;
     Py_RETURN_NONE;
 }
 
 static PyObject* Load_end_acquisition(Load* self, PyObject* args, PyObject* kwds) {
-    self->update->end_acquisition();
+    self->conn->EndAcquisition();
     Py_RETURN_NONE;
 }
 
 static PyObject* Load_error_message(Load* self, PyObject* args, PyObject* kwds) {
-    char* msg = self->update->error_message();
-    if (msg == NULL) {
+    if (self->error_msg == NULL) {
         Py_RETURN_NONE;
     }
-    return PyUnicode_FromString(msg);
+    return PyUnicode_FromString(self->error_msg);
 }
 
 static PyObject* Load_get_error_info(Load* self, PyObject* args, PyObject* kwds) {
-    self->update->get_error_info();
+    self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
     Py_RETURN_NONE;
 }
 
 static PyObject* Load_get_event(Load* self, PyObject* args, PyObject* kwds) {
-    int event_type;
-    int event_index = 0;
+    TD_EventType event_type;
+    TD_Index event_index = 0;
     if (!PyArg_ParseTuple(args, "i|i", &event_type, &event_index)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
     char* data = NULL;
-    int length = 0;
-    int status = self->update->get_event(event_type, &data, &length, event_index);
+    TD_Length length = 0;
+    int status = self->conn->GetEvent(event_type, &data, &length, event_index);
     if (status == TD_Error || status == TD_Unavailable) {
         Py_RETURN_NONE;
     }
@@ -115,48 +153,67 @@ static PyObject* Load_initiate(Load* self, PyObject* args, PyObject* kwds) {
                     &name, &data_type, &size, &precision, &scale)) {
             Py_RETURN_NONE;
         }
-        self->update->add_column(name, data_type, size, precision, scale);
+        if (self->table_set) {
+            self->table_schema->AddColumn(name, (TD_DataType)data_type, size, precision, scale);
+        }
     }
-    self->update->add_schema();
-    self->update->add_dmlgroup(dml, dml_option);
+    if (self->table_set) {
+        self->conn->AddSchema(self->table_schema);
+    }
+    TD_Index dmlGroupIndex;
+    if (self->table_set) {
+        DMLGroup* dml_group = new DMLGroup();
+        dml_group->AddStatement(dml);
+        dml_group->AddDMLOption((DMLOption) dml_option);
+        self->conn->AddDMLGroup(dml_group, &dmlGroupIndex);
+        delete dml_group;
+    }
     Py_DECREF(tuple_list);
-    int result = self->update->initiate();
-    return Py_BuildValue("i", result);
+    if (self->table_set) {
+        self->connection_status = self->conn->Initiate();
+        if (self->connection_status >= TD_Error) {
+            self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
+        } else {
+            self->connected = true;
+        }
+    }
+    return Py_BuildValue("i", self->connection_status);
 }
 
 static PyObject* Load_put_buffer(Load* self, PyObject* args, PyObject* kwds) {
     char* buffer;
     int length;
     if (!PyArg_ParseTuple(args, "s#", &buffer, &length)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    int result = self->update->put_buffer(buffer, length);
-    return Py_BuildValue("i", result);
-}
-
-static PyObject* Load_put_row(Load* self, PyObject* args, PyObject* kwds) {
-    char* row;
-    int length;
-    if (!PyArg_ParseTuple(args, "s#", &row, &length)) {
-        Py_RETURN_NONE;
-    }
-    int result = self->update->put_row(row, length);
-    return Py_BuildValue("i", result);
+    self->row_status = self->conn->PutBuffer(buffer, length, 1);
+    return Py_BuildValue("i", self->row_status);
 }
 
 static PyObject* Load_set_table(Load* self, PyObject* args, PyObject* kwds) {
-    char* table_name = NULL;
+    char* _table_name = NULL;
 
-    if (!PyArg_ParseTuple(args, "s", &table_name)) {
-        Py_RETURN_NONE;
+    if (!PyArg_ParseTuple(args, "s", &_table_name)) {
+        return NULL;
     }
-    self->update->set_table(std::string(table_name));
+    std::string table_name = std::string(_table_name);
+    self->conn->AddAttribute(TD_TARGET_TABLE, strdup(table_name.c_str()));
+    std::string log_table = table_name + "_log";
+    self->conn->AddAttribute(TD_LOG_TABLE, strdup(log_table.c_str()));
+    std::string work_table = table_name + "_wt";
+    self->conn->AddArrayAttribute(TD_WORK_TABLE, 1, strdup(work_table.c_str()), NULL);
+    std::string e1_table = table_name + "_e1";
+    std::string e2_table = table_name + "_e2";
+    self->conn->AddArrayAttribute(TD_ERROR_TABLE_1, 1, strdup(e1_table.c_str()), NULL);
+    self->conn->AddArrayAttribute(TD_ERROR_TABLE_2, 1, strdup(e2_table.c_str()), NULL);
+
+    self->table_set = true;
     Py_RETURN_NONE;
 }
 
 static PyObject* Load_status(Load* self, void* closure) {
     PyObject* status = NULL;
-    status = Py_BuildValue("i", self->update->connection_status);
+    status = Py_BuildValue("i", self->connection_status);
     Py_INCREF(status);
     return status;
 }
@@ -177,7 +234,6 @@ static PyMethodDef Load_methods[] = {
     {"get_event", (PyCFunction)Load_get_event, METH_VARARGS, ""},
     {"initiate", (PyCFunction)Load_initiate, METH_VARARGS, "" },
     {"put_buffer", (PyCFunction)Load_put_buffer, METH_VARARGS, ""},
-    {"put_row", (PyCFunction)Load_put_row, METH_VARARGS, "" },
     {"set_table", (PyCFunction)Load_set_table, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };

@@ -18,18 +18,26 @@
 #define __GIRAFFE_EXPORT_H
 
 #include <Python.h>
-#include "teradata/export.h"
+#include <connection.h>
+#include <schema.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+using namespace teradata::client::API;
 
 #include "encoder/columns.h"
 
 
 typedef struct {
     PyObject_HEAD
-    TeradataExport* texport;
+    bool connected;
+    Schema* dynamic_schema;
+    Connection* conn;
+    int connection_status;
+    char* error_msg;
+    TD_ErrorType error_type;
     GiraffeColumns* columns;
 } Export;
 

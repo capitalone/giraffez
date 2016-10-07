@@ -193,13 +193,11 @@ class CLIExtension(Extension):
     name = "giraffez._cli"
 
     sources = [
-        "src/teradata/cmd.c",
         "giraffez/cmdobject.c",
         "giraffez/climodule.c"
     ]
 
     depends = [
-        "src/teradata/cmd.h",
         "giraffez/cmdobject.h",
         "giraffez/climodule.c"
     ]
@@ -257,16 +255,12 @@ class TPTExtension(Extension):
     name = "giraffez._tpt"
 
     sources = [
-        "src/teradata/export.cc",
-        "src/teradata/load.cc",
         "giraffez/exportobject.cc",
         "giraffez/loadobject.cc",
         "giraffez/tptmodule.cc"
     ]
 
     depends = [
-        "src/teradata/export.h",
-        "src/teradata/load.h",
         "giraffez/exportobject.h",
         "giraffez/loadobject.h",
         "giraffez/tptmodule.cc"
