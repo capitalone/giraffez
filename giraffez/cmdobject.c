@@ -59,24 +59,6 @@ static int fetch_request(dbcarea_t* dbc, char cnta[]) {
     return status;
 }
 
-static int close_connection(dbcarea_t* dbc, char cnta[], int status) {
-    Int32 result = EM_OK;
-    if (status == CONNECTED) {
-        dbc->func = DBFDSC;
-        DBCHCL(&result, cnta, dbc);
-    }
-    DBCHCLN(&result, cnta);
-    return result;
-}
-
-static void Cmd_dealloc(Cmd* self) {
-    close_connection(self->dbc, cnta, self->connected);
-    if (self->dbc != NULL) {
-        free(self->dbc);
-    }
-    Py_TYPE(self)->tp_free((PyObject*)self);
-}
-
 static PyObject* Cmd_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     Cmd* self;
     self = (Cmd*)type->tp_alloc(type, 0);
@@ -90,13 +72,12 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
     if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
         return -1;
     }
+
     sprintf(logonstr, "%s/%s,%s", host, username, password);
     self->connected = NOT_CONNECTED;
     self->status = OK;
     self->result = EM_OK;
-    if (self->dbc == NULL) {
-        self->dbc = (dbcarea_t*)malloc(sizeof(dbcarea_t));
-    }
+    self->dbc = (dbcarea_t*)malloc(sizeof(dbcarea_t));
     self->dbc->total_len = sizeof(dbcarea_t);
     DBCHINI(&self->result, cnta, self->dbc);
     if (self->result != EM_OK) {
@@ -160,10 +141,20 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
 
 static PyObject* Cmd_close(Cmd* self) {
     if (self->connected == CONNECTED) {
-        close_connection(self->dbc, cnta, self->connected);
-        self->connected = NOT_CONNECTED;
+        self->dbc->func = DBFDSC;
+        DBCHCL(&self->result, cnta, self->dbc);
     }
+    DBCHCLN(&self->result, cnta);
+    self->connected = NOT_CONNECTED;
     return Py_BuildValue("i", self->connected);
+}
+
+static void Cmd_dealloc(Cmd* self) {
+    Cmd_close(self);
+    if (self->dbc != NULL) {
+        free(self->dbc);
+    }
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
@@ -174,6 +165,11 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
     PyObject* data = PyList_New(0);
     PyObject* error = NULL;
 
+    if (self->connected == NOT_CONNECTED) {
+        PyErr_SetString(GiraffeError, "1: Connection not established.");
+        return NULL;
+    }
+
     if (!PyArg_ParseTuple(args, "s", &command)) {
         return NULL;
     }
@@ -183,7 +179,7 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
     self->dbc->func = DBFIRQ;
     DBCHCL(&self->result, cnta, self->dbc);
     if (self->result != EM_OK) {
-        close_connection(self->dbc, cnta, self->connected);
+        Cmd_close(self);
         PyErr_SetString(GiraffeError, "CLIv2: initiate request failed");
         return NULL;
     }
@@ -197,7 +193,6 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
             PyBytes_Concat(&rows, s);
             Py_DECREF(s);
         }
-
         if (self->dbc->fet_parcel_flavor == PclSTATEMENTINFO) {
             PyObject* s = PyBytes_FromStringAndSize(self->dbc->fet_data_ptr, length);
             PyBytes_Concat(&statementinfo, s);
@@ -246,7 +241,7 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
 }
 
 static PyMethodDef Cmd_methods[] = {
-    {"close", (PyCFunction)Cmd_close, METH_VARARGS, ""},
+    {"close", (PyCFunction)Cmd_close, METH_NOARGS, ""},
     {"execute", (PyCFunction)Cmd_execute, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };
