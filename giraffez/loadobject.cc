@@ -21,19 +21,8 @@
 #include <DMLGroup.h>
 
 
-static void Load_dealloc(Load* self) {
-    if (self->connected) {
-        self->connection_status = self->conn->Terminate();
-        delete self->conn;
-        delete self->table_schema;
-    }
-    self->connected = false;
-    Py_TYPE(self)->tp_free((PyObject*)self);
-}
-
 static PyObject* Load_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     char* host=NULL, *username=NULL, *password=NULL;
-
     if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
         return NULL;
     }
@@ -46,15 +35,12 @@ static PyObject* Load_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     self->table_schema = new Schema(strdup(string("input").c_str()));
     self->conn = new Connection();
     self->conn->AddAttribute(TD_SYSTEM_OPERATOR, TD_UPDATE);
-
     self->conn->AddAttribute(TD_DROPLOGTABLE, strdup(string("Y").c_str()));
     self->conn->AddAttribute(TD_DROPWORKTABLE, strdup(string("Y").c_str()));
     self->conn->AddAttribute(TD_DROPERRORTABLE, strdup(string("Y").c_str()));
-
     self->conn->AddAttribute(TD_USER_NAME, username);
     self->conn->AddAttribute(TD_USER_PASSWORD, password);
     self->conn->AddAttribute(TD_TDP_ID, host);
-
     self->conn->AddAttribute(TD_TENACITY_HOURS, 1);
     self->conn->AddAttribute(TD_TENACITY_SLEEP, 1);
     self->conn->AddAttribute(TD_ERROR_LIMIT, 1);
@@ -82,12 +68,12 @@ static PyObject* Load_add_attribute(Load* self, PyObject* args, PyObject* kwds) 
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_apply_rows(Load* self, PyObject* args, PyObject* kwds) {
+static PyObject* Load_apply_rows(Load* self) {
     self->conn->ApplyRows();
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_checkpoint(Load* self, PyObject* args, PyObject* kwds) {
+static PyObject* Load_checkpoint(Load* self) {
     int result;
     char* data;
     TD_Length length = 0;
@@ -95,7 +81,7 @@ static PyObject* Load_checkpoint(Load* self, PyObject* args, PyObject* kwds) {
     return Py_BuildValue("i", result);
 }
 
-static PyObject* Load_close(Load* self, PyObject* args, PyObject* kwds) {
+static PyObject* Load_close(Load* self) {
     if (self->connected) {
         self->connection_status = self->conn->Terminate();
         delete self->conn;
@@ -105,19 +91,24 @@ static PyObject* Load_close(Load* self, PyObject* args, PyObject* kwds) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_end_acquisition(Load* self, PyObject* args, PyObject* kwds) {
+static void Load_dealloc(Load* self) {
+    Load_close(self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+static PyObject* Load_end_acquisition(Load* self) {
     self->conn->EndAcquisition();
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_error_message(Load* self, PyObject* args, PyObject* kwds) {
+static PyObject* Load_error_message(Load* self) {
     if (self->error_msg == NULL) {
         Py_RETURN_NONE;
     }
     return PyUnicode_FromString(self->error_msg);
 }
 
-static PyObject* Load_get_error_info(Load* self, PyObject* args, PyObject* kwds) {
+static PyObject* Load_get_error_info(Load* self) {
     self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
     Py_RETURN_NONE;
 }
