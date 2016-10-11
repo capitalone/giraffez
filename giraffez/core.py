@@ -53,12 +53,11 @@ class MainCommand(Command):
     usage = "giraffez [args] <command> [options]"
 
     global_arguments = [
-        Argument("-D", "--dsn", default=None, group="global options"),
-        Argument("-c", "--conf", default=None, group="global options"),
-        Argument("-k", "--key", default=None, group="global options"),
-        Argument("-v", "--verbose", action="count", default=0, dest="log_level",
-            group="global options"),
-        Argument("-h", "--help", default=False, help="Print usage", group="global options"),
+        Argument("-D", "--dsn"),
+        Argument("-c", "--conf"),
+        Argument("-k", "--key"),
+        Argument("-v", "--verbose", action="count", default=0, dest="log_level"),
+        Argument("-h", "--help", default=False, help="Print usage"),
     ]
 
     arguments = [

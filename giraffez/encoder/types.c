@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "stmt_info.h"
+#include "types.h"
 #include <stddef.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
@@ -22,8 +22,45 @@
 #include <stdint.h>
 #endif
 #include <stdlib.h>
-#include "encoder/util.h"
+#include "unpack.h"
 
+
+void columns_init(GiraffeColumns *c, size_t initial_size) {
+    c->array = (GiraffeColumn*)malloc(initial_size * sizeof(GiraffeColumn));
+    c->length = 0;
+    c->size = initial_size;
+}
+
+void columns_append(GiraffeColumns *c, GiraffeColumn element) {
+    if (c->length == c->size) {
+        c->size *= 2;
+        c->array = (GiraffeColumn*)realloc(c->array, c->size
+            * sizeof(GiraffeColumn));
+    }
+    c->array[c->length++] = element;
+}
+
+void columns_free(GiraffeColumns *c) {
+    free(c->array);
+    c->array = NULL;
+    c->length = c->size = 0;
+}
+
+void indicator_init(unsigned char** ind, unsigned char** data, size_t header_length) {
+    size_t i;
+    *ind = (unsigned char*)malloc(sizeof(unsigned char)*header_length);
+    for (i=0; i<header_length; i++) {
+        (*ind)[i] = reverse_lookup[*((*data)++)];
+    }
+}
+
+int indicator_read(unsigned char* ind, size_t pos) {
+    return (ind[pos/8] & (1 << (pos % 8)));
+}
+
+void indicator_free(unsigned char** ind) {
+    free(*ind);
+}
 
 void stmt_info_init(StatementInfo *s, size_t initial_size) {
     s->array = (StatementInfoColumn*)malloc(initial_size * sizeof(StatementInfoColumn));
@@ -100,4 +137,3 @@ void parse_ext(unsigned char** data, StatementInfoColumn* column, const uint16_t
         *data += (length - (*data-start));
     }
 }
-

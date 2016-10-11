@@ -15,11 +15,11 @@
  */
 
 #include "exportobject.h"
-#include "compat.h"
-#include "encoder/columns.h"
-#include "encoder/unpack.h"
 #include <connection.h>
 #include <schema.h>
+#include "_compat.h"
+#include "encoder/types.h"
+#include "encoder/unpack.h"
 
 static void Export_dealloc(Export* self) {
     if (self->connected) {
@@ -53,17 +53,13 @@ static PyObject* Export_new(PyTypeObject* type, PyObject* args, PyObject* kwds) 
     self->conn->AddAttribute(TD_MAX_SESSIONS, 32);
     self->conn->AddAttribute(TD_MAX_DECIMAL_DIGITS, 38);
     self->conn->AddAttribute(TD_CHARSET, strdup(string("UTF8").c_str()));
-
-    // Buffer mode
     self->conn->AddAttribute(TD_BUFFER_MODE, strdup(string("YES").c_str()));
     self->conn->AddAttribute(TD_BLOCK_SIZE, 64330);
     self->conn->AddAttribute(TD_BUFFER_HEADER_SIZE, 2);
     self->conn->AddAttribute(TD_BUFFER_LENGTH_SIZE, 2);
     self->conn->AddAttribute(TD_BUFFER_MAX_SIZE, 64260);
     self->conn->AddAttribute(TD_BUFFER_TRAILER_SIZE, 0);
-
     self->conn->AddAttribute(TD_SPOOLMODE, strdup(string("NoSpool").c_str()));
-
     self->conn->AddAttribute(TD_TENACITY_HOURS, 1);
     self->conn->AddAttribute(TD_TENACITY_SLEEP, 1);
     return (PyObject*)self;
@@ -76,7 +72,6 @@ static int Export_init(Export* self, PyObject* args, PyObject* kwds) {
 static PyObject* Export_add_attribute(Export* self, PyObject* args, PyObject* kwds) {
     int key = -1;
     PyObject* value = NULL;
-
     if (!PyArg_ParseTuple(args, "iO", &key, &value)) {
         return NULL;
     }
@@ -99,7 +94,6 @@ static PyObject* Export_close(Export* self, PyObject* args, PyObject * kwds) {
 
 static PyObject* Export_columns(Export* self, PyObject* args, PyObject* kwds) {
     PyObject* column_list = PyList_New(0);
-
     unsigned int count = self->dynamic_schema->GetColumnCount();
     for (std::vector<Column*>::size_type i=0; i < count; i++) {
         Column* c = self->dynamic_schema->GetColumn(i);
@@ -153,7 +147,7 @@ static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* k
     char* null;
     char* delimiter;
     if (!PyArg_ParseTuple(args, "ss", &null, &delimiter)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
     export_status = self->conn->GetBuffer((char**)&data, (TD_Length*)&length);
     if (export_status == TD_END_Method) {
@@ -188,21 +182,17 @@ static PyObject* Export_set_columns(Export* self, PyObject* args, PyObject* kwds
         self->columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
         self->columns->array = NULL;
     }
-
     PyObject* columns_obj;
-
     if (!PyArg_ParseTuple(args, "O", &columns_obj)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-
     columns_init(self->columns, 1);
-
     PyObject* iterator = PyObject_GetIter(columns_obj);
     PyObject* column_obj;
-
     if (iterator == NULL) {
+        PyErr_SetString(PyExc_ValueError, "No columns found.");
+        return NULL;
     }
-
     while ((column_obj = PyIter_Next(iterator))) {
         PyObject* column_name = PyObject_GetAttrString(column_obj, "name");
         PyObject* column_type = PyObject_GetAttrString(column_obj, "type");
@@ -223,26 +213,19 @@ static PyObject* Export_set_columns(Export* self, PyObject* args, PyObject* kwds
         Py_DECREF(column_precision);
         Py_DECREF(column_scale);
         Py_DECREF(gd_type);
-
         columns_append(self->columns, *column);
     }
     self->columns->header_length = (int)ceil(self->columns->length/8.0);
     Py_DECREF(iterator);
-
     Py_RETURN_NONE;
 }
 
-static PyObject* Export_status(Export* self, void* closure) {
+static PyObject* Export_status(Export* self) {
     PyObject* status = NULL;
     status = Py_BuildValue("i", self->connection_status);
     Py_INCREF(status);
     return status;
 }
-
-static PyGetSetDef Export_getset[] = {
-    {(char*)"status", (getter)Export_status, NULL, (char*)"connection status", NULL},
-    {NULL}
-};
 
 static PyMethodDef Export_methods[] = {
     {"add_attribute", (PyCFunction)Export_add_attribute, METH_VARARGS, ""},
@@ -255,6 +238,7 @@ static PyMethodDef Export_methods[] = {
     {"get_schema", (PyCFunction)Export_get_schema, METH_NOARGS, ""},
     {"initiate", (PyCFunction)Export_initiate, METH_NOARGS, ""},
     {"set_columns", (PyCFunction)Export_set_columns, METH_VARARGS, ""},
+    {"status", (PyCFunction)Export_status, METH_NOARGS, ""},
     {NULL}  /* Sentinel */
 };
 
@@ -288,7 +272,7 @@ PyTypeObject ExportType = {
     0,                                              /* tp_iternext */
     Export_methods,                                 /* tp_methods */
     0,                                              /* tp_members */
-    Export_getset,                                  /* tp_getset */
+    0,                                              /* tp_getset */
     0,                                              /* tp_base */
     0,                                              /* tp_dict */
     0,                                              /* tp_descr_get */

@@ -15,10 +15,10 @@
  */
 
 #include "loadobject.h"
-#include "compat.h"
 #include <connection.h>
 #include <schema.h>
 #include <DMLGroup.h>
+#include "_compat.h"
 
 
 static PyObject* Load_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
@@ -56,7 +56,6 @@ static int Load_init(Load* self, PyObject* args, PyObject* kwds) {
 static PyObject* Load_add_attribute(Load* self, PyObject* args, PyObject* kwds) {
     int key = -1;
     PyObject* value = NULL;
-
     if (!PyArg_ParseTuple(args, "iO", &key, &value)) {
         return NULL;
     }
@@ -74,11 +73,14 @@ static PyObject* Load_apply_rows(Load* self) {
 }
 
 static PyObject* Load_checkpoint(Load* self) {
-    int result;
+    int r;
     char* data;
     TD_Length length = 0;
-    result = self->conn->Checkpoint(&data, &length);
-    return Py_BuildValue("i", result);
+    PyObject* result = NULL;
+    r = self->conn->Checkpoint(&data, &length);
+    result = Py_BuildValue("i", r);
+    Py_INCREF(result);
+    return result;
 }
 
 static PyObject* Load_close(Load* self) {
@@ -132,7 +134,7 @@ static PyObject* Load_initiate(Load* self, PyObject* args, PyObject* kwds) {
     PyObject* tuple_list;
     char* dml = NULL;
     int dml_option;
-
+    TD_Index dmlGroupIndex;
     if (!PyArg_ParseTuple(args, "Osi", &tuple_list, &dml, &dml_option)) {
         return NULL;
     }
@@ -151,7 +153,6 @@ static PyObject* Load_initiate(Load* self, PyObject* args, PyObject* kwds) {
     if (self->table_set) {
         self->conn->AddSchema(self->table_schema);
     }
-    TD_Index dmlGroupIndex;
     if (self->table_set) {
         DMLGroup* dml_group = new DMLGroup();
         dml_group->AddStatement(dml);
@@ -183,7 +184,6 @@ static PyObject* Load_put_buffer(Load* self, PyObject* args, PyObject* kwds) {
 
 static PyObject* Load_set_table(Load* self, PyObject* args, PyObject* kwds) {
     char* _table_name = NULL;
-
     if (!PyArg_ParseTuple(args, "s", &_table_name)) {
         return NULL;
     }
@@ -197,22 +197,16 @@ static PyObject* Load_set_table(Load* self, PyObject* args, PyObject* kwds) {
     std::string e2_table = table_name + "_e2";
     self->conn->AddArrayAttribute(TD_ERROR_TABLE_1, 1, strdup(e1_table.c_str()), NULL);
     self->conn->AddArrayAttribute(TD_ERROR_TABLE_2, 1, strdup(e2_table.c_str()), NULL);
-
     self->table_set = true;
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_status(Load* self, void* closure) {
+static PyObject* Load_status(Load* self) {
     PyObject* status = NULL;
     status = Py_BuildValue("i", self->connection_status);
     Py_INCREF(status);
     return status;
 }
-
-static PyGetSetDef Load_getset[] = {
-    {(char*)"status", (getter)Load_status, NULL, (char*)"connection status", NULL},
-    {NULL}
-};
 
 static PyMethodDef Load_methods[] = {
     {"add_attribute", (PyCFunction)Load_add_attribute, METH_VARARGS, ""},
@@ -226,6 +220,7 @@ static PyMethodDef Load_methods[] = {
     {"initiate", (PyCFunction)Load_initiate, METH_VARARGS, "" },
     {"put_buffer", (PyCFunction)Load_put_buffer, METH_VARARGS, ""},
     {"set_table", (PyCFunction)Load_set_table, METH_VARARGS, ""},
+    {"status", (PyCFunction)Load_status, METH_NOARGS, ""},
     {NULL}  /* Sentinel */
 };
 
@@ -259,7 +254,7 @@ PyTypeObject LoadType = {
     0,                                              /* tp_iternext */
     Load_methods,                                   /* tp_methods */
     0,                                              /* tp_members */
-    Load_getset,                                    /* tp_getset */
+    0,                                              /* tp_getset */
     0,                                              /* tp_base */
     0,                                              /* tp_dict */
     0,                                              /* tp_descr_get */

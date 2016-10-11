@@ -14,23 +14,35 @@
  * limitations under the License.
  */
 
-#ifndef __ENCODER_INDICATOR_H
-#define __ENCODER_INDICATOR_H
+#ifndef __GIRAFFE_EXPORT_H
+#define __GIRAFFE_EXPORT_H
+
+#include <Python.h>
+#include <connection.h>
+#include <schema.h>
+#include "encoder/types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stddef.h>
+using namespace teradata::client::API;
 
+typedef struct {
+    PyObject_HEAD
+    bool connected;
+    Schema* dynamic_schema;
+    Connection* conn;
+    int connection_status;
+    char* error_msg;
+    TD_ErrorType error_type;
+    GiraffeColumns* columns;
+} Export;
 
-void indicator_init(unsigned char** ind, unsigned char** data, size_t header_length);
-int indicator_read(unsigned char* ind, size_t pos);
-void indicator_free(unsigned char** ind);
+extern PyTypeObject ExportType;
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

@@ -15,10 +15,10 @@
  */
 
 #include <Python.h>
-#include "compat.h"
+#include "_compat.h"
 
 
-#include "encoderobject.h"
+#include "encoder/encoderobject.h"
 
 
 #ifdef __cplusplus

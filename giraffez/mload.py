@@ -393,7 +393,7 @@ class TeradataMLoad(Connection):
 
     @property
     def status(self):
-        return self.load.status
+        return self.load.status()
 
     @property
     def tables(self):

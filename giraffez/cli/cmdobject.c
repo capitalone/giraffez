@@ -16,12 +16,12 @@
 
 
 #include "cmdobject.h"
-#include "compat.h"
 #include <string.h>
 #include <stdio.h>
 #include <coperr.h>
 #include <dbcarea.h>
 #include <parcel.h>
+#include "_compat.h"
 
 
 PyObject* GiraffeError;

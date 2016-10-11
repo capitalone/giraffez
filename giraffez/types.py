@@ -503,22 +503,22 @@ class Result(object):
     .. code-block:: python
 
        for row in result:
-           print row
+           print(row)
 
     Defines the :code:`__getattr__` magic method to return a list of values for a given column:
 
     .. code-block:: python
 
-       print results.first_name # ['alice', 'bob', 'charlie', ...]
+       print(results.first_name) # ['alice', 'bob', 'charlie', ...]
 
     Defines the :code:`__getitem__` magic method to return a list of values for a given column, or numeric index:
 
     .. code-block:: python
 
-       print results.columns.names # first_name, last_name, id
-       print results['first_name'] # ['alice', 'bob', 'charlie', ...]
-       print results['id'] # ['abc123', 'bcd234', 'cde345', ...]
-       print results[2] # ['abc123', 'bcd234', 'cde345', ...]
+       print(results.columns.names) # first_name, last_name, id
+       print(results['first_name']) # ['alice', 'bob', 'charlie', ...]
+       print(results['id']) # ['abc123', 'bcd234', 'cde345', ...]
+       print(results[2]) # ['abc123', 'bcd234', 'cde345', ...]
     """
 
     def __init__(self, result):
@@ -619,7 +619,7 @@ class Results(object):
        results = cli.execute_many('''select * from table_a;
            select * from table_b;''')
        for result in results:
-           print result.rows
+           print(result.rows)
 
     Defines the :code:`__getitem__` magic method to allow numeric indexing:
 
@@ -627,7 +627,7 @@ class Results(object):
 
        results = cli.execute_many('''select * from table_a;
            select * from table_b;''')
-       print results[1] # results from 'select * from table_b'
+       print(results[1]) # results from 'select * from table_b'
     """
 
     def __init__(self, results=[]):
@@ -683,26 +683,26 @@ class Row(object):
 
        row = results.first()
        for item in row:
-           print item
+           print(item)
 
     Defines the :code:`__getattr__` magic method to return a particular field:
 
     .. code-block:: python
 
        row = results.first()
-       print row.first_name # 'alice'
+       print(row.first_name) # 'alice'
 
        for row in results:
-           print row.first_name # 'alice', 'bob', 'charlie', ...
+           print(row.first_name) # 'alice', 'bob', 'charlie', ...
 
     Defines the :code:`__getitem__` magic method to return a particular field by name or numeric index:
 
     .. code-block:: python
 
        row = results.first()
-       print row['first_name'] # 'alice'
-       print row['id'] # 'abc123'
-       print row[2] # 'abc123'
+       print(row['first_name']) # 'alice'
+       print(row['id']) # 'abc123'
+       print(row[2]) # 'abc123'
     """
 
     def __init__(self, columns, row):

@@ -129,8 +129,8 @@ class TeradataExport(Connection):
         return columns
 
     def _handle_error(self):
-        if self.export.status >= TD_ERROR:
-            if self.export.status == CLI_ERR_INVALID_USER:
+        if self.export.status() >= TD_ERROR:
+            if self.export.status() == CLI_ERR_INVALID_USER:
                 if self.protect:
                     Config.lock_connection(self.config, self.dsn)
                 raise InvalidCredentialsError(self.export.error_message())

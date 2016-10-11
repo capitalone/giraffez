@@ -24,7 +24,8 @@ class TestMLoad(object):
             ["value1", "value2", "value3"],
         ]
         mload = giraffez.MLoad()
-        mload.load = mocker.MagicMock(status=0)
+        mload.load = mocker.MagicMock()
+        mload.load.status.return_value = 0
         mload.load.put_row.return_value = 0
         mload.load.checkpoint.return_value = 0
         mload.load.get_event.side_effect = [

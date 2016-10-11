@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_EXPORT_H
-#define __GIRAFFE_EXPORT_H
+#ifndef __GIRAFFE_LOAD_H
+#define __GIRAFFE_LOAD_H
 
 #include <Python.h>
 #include <connection.h>
 #include <schema.h>
+#include <DMLGroup.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,21 +28,21 @@ extern "C" {
 
 using namespace teradata::client::API;
 
-#include "encoder/columns.h"
-
-
 typedef struct {
     PyObject_HEAD
-    bool connected;
-    Schema* dynamic_schema;
+    char* select_stmt;
+    Schema* table_schema;
+    DMLGroup* dml_group;
     Connection* conn;
-    int connection_status;
     char* error_msg;
     TD_ErrorType error_type;
-    GiraffeColumns* columns;
-} Export;
+    bool table_set;
+    bool connected;
+    int connection_status;
+    int row_status;
+} Load;
 
-extern PyTypeObject ExportType;
+extern PyTypeObject LoadType;
 
 #ifdef __cplusplus
 }

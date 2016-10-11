@@ -26,7 +26,7 @@ class TestExport(object):
 
         export = giraffez.Export()
         export.export = mocker.MagicMock()
-        export.export.status = 0
+        export.export.status.return_value = 0
         export.export.get_buffer_str.side_effect = [expected_results]
         export.export.columns.return_value = columns
 
@@ -56,7 +56,7 @@ class TestExport(object):
         connect_mock = mocker.patch('giraffez.Export._connect')
         export = giraffez.Export()
         export.export = mocker.MagicMock()
-        export.export.status = CLI_ERR_INVALID_USER
+        export.export.status.return_value = CLI_ERR_INVALID_USER
         with pytest.raises(InvalidCredentialsError):
             export._handle_error()
 
@@ -69,7 +69,7 @@ class TestExport(object):
         ]
         export = giraffez.Export()
         export.export = mocker.MagicMock()
-        export.export.status = 0
+        export.export.status.return_value = 0
         export.export.columns.return_value = columns
 
         export.query = "select * from db1.info"
@@ -89,7 +89,7 @@ class TestExport(object):
         ]
         export = giraffez.Export()
         export.export = mocker.MagicMock()
-        export.export.status = 0
+        export.export.status.return_value = 0
         export.export.columns.return_value = columns
 
         export.query = """select col1 as ‘c1’, col2 as “c2”from db1.info a\n join db2.info b\n on a.id = b.id"""

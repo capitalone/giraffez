@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "convert.h"
 #include <Python.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
@@ -22,8 +21,9 @@
 #include <stdint.h>
 #endif
 #include <stdlib.h>
-#include "compat.h"
-#include "util.h"
+#include "_compat.h"
+#include "convert.h"
+#include "unpack.h"
 
 
 PyObject* byte_to_pylong(unsigned char** data) {
