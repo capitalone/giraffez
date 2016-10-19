@@ -182,6 +182,16 @@ static PyObject* Load_put_buffer(Load* self, PyObject* args, PyObject* kwds) {
     return Py_BuildValue("i", self->row_status);
 }
 
+static PyObject* Load_put_row(Load* self, PyObject* args, PyObject* kwds) {
+    char* row;
+    int length;
+    if (!PyArg_ParseTuple(args, "s#", &row, &length)) {
+        return NULL;
+    }
+    self->row_status = self->conn->PutRow(row, length);
+    return Py_BuildValue("i", self->row_status);
+}
+
 static PyObject* Load_set_table(Load* self, PyObject* args, PyObject* kwds) {
     char* _table_name = NULL;
     if (!PyArg_ParseTuple(args, "s", &_table_name)) {
@@ -219,6 +229,7 @@ static PyMethodDef Load_methods[] = {
     {"get_event", (PyCFunction)Load_get_event, METH_VARARGS, ""},
     {"initiate", (PyCFunction)Load_initiate, METH_VARARGS, "" },
     {"put_buffer", (PyCFunction)Load_put_buffer, METH_VARARGS, ""},
+    {"put_row", (PyCFunction)Load_put_row, METH_VARARGS, ""},
     {"set_table", (PyCFunction)Load_set_table, METH_VARARGS, ""},
     {"status", (PyCFunction)Load_status, METH_NOARGS, ""},
     {NULL}  /* Sentinel */
