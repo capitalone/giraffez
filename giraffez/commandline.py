@@ -322,8 +322,6 @@ class FmtCommand(Command):
                 if f.file_type == GIRAFFE_ARCHIVE_FILE:
                     encoder = _encoder.Encoder(columns)
                     processors.append(encoder.unpack_row)
-                else: # text_to_string is handled by the csv parser
-                    pass
                 if args.null:
                     src_null, dst_null = args.null.split(" to ", 1)
                     processors.append(null_handler(src_null))
@@ -413,13 +411,12 @@ class MLoadCommand(Command):
         header = FileReader.read_header(args.input_file)
         if header == GIRAFFE_MAGIC:
             args.encoding = "archive"
+        elif args.delimiter is None:
+            args.delimiter = FileReader.check_delimiter(args.input_file)
 
         if not FileReader.check_length(args.input_file, MLOAD_THRESHOLD):
             show_warning(("USING MLOAD TO INSERT LESS THAN {} ROWS IS NOT RECOMMENDED - USE LOAD "
                 "INSTEAD!").format(MLOAD_THRESHOLD), UserWarning)
-
-        if args.delimiter is None:
-            args.delimiter = FileReader.check_delimiter(args.input_file)
 
         with TeradataMLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as mload:

@@ -311,7 +311,7 @@ class TeradataMLoad(Connection):
             delimiter to be determined from the header of the file. In most
             cases, this behavior is sufficient
         :param str quotechar: The character used to quote fields containing special characters,
-            like the delimiter."
+            like the delimiter.
         :param bool panic: If :code:`True`, when an error is encountered it will be
             raised. Otherwise, the error will be logged and :code:`self.error_count`
             is incremented.
