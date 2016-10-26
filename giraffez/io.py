@@ -19,6 +19,7 @@ import sys
 import gzip
 import struct
 import csv
+import json
 
 from .constants import *
 from .errors import *
@@ -29,8 +30,8 @@ from .utils import *
 from ._compat import *
 
 
-__all__ = ['file_exists', 'file_permissions', 'home_file', 'FileReader', 'ArchiveFileReader',
-    'Reader', 'Writer']
+__all__ = ['file_delimiter', 'file_exists', 'file_permissions', 'home_file', 'FileReader',
+    'ArchiveFileReader', 'CSVReader', 'JSONReader', 'Reader', 'Writer']
 
 
 def file_exists(path):
@@ -40,6 +41,16 @@ def file_exists(path):
     except (OSError, IOError):
         return False
 
+def file_delimiter(path):
+    valid = " abcdefghijklmnopqrstuvwxyz1234567890_"
+    possible = ",|\t"
+    with open(path, "r") as f:
+        header = f.readline().strip()
+        for c in header.lower():
+            if c not in valid and c in possible:
+                return c
+        return None
+
 def file_permissions(path):
     return os.stat(path).st_mode & 0o777
 
@@ -47,9 +58,8 @@ def home_file(filename):
     return os.path.join(os.path.expanduser("~"), filename)
 
 
-class FileReader(object):
-    def __init__(self, path, delimiter=None, encoding=None):
-        self.delimiter = delimiter
+class BaseReader(object):
+    def __init__(self, path):
         abspath = os.path.abspath(path)
         if not os.path.exists(os.path.dirname(abspath)):
             raise FileNotFound("Path '{}' does not exist.".format(os.path.dirname(abspath)))
@@ -59,31 +69,14 @@ class FileReader(object):
                 _open = gzip.open
             else:
                 _open = open
-        self.fd = _open(abspath, "r")
-
-    @classmethod
-    def check_length(cls, path, length):
-        with cls(path) as f:
-            for i, line in enumerate(f, 1):
-                if i >= length:
-                    return True
-            return False
-
-    @classmethod
-    def check_delimiter(cls, path):
-        with cls(path, "rb") as f:
-            header = f.readline().strip()
-            return infer_delimiter(header)
-
-    def field_names(self):
-        header = self.fd.readline().strip()
-        if not self.delimiter:
-            self.delimiter = infer_delimiter(header)
-        return [n.lower().strip() for n in header.split(self.delimiter)]
+        self.fd = _open(abspath, "rt")
+        self._header = None
 
     @property
-    def file_type(self):
-        return DELIMITED_TEXT_FILE
+    def header(self):
+        if self._header is None:
+            raise GiraffeError("Property 'header' not found.")
+        return self._header
 
     def read(self, size=-1):
         return self.fd.read(size)
@@ -116,27 +109,7 @@ class FileReader(object):
             self.fd.close()
 
 
-class CSVReader(object):
-    def __init__(self, path, delimiter=None, encoding=None, quotechar='"'):
-        self.delimiter = delimiter
-        abspath = os.path.abspath(path)
-        if not os.path.exists(os.path.dirname(abspath)):
-            raise FileNotFound("Path '{}' does not exist.".format(os.path.dirname(abspath)))
-        with open(path, "rb") as f:
-            data = f.read(2)
-            if data == GZIP_MAGIC:
-                _open = gzip.open
-            else:
-                _open = open
-
-        if delimiter is None: # read first line to discover delimiter
-            delimiter = self.check_delimiter(abspath)
-
-        self._fd = _open(abspath, 'rt')
-        self.fd = csv.reader(self._fd, delimiter=delimiter, quotechar=quotechar)
-
-        self.header = next(self.fd)
-
+class FileReader(BaseReader):
     @classmethod
     def check_length(cls, path, length):
         with cls(path) as f:
@@ -145,48 +118,45 @@ class CSVReader(object):
                     return True
             return False
 
-    @classmethod
-    def check_delimiter(cls, path):
-        with cls(path, "rb") as f:
-            header = f.readline().strip()
-            return infer_delimiter(header)
 
-    def field_names(self):
-        return self.header
-
-    @property
-    def file_type(self):
-        return DELIMITED_TEXT_FILE
+class CSVReader(FileReader):
+    def __init__(self, path, delimiter=None, quotechar='"'):
+        super(CSVReader, self).__init__(path)
+        delimiter = file_delimiter(path)
+        if delimiter is None:
+            raise GiraffeError("Delimiter could not be inferred.")
+        self.reader = csv.reader(self.fd, delimiter=delimiter, quotechar=quotechar)
+        self._header = next(self.reader)
 
     def readline(self):
-        return next(self.fd)
+        return next(self.reader)
 
     def __iter__(self):
         while True:
-            yield next(self.fd)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, tb):
-        if not self._fd.closed:
-            self._fd.close()
+            yield next(self.reader)
 
 
-class ArchiveFileReader(FileReader):
-    @property
-    def file_type(self):
-        return GIRAFFE_ARCHIVE_FILE
+class JSONReader(FileReader):
+    def __init__(self, path):
+        super(JSONReader, self).__init__(path)
+        self._header = json.loads(next(self.fd)).keys()
+        self.fd.seek(0)
 
-    def columns(self):
+    def readline(self):
+        return json.loads(next(self.fd)).values()
+
+
+class ArchiveFileReader(BaseReader):
+    def __init__(self, path):
+        super(ArchiveFileReader, self).__init__(path)
         if self.fd.tell() != 0:
             raise GiraffeError("Cannot read columns, file descriptor must be at 0.")
         self.fd.read(len(GIRAFFE_MAGIC))
-        header = self.readline()
-        return Columns.deserialize(header)
+        self.columns = Columns.deserialize(self.readline())
 
-    def field_names(self):
-        return self.columns().names
+    @property
+    def header(self):
+        return self.columns.names
 
     def readline(self):
         data = self.fd.read(2)
@@ -198,9 +168,18 @@ class ArchiveFileReader(FileReader):
 
 class Reader(object):
     def __new__(cls, path, **kwargs):
-        data = FileReader.read_header(path)
+        with open(path) as f:
+            data = f.read(len(GIRAFFE_MAGIC))
         if data == GIRAFFE_MAGIC:
-            return ArchiveFileReader(path, **kwargs)
+            return ArchiveFileReader(path)
+        with open(path) as f:
+            data = f.readline().strip()
+        try:
+            obj = json.loads(data)
+            if isinstance(obj, (list, dict)):
+                return JSONReader(path)
+        except ValueError as error:
+            log.debug("Debug[2]", error)
         return CSVReader(path, **kwargs)
 
 
@@ -219,6 +198,8 @@ class Writer(object):
                 os.makedirs(os.path.dirname(abspath))
             if archive:
                 mode = 'b'
+            else:
+                mode = 't'
             if use_gzip:
                 _open = gzip.open
             else:

@@ -31,8 +31,8 @@ from .logging import *
 from ._compat import *
 
 
-__all__ = ['disable_warnings', 'get_version_info', 'import_string', 'infer_delimiter', 'pipeline',
-    'prompt', 'prompt_bool', 'readable_time', 'register_graceful_shutdown_signal', 'show_warning',
+__all__ = ['disable_warnings', 'get_version_info', 'import_string', 'pipeline', 'prompt',
+    'prompt_bool', 'readable_time', 'register_graceful_shutdown_signal', 'show_warning',
     'suppress_context', 'timer']
 
 
@@ -62,14 +62,6 @@ def import_string(import_name):
             return getattr(module, obj_name)
         except AttributeError as error:
             raise ImportError(error)
-
-def infer_delimiter(header_line):
-    valid = " abcdefghijklmnopqrstuvwxyz1234567890_"
-    possible = ",|\t"
-    for c in header_line.lower():
-        if c not in valid and c in possible:
-            return c
-    return None
 
 def pipeline(funcs):
     def _pipeline(x):

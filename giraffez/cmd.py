@@ -168,7 +168,7 @@ class TeradataCmd(Connection):
             return None
         return result
 
-    def execute(self, command, sanitize=True):
+    def execute(self, command, sanitize=True, silent=False):
         """
         Execute commands using CLIv2.
 
@@ -184,14 +184,15 @@ class TeradataCmd(Connection):
             self.options("query", command, 2)
         else:
             self.options("query", truncate(command), 2)
-        log.info("Command", "Executing ...")
-        log.info(self.options)
+        if not silent:
+            log.info("Command", "Executing ...")
+            log.info(self.options)
         if sanitize:
             command = prepare_statement(command) # accounts for comments and newlines
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
         return Results(self._execute(command))
 
-    def execute_one(self, command, sanitize=True):
+    def execute_one(self, command, sanitize=True, silent=False):
         """
         Execute a single command using CLIv2.
 
@@ -202,9 +203,9 @@ class TeradataCmd(Connection):
         :raises `giraffez.errors.TeradataError`: if the query is invalid
         :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
         """
-        return self.execute(command, sanitize).one()
+        return self.execute(command, sanitize, silent).one()
 
-    def execute_many(self, command, sanitize=True, parallel=False):
+    def execute_many(self, command, sanitize=True, parallel=False, silent=False):
         """
         Execute multiple commands using CLIv2, splitting on statements and executing them individually. With :code:`parallel` set, the behavior becomes that of :meth:`~giraffez.Cmd.execute`.
 
@@ -215,14 +216,14 @@ class TeradataCmd(Connection):
         :rtype: :class:`~giraffez.types.Results`
         """
         if parallel:
-            return self.execute(command, sanitize)
+            return self.execute(command, sanitize, silent)
         statements = parse_statement(command)
         results = []
         for statement in statements:
-            results.append(self.execute_one(statement, sanitize))
+            results.append(self.execute_one(statement, sanitize, silent))
         return Results(results)
 
-    def exists(self, object_name):
+    def exists(self, object_name, silent=False):
         """
         Check that object (table or view) :code:`object_name` exists, by executing a :code:`show table object_name` query, 
         followed by a :code:`show view object_name` query if :code:`object_name` is not a table.
@@ -232,15 +233,15 @@ class TeradataCmd(Connection):
         :rtype: bool
         """
         try:
-            self.execute("show table {}".format(object_name))
+            self.execute("show table {}".format(object_name), silent=silent)
             return True
         except ObjectNotTable as error:
-            self.execute("show view {}".format(object_name))
+            self.execute("show view {}".format(object_name), silent=silent)
             return True
         except (ObjectNotView, ObjectDoesNotExist) as error:
             return False
 
-    def get_columns(self, table_name):
+    def get_columns(self, table_name, silent=False):
         """
         Return the column information for :code:`table_name` by executing a :code:`select top 1 * from table_name` query.
 
@@ -248,9 +249,9 @@ class TeradataCmd(Connection):
         :return: the columns of the table
         :rtype: :class:`~giraffez.types.Columns`
         """
-        return self.execute_one("select top 1 * from {}".format(table_name)).columns
+        return self.execute_one("select top 1 * from {}".format(table_name), silent=silent).columns
 
-    def release_mload(self, table_name):
+    def release_mload(self, table_name, silent=False):
         """
         Release an MLoad lock on :code:`table_name` by executing the statement :code:`release mload table_name`
         followed by the statement :code:`release mload table_name in apply` if the lock cannot be released
@@ -261,6 +262,6 @@ class TeradataCmd(Connection):
         :rtype: None or :class:`~giraffez.types.Result`
         """
         try:
-            return self.execute_one("release mload {}".format(table_name))
+            return self.execute_one("release mload {}".format(table_name), silent=silent)
         except CannotReleaseMultiLoad as error:
-            return self.execute_one("release mload {} in apply".format(table_name))
+            return self.execute_one("release mload {} in apply".format(table_name), silent=silent)

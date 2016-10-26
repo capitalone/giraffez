@@ -295,11 +295,11 @@ class FmtCommand(Command):
 
     def run(self, args):
         with Reader(args.input_file) as f:
-            log.verbose("Debug[1]", "File type: ", FILE_TYPE_MAP.get(f.file_type))
-            if f.file_type == DELIMITED_TEXT_FILE:
-                columns = f.field_names()
-            else:
+            log.verbose("Debug[1]", "File type: ", f)
+            if isinstance(f, ArchiveFileReader):
                 columns = f.columns()
+            else:
+                columns = f.header
             for column in columns:
                 log.verbose("Debug[1]", repr(column))
             if args.count:
@@ -319,7 +319,7 @@ class FmtCommand(Command):
                     dst_delimiter = f.delimiter
                 if dst_delimiter is None:
                     dst_delimiter = DEFAULT_DELIMITER
-                if f.file_type == GIRAFFE_ARCHIVE_FILE:
+                if isinstance(f, ArchiveFileReader):
                     encoder = _encoder.Encoder(columns)
                     processors.append(encoder.unpack_row)
                 if args.null:
@@ -369,19 +369,16 @@ class LoadCommand(Command):
         date_conversion = not args.disable_date_conversion
 
         if args.delimiter is None:
-            args.delimiter = FileReader.check_delimiter(args.input_file)
+            args.delimiter = file_delimiter(args.input_file)
 
         with TeradataLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as load:
-            log.info("Load", "Executing ...")
-            log.info('  source      => "{}"'.format(args.input_file))
-            log.info('  output      => "{}"'.format(args.table))
-            log.info('  delimiter   => "{}"'.format(args.delimiter))
-            log.info('  quote char  => "{}"'.format(args.quote_char))
-            log.info('  null        => "{}"'.format(args.null))
+            load.options("source", args.input_file, 0)
+            load.options("output", args.table, 1)
+            load.options("null", args.null, 5)
             start_time = time.time()
             result = load.from_file(args.table, args.input_file, null=args.null, delimiter=args.delimiter,
-                                    date_conversion=date_conversion, quotechar=args.quote_char)
+                date_conversion=date_conversion, quotechar=args.quote_char)
             log.info("Results", "{} errors; {} rows in {}".format(result['errors'], result['count'], readable_time(time.time() - start_time)))
 
 
@@ -411,8 +408,6 @@ class MLoadCommand(Command):
         header = FileReader.read_header(args.input_file)
         if header == GIRAFFE_MAGIC:
             args.encoding = "archive"
-        elif args.delimiter is None:
-            args.delimiter = FileReader.check_delimiter(args.input_file)
 
         if not FileReader.check_length(args.input_file, MLOAD_THRESHOLD):
             show_warning(("USING MLOAD TO INSERT LESS THAN {} ROWS IS NOT RECOMMENDED - USE LOAD "

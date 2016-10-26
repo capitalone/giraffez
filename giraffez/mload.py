@@ -328,11 +328,10 @@ class TeradataMLoad(Connection):
             self.table = table
 
         with Reader(filename, delimiter=delimiter, quotechar=quotechar) as f:
-            self.columns = f.field_names()
+            self.columns = f.header
 
-            if f.file_type == DELIMITED_TEXT_FILE:
+            if isinstance(f, FileReader):
                 self.processor = pipeline([
-                    #text_to_strings(f.delimiter),
                     null_handler(null),
                     python_to_teradata(self.columns, self.allow_precision_loss)
                 ])

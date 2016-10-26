@@ -27,13 +27,13 @@ class TestLoad(object):
             f.write("|".join(["col1", "col2", "col3"]))
             f.write("\n")
             rows = []
-            for i in range(5000):
+            for i in range(100):
                 rows.append("|".join(["value1", "value2", "value3"]))
             f.write("\n".join(rows))
 
         with giraffez.Load() as load:
             result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-        assert result.get('count') == 5000
+        assert result.get('count') == 100
 
     def test_load_from_file_quoted(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
@@ -53,14 +53,14 @@ class TestLoad(object):
             f.write("|".join(["col1", "col2", "col3"]))
             f.write("\n")
             rows = []
-            for i in range(4999):
+            for i in range(99):
                 rows.append("|".join(["value1", "value2", "value3"]))
             rows.append("|".join(["value1",'"value2|withpipe"', "value3"]))
             f.write("\n".join(rows))
 
         with giraffez.Load() as load:
             result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-        assert result.get('count') == 5000
+        assert result.get('count') == 100
 
     def test_load_from_file_single_quoted(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
@@ -80,14 +80,14 @@ class TestLoad(object):
             f.write("|".join(["col1", "col2", "col3"]))
             f.write("\n")
             rows = []
-            for i in range(4999):
+            for i in range(99):
                 rows.append("|".join(["value1", "value2", "value3"]))
             rows.append("|".join(["value1","'value2|withpipe'", "value3"]))
             f.write("\n".join(rows))
 
         with giraffez.Load() as load:
             result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|", quotechar="'")
-        assert result.get('count') == 5000
+        assert result.get('count') == 100
 
 
     def test_load_from_file_nonstandard_quote(self, mocker, tmpfiles):
@@ -108,14 +108,14 @@ class TestLoad(object):
             f.write("|".join(["col1", "col2", "col3"]))
             f.write("\n")
             rows = []
-            for i in range(4999):
+            for i in range(99):
                 rows.append("|".join(["value1", "value2", "value3"]))
             rows.append("|".join(['va"lue1','$value2|withpipe"and"quote$', "value3"]))
             f.write("\n".join(rows))
 
         with giraffez.Load() as load:
             result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|", quotechar="$")
-        assert result.get('count') == 5000
+        assert result.get('count') == 100
 
         
     def test_load_from_file_error(self, mocker, tmpfiles):

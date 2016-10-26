@@ -59,7 +59,7 @@ class TeradataLoad(TeradataCmd):
     """
 
     def from_file(self, table_name, input_file_name, delimiter=None, null=DEFAULT_NULL,
-                  date_conversion=False, quotechar='"'):
+            date_conversion=False, quotechar='"'):
         """
         Load a text file into the specified :code:`table_name`
 
@@ -84,10 +84,14 @@ class TeradataLoad(TeradataCmd):
         :rtype: dict
         """
         with Reader(input_file_name, delimiter=delimiter, quotechar=quotechar) as f:
-            fields = f.field_names()
             preprocessor = null_handler(null)
             rows = (preprocessor(l) for l in f)
-            return self.insert(table_name, rows, fields=fields, date_conversion=date_conversion)
+            if isinstance(f, CSVReader):
+                self.options("delimiter", f.reader.dialect.delimiter, 1)
+                self.options("quote char", f.reader.dialect.quotechar, 2)
+            elif isinstance(f, JSONReader):
+                self.options("encoding", "json", 1)
+            return self.insert(table_name, rows, fields=f.header, date_conversion=date_conversion)
 
     def insert(self, table_name, rows, fields=None, date_conversion=True):
         """
@@ -135,6 +139,8 @@ class TeradataLoad(TeradataCmd):
                 stats['count'] += 1
             if current_block:
                 yield current_block
+        log.info("Load", "Executing ...")
         for block in _fetch():
-            self.execute_many(block, sanitize=True, parallel=True)
+            self.execute_many(block, sanitize=True, parallel=True, silent=True)
+            log.info(self.options)
         return stats
