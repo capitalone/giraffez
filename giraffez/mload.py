@@ -58,7 +58,7 @@ class TeradataMLoad(Connection):
     :param str key_file: Specify an alternate key file to use for configuration decryption
     :param string dsn: Specify a connection name from the configuration file to be
         used, in place of the default.
-    :param bool protect: If authentication with Teradata fails and :code:`protect` is :code:`True`, 
+    :param bool protect: If authentication with Teradata fails and :code:`protect` is :code:`True`,
         locks the connection used in the configuration file. This can be unlocked using the
         command :code:`giraffez config --unlock <connection>`, changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
@@ -66,7 +66,7 @@ class TeradataMLoad(Connection):
     :raises `giraffez.errors.TeradataError`: if the connection cannot be established
 
     If the target table is currently under an MLoad lock (such as if the
-    previous operation failed), a :code:`release mload` statement will be 
+    previous operation failed), a :code:`release mload` statement will be
     executed on the table, and the load job will be re-attempted.
 
     Meant to be used, where possible, with python's :code:`with` context handler
@@ -193,7 +193,7 @@ class TeradataMLoad(Connection):
 
     def cleanup(self):
         """
-        Drops any existing work tables, as returned by 
+        Drops any existing work tables, as returned by
         :meth:`~giraffez.mload.TeradataMLoad.tables`.
 
         :raises `giraffez.errors.TeradataError`: if a Teradata error ocurred
@@ -223,7 +223,7 @@ class TeradataMLoad(Connection):
             order. The value must be a :code:`list` of names in the order that
             the fields of data will be presented in each row.
 
-            Raises :class:`~giraffez.errors.GiraffeError` if :code:`field_names` 
+            Raises :class:`~giraffez.errors.GiraffeError` if :code:`field_names`
             is not a :code:`list`.
 
             Raises :class:`~giraffez.errors.GiraffeError` if the target table
@@ -246,7 +246,7 @@ class TeradataMLoad(Connection):
         The encoding of the file being loaded.
 
         :getter: Returns the name of the encoding being used.
-        :setter: Set the encoding of the input file if not specified to the 
+        :setter: Set the encoding of the input file if not specified to the
             constructor of the instance. Accepted values are :code:`'text'`
             or :code:`'archive'`.
 
@@ -286,7 +286,7 @@ class TeradataMLoad(Connection):
             self._handle_error()
         return exit_code
 
-    def from_file(self, filename, table=None, null=DEFAULT_NULL, delimiter=None, panic=True):
+    def from_file(self, filename, table=None, null=DEFAULT_NULL, delimiter=None, panic=True, quotechar='"'):
         """
         Load from a file into the target table, handling each step of the
         load process.
@@ -298,7 +298,7 @@ class TeradataMLoad(Connection):
 
         It is not necessary to set the columns in use prior to loading from a file.
         In the case of a text file, the header is used to determine column names
-        and their order. Valid delimiters include '|', ',', and '\\t' (tab). When 
+        and their order. Valid delimiters include '|', ',', and '\\t' (tab). When
         loading an archive file, the column information is decoded alongside the data.
 
         :param str filename: The location of the file to be loaded
@@ -310,6 +310,8 @@ class TeradataMLoad(Connection):
             separated by this delimiter. Defaults to :code:`None`, which causes the
             delimiter to be determined from the header of the file. In most
             cases, this behavior is sufficient
+        :param str quotechar: The character used to quote fields containing special characters,
+            like the delimiter.
         :param bool panic: If :code:`True`, when an error is encountered it will be
             raised. Otherwise, the error will be logged and :code:`self.error_count`
             is incremented.
@@ -325,12 +327,12 @@ class TeradataMLoad(Connection):
                 raise GiraffeError("Table must be set or specified to load a file.")
             self.table = table
 
-        with Reader(filename, delimiter=delimiter) as f:
+        with Reader(filename, delimiter=delimiter, quotechar=quotechar) as f:
             self.columns = f.field_names()
 
             if f.file_type == DELIMITED_TEXT_FILE:
                 self.processor = pipeline([
-                    text_to_strings(f.delimiter),
+                    #text_to_strings(f.delimiter),
                     null_handler(null),
                     python_to_teradata(self.columns, self.allow_precision_loss)
                 ])
@@ -426,7 +428,7 @@ class TeradataMLoad(Connection):
             was not given to the constructor of the
             :class:`~giraffez.mload.TeradataMLoad` instance or
             :meth:`~giraffez.mload.TeradataMLoad.from_file`. The value given
-            must include all qualifiers such as database name. 
+            must include all qualifiers such as database name.
 
             Raises :class:`~giraffez.errors.GiraffeError` if the MLoad connection has
             already been initiated, or the :class:`~giraffez.cmd.TeradataCmd` connection cannot

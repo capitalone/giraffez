@@ -18,6 +18,7 @@ import os
 import sys
 import gzip
 import struct
+import csv
 
 from .constants import *
 from .errors import *
@@ -115,6 +116,63 @@ class FileReader(object):
             self.fd.close()
 
 
+class CSVReader(object):
+    def __init__(self, path, delimiter=None, encoding=None, quotechar='"'):
+        self.delimiter = delimiter
+        abspath = os.path.abspath(path)
+        if not os.path.exists(os.path.dirname(abspath)):
+            raise FileNotFound("Path '{}' does not exist.".format(os.path.dirname(abspath)))
+        with open(path, "rb") as f:
+            data = f.read(2)
+            if data == GZIP_MAGIC:
+                _open = gzip.open
+            else:
+                _open = open
+
+        if delimiter is None: # read first line to discover delimiter
+            delimiter = self.check_delimiter(abspath)
+
+        self._fd = _open(abspath, 'rt')
+        self.fd = csv.reader(self._fd, delimiter=delimiter, quotechar=quotechar)
+
+        self.header = next(self.fd)
+
+    @classmethod
+    def check_length(cls, path, length):
+        with cls(path) as f:
+            for i, line in enumerate(f, 1):
+                if i >= length:
+                    return True
+            return False
+
+    @classmethod
+    def check_delimiter(cls, path):
+        with cls(path, "rb") as f:
+            header = f.readline().strip()
+            return infer_delimiter(header)
+
+    def field_names(self):
+        return self.header
+
+    @property
+    def file_type(self):
+        return DELIMITED_TEXT_FILE
+
+    def readline(self):
+        return next(self.fd)
+
+    def __iter__(self):
+        while True:
+            yield next(self.fd)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, tb):
+        if not self._fd.closed:
+            self._fd.close()
+
+
 class ArchiveFileReader(FileReader):
     @property
     def file_type(self):
@@ -143,7 +201,7 @@ class Reader(object):
         data = FileReader.read_header(path)
         if data == GIRAFFE_MAGIC:
             return ArchiveFileReader(path, **kwargs)
-        return FileReader(path, **kwargs)
+        return CSVReader(path, **kwargs)
 
 
 class Writer(object):
