@@ -35,10 +35,10 @@ __all__ = ['TeradataLoad']
 
 class TeradataLoad(TeradataCmd):
     """
-    The class for inserting into Teradata tables using CLIv2. 
+    The class for inserting into Teradata tables using CLIv2.
 
     Exposed under the alias :class:`giraffez.Load`.
-    
+
     This class should be used for inserting into Teradata tables in all but
     very large (> ~100k rows) cases.
 
@@ -54,12 +54,12 @@ class TeradataLoad(TeradataCmd):
            load.from_file('myfile.txt', 'database.my_table')
            # continue executing statements and processing results
 
-    Use in this manner guarantees proper exit-handling and disconnection 
+    Use in this manner guarantees proper exit-handling and disconnection
     when operation is completed (or interrupted).
     """
 
     def from_file(self, table_name, input_file_name, delimiter=None, null=DEFAULT_NULL,
-            date_conversion=False):
+                  date_conversion=False, quotechar='"'):
         """
         Load a text file into the specified :code:`table_name`
 
@@ -72,8 +72,10 @@ class TeradataLoad(TeradataCmd):
 
         :param str table_name: The name of the destination table
         :param str input_file_name: The name of the file to read rows from
-        :param str delimiter: The delimiter used by the input file (or :code:`None` 
+        :param str delimiter: The delimiter used by the input file (or :code:`None`
             to infer it from the header).
+        :param str quotechar: The character used to quote fields containing special characters,
+            like the delimiter."
         :param str null: The string used to indicated nulled values in the
             file (defaults to :code:`'NULL'`).
         :param bool date_conversion: If :code:`True`, attempts to coerce date fields
@@ -81,10 +83,10 @@ class TeradataLoad(TeradataCmd):
         :return: A dictionary containing counts of applied rows and errors
         :rtype: dict
         """
-        with Reader(input_file_name, delimiter=delimiter) as f:
+        with Reader(input_file_name, delimiter=delimiter, quotechar=quotechar) as f:
             fields = f.field_names()
             preprocessor = null_handler(null)
-            rows = (preprocessor(l.strip().split(f.delimiter)) for l in f)
+            rows = (preprocessor(l) for l in f)
             return self.insert(table_name, rows, fields=fields, date_conversion=date_conversion)
 
     def insert(self, table_name, rows, fields=None, date_conversion=True):
@@ -92,17 +94,17 @@ class TeradataLoad(TeradataCmd):
         Insert Python :code:`list` rows into the specified :code:`table_name`
 
         :param str table_name: The name of the destination table
-        :param list rows: A list of rows. Each row must be a :code:`list` of 
+        :param list rows: A list of rows. Each row must be a :code:`list` of
             field values.
-        :param list fields: The names of the target fields, in the order that 
+        :param list fields: The names of the target fields, in the order that
             the data will be presented (defaults to :code:`None` for all columns in the table).
         :param bool date_conversion: If :code:`True`, attempts to coerce date fields
             into a standard format (defaults to :code:`True`).
         :return: A dictionary containing counts of applied rows and errors
         :rtype: dict
-        :raises `giraffez.errors.GiraffeEncodeError`: if the number of values in a row does not match 
+        :raises `giraffez.errors.GiraffeEncodeError`: if the number of values in a row does not match
             the length of :code:`fields`
-        :raises `giraffez.errors.GiraffeError`: if :code:`panic` is set and the insert statement 
+        :raises `giraffez.errors.GiraffeError`: if :code:`panic` is set and the insert statement
             caused an error.
         """
         columns = self.get_columns(table_name)

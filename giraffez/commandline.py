@@ -202,7 +202,7 @@ class ExportCommand(Command):
                 return
             args.encoding = "archive"
             args.archive = True
-            args.no_header = False 
+            args.no_header = False
         elif args.encoding == "json":
             args.no_header = True
 
@@ -322,8 +322,8 @@ class FmtCommand(Command):
                 if f.file_type == GIRAFFE_ARCHIVE_FILE:
                     encoder = _encoder.Encoder(columns)
                     processors.append(encoder.unpack_row)
-                else:
-                    processors.append(text_to_strings(src_delimiter))
+                else: # text_to_string is handled by the csv parser
+                    pass
                 if args.null:
                     src_null, dst_null = args.null.split(" to ", 1)
                     processors.append(null_handler(src_null))
@@ -351,6 +351,7 @@ class LoadCommand(Command):
         Argument("table", help="Name of table"),
         Argument("-d", "--delimiter", default=None, help="Text delimiter"),
         Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
+        Argument("--quote-char", default='"', help="One-character string used to quote fields containing special characters"),
         Argument("--date-conversion", default=False),
         Argument("--disable-date-conversion", default=False, help=("Disable automatic conversion of "
             "dates/timestamps")),
@@ -378,10 +379,11 @@ class LoadCommand(Command):
             log.info('  source      => "{}"'.format(args.input_file))
             log.info('  output      => "{}"'.format(args.table))
             log.info('  delimiter   => "{}"'.format(args.delimiter))
+            log.info('  quote char  => "{}"'.format(args.quote_char))
             log.info('  null        => "{}"'.format(args.null))
             start_time = time.time()
             result = load.from_file(args.table, args.input_file, null=args.null, delimiter=args.delimiter,
-                date_conversion=date_conversion)
+                                    date_conversion=date_conversion, quotechar=args.quote_char)
             log.info("Results", "{} errors; {} rows in {}".format(result['errors'], result['count'], readable_time(time.time() - start_time)))
 
 
@@ -398,6 +400,7 @@ class MLoadCommand(Command):
         Argument("-d", "--delimiter", default=None, help="Text delimiter [default: (inferred from header)]"),
         Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
         Argument("-y", "--drop-all", default=False, help="Drop tables"),
+        Argument("--quote-char", default='"', help="One-character string used to quote fields containing special characters"),
         Argument("--allow-precision-loss", default=False, help="Allow floating-point numbers to be converted to fixed-precision numbers.")
     ]
 
@@ -414,6 +417,9 @@ class MLoadCommand(Command):
         if not FileReader.check_length(args.input_file, MLOAD_THRESHOLD):
             show_warning(("USING MLOAD TO INSERT LESS THAN {} ROWS IS NOT RECOMMENDED - USE LOAD "
                 "INSTEAD!").format(MLOAD_THRESHOLD), UserWarning)
+
+        if args.delimiter is None:
+            args.delimiter = FileReader.check_delimiter(args.input_file)
 
         with TeradataMLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as mload:
@@ -438,7 +444,7 @@ class MLoadCommand(Command):
             log.info('  source      => "{}"'.format(args.input_file))
             log.info('  output      => "{}"'.format(args.table))
             start_time = time.time()
-            exit_code = mload.from_file(args.input_file, delimiter=args.delimiter, null=args.null)
+            exit_code = mload.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char)
             log.info("MLoad", "Teradata PT request finished with exit code '{}'".format(exit_code))
             log.info("Results", "...")
             log.info('  Successful   => "{}"'.format(mload.applied_count))
