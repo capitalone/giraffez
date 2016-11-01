@@ -174,6 +174,7 @@ class TeradataCmd(Connection):
 
         :param str command: The SQL command to be executed
         :param bool sanitize: Whether or not to call :func:`~giraffez.sql.prepare_statement` on the command
+        :param bool silent: Silence console logging (within this function only)
         :return: the results of each statement in the command
         :rtype: :class:`~giraffez.types.Results`
         :raises `giraffez.errors.TeradataError`: if the query is invalid
@@ -198,6 +199,7 @@ class TeradataCmd(Connection):
 
         :param str command: The SQL command to be executed
         :param bool sanitize: Whether or not to call :func:`~giraffez.utils.clean_query` on the command
+        :param bool silent: Silence console logging (within this function only)
         :return: the result set of the first statement in the command (all are executed)
         :rtype: :class:`~giraffez.types.Result`
         :raises `giraffez.errors.TeradataError`: if the query is invalid
@@ -212,6 +214,7 @@ class TeradataCmd(Connection):
         :param str command: The SQL command(s) to be executed
         :param bool sanitize: Whether or not to call :func:`~giraffez.utils.clean_query` on the statements
         :param bool parallel: If :code:`True` call :meth:`~giraffez.Cmd.execute` instead
+        :param bool silent: Silence console logging (within this function only)
         :return: the results of all executed commands
         :rtype: :class:`~giraffez.types.Results`
         """
@@ -229,6 +232,7 @@ class TeradataCmd(Connection):
         followed by a :code:`show view object_name` query if :code:`object_name` is not a table.
 
         :param str object_name: The name of the object to check for existence.
+        :param bool silent: Silence console logging (within this function only)
         :return: :code:`True` if the object exists, :code:`False` otherwise.
         :rtype: bool
         """
@@ -246,6 +250,7 @@ class TeradataCmd(Connection):
         Return the column information for :code:`table_name` by executing a :code:`select top 1 * from table_name` query.
 
         :param str table_name: The fully-qualified name of the table to retrieve schema for
+        :param bool silent: Silence console logging (within this function only)
         :return: the columns of the table
         :rtype: :class:`~giraffez.types.Columns`
         """
@@ -257,6 +262,7 @@ class TeradataCmd(Connection):
         followed by the statement :code:`release mload table_name in apply` if the lock cannot be released
 
         :param str table_name: The name of the table to be dropped
+        :param bool silent: Silence console logging (within this function only)
         :return: :code:`None` if :code:`table_name` does not exist, otherwise the result of 
             the statement
         :rtype: None or :class:`~giraffez.types.Result`
