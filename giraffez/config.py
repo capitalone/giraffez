@@ -30,8 +30,15 @@ from .utils import *
 from ._compat import *
 
 
-__all__ = ['default_config', 'Config']
+__all__ = ['default_config', 'Config', 'message_write_default']
 
+
+message_write_default = """Successfully created file '{0}'
+Set the username and password using the config module:
+
+    giraffez config --set connections.db1.host <host>
+    giraffez config --set connections.db1.username <username>
+    giraffez config --set connections.db1.password <password>"""
 
 default_config = {
     "connections": {

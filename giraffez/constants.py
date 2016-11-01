@@ -942,38 +942,3 @@ gd_type_map = {
     XML_TEXT_LOCATOR_NN: GD_DEFAULT,
     XML_TEXT_LOCATOR_N: GD_DEFAULT,
 }
-
-
-FORMAT_LENGTH = {1: "b", 2: "h", 4: "i", 8 : "q", 16: "Qq"}
-
-DATE_FORMATS = [
-    "%m/%d/%Y",
-    "%Y/%m/%d",
-    "%Y-%m-%d",
-    "%Y-%m-%d %H:%M:%S",
-    "%Y%m%d",
-]
-
-TIME_FORMATS = {
-    8: "%H:%M:%S",
-    15: "%H:%M:%S.%f",
-    19: "%Y-%m-%d %H:%M:%S",
-    22: "%Y-%m-%d %H:%M:%S.%f",
-    26: "%Y-%m-%d %H:%M:%S.%f",
-    32: "%Y-%m-%d %H:%M:%S.%f"
-}
-
-DELIMITED_TEXT_FILE     = 1
-GIRAFFE_ARCHIVE_FILE    = 2
-
-FILE_TYPE_MAP = {
-    DELIMITED_TEXT_FILE: 'Delimited File',
-    GIRAFFE_ARCHIVE_FILE: 'Giraffez Archive File'
-}
-
-MESSAGE_WRITE_DEFAULT = """Successfully created file '{0}'
-Set the username and password using the config module:
-
-    giraffez config --set connections.db1.host <host>
-    giraffez config --set connections.db1.username <username>
-    giraffez config --set connections.db1.password <password>"""

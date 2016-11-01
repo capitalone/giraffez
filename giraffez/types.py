@@ -30,6 +30,24 @@ __all__ = ['Column', 'Columns', 'GiraffeBytes', 'GiraffeDate', 'GiraffeTime', 'G
     'Result', 'Results', 'Row']
 
 
+DATE_FORMATS = [
+    "%m/%d/%Y",
+    "%Y/%m/%d",
+    "%Y-%m-%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y%m%d",
+]
+
+TIME_FORMATS = {
+    8: "%H:%M:%S",
+    15: "%H:%M:%S.%f",
+    19: "%Y-%m-%d %H:%M:%S",
+    22: "%Y-%m-%d %H:%M:%S.%f",
+    26: "%Y-%m-%d %H:%M:%S.%f",
+    32: "%Y-%m-%d %H:%M:%S.%f"
+}
+
+
 class Column(object):
     """
     An object containing the column information used by Teradata for

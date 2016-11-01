@@ -38,6 +38,9 @@ __all__ = ['check_input', 'date_handler', 'char_handler', 'null_handler', 'dict_
     'python_to_teradata', 'unpack', 'unpack_from', 'unpack_integer', 'unpack_stmt_info']
 
 
+FORMAT_LENGTH = {1: "b", 2: "h", 4: "i", 8 : "q", 16: "Qq"}
+
+
 def check_input(columns, items):
     if len(items) != len(columns):
         error_message = "Columns list contains {} columns and {} items provided.".format(len(columns), len(items))
