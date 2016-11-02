@@ -51,7 +51,7 @@ class TeradataLoad(TeradataCmd):
     .. code-block:: python
 
        with giraffez.Load() as load:
-           load.from_file('myfile.txt', 'database.my_table')
+           load.from_file('database.my_table', 'myfile.txt')
            # continue executing statements and processing results
 
     Use in this manner guarantees proper exit-handling and disconnection
