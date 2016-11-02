@@ -119,8 +119,9 @@ class TeradataCmd(Connection):
                 log.verbose("Debug[1]", repr(column))
             encoder = _encoder.Encoder(result["columns"])
             processor = pipeline([
-                date_handler(result["columns"]),
-                char_handler(result["columns"]),
+                DateHandler(result["columns"]),
+                CharHandler(result["columns"]),
+                DecimalHandler(result["columns"]),
                 lambda s: Row(result["columns"], s)
             ])
             result["rows"] = [processor(row) for row in encoder.unpack_rows(result["rows"])]

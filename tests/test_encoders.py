@@ -257,7 +257,7 @@ class TestEncoders(object):
         expected_text = [1150501, '22:08:37.123456', '2006-01-02 15:04:05']
         expected_results = ['2015-05-01', '22:08:37.123456', '2006-01-02 15:04:05']
 
-        handler = date_handler(columns)
+        handler = DateHandler(columns)
         results = handler(expected_text)
 
         assert isinstance(results[0], GiraffeDate)
@@ -275,7 +275,7 @@ class TestEncoders(object):
         ])
         expected_text = ['value1', 'value2\rvalue3']
         expected_result = ['value1', 'value2\nvalue3']
-        handler = char_handler(columns)
+        handler = CharHandler(columns)
         result_bytes = handler(expected_text)
         assert result_bytes == expected_result
 

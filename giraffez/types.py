@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import datetime
+import decimal
 import math
 import struct
 
@@ -26,8 +27,8 @@ from .logging import *
 from ._compat import *
 
 
-__all__ = ['Column', 'Columns', 'GiraffeBytes', 'GiraffeDate', 'GiraffeTime', 'GiraffeTimestamp',
-    'Result', 'Results', 'Row']
+__all__ = ['Column', 'Columns', 'GiraffeBytes', 'GiraffeDate', 'GiraffeDecimal', 'GiraffeTime',
+    'GiraffeTimestamp', 'Result', 'Results', 'Row']
 
 
 DATE_FORMATS = [
@@ -450,6 +451,11 @@ class GiraffeDate(datetime.datetime):
 
     def __unicode__(self):
         return unicode(self.to_string())
+
+
+class GiraffeDecimal(decimal.Decimal):
+    def to_json(self):
+        return self.__str__()
 
 
 class GiraffeTime(datetime.time):
