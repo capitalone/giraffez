@@ -59,7 +59,7 @@ def home_file(filename):
 
 
 class BaseReader(object):
-    def __init__(self, path):
+    def __init__(self, path, mode='rt'):
         abspath = os.path.abspath(path)
         if not os.path.exists(os.path.dirname(abspath)):
             raise FileNotFound("Path '{}' does not exist.".format(os.path.dirname(abspath)))
@@ -69,7 +69,7 @@ class BaseReader(object):
                 _open = gzip.open
             else:
                 _open = open
-        self.fd = _open(abspath, "rt")
+        self.fd = _open(abspath, mode)
         self._header = None
 
     @property
@@ -91,7 +91,7 @@ class BaseReader(object):
 
     @classmethod
     def read_header(cls, path):
-        with cls(path) as f:
+        with cls(path, 'rb') as f:
             return f.read(len(GIRAFFE_MAGIC))
 
     def __iter__(self):
@@ -112,7 +112,7 @@ class BaseReader(object):
 class FileReader(BaseReader):
     @classmethod
     def check_length(cls, path, length):
-        with cls(path) as f:
+        with cls(path, "rb") as f:
             for i, line in enumerate(f, 1):
                 if i >= length:
                     return True
@@ -148,7 +148,7 @@ class JSONReader(FileReader):
 
 class ArchiveFileReader(BaseReader):
     def __init__(self, path):
-        super(ArchiveFileReader, self).__init__(path)
+        super(ArchiveFileReader, self).__init__(path, 'rb')
         if self.fd.tell() != 0:
             raise GiraffeError("Cannot read columns, file descriptor must be at 0.")
         self.fd.read(len(GIRAFFE_MAGIC))
@@ -168,8 +168,7 @@ class ArchiveFileReader(BaseReader):
 
 class Reader(object):
     def __new__(cls, path, **kwargs):
-        with open(path) as f:
-            data = f.read(len(GIRAFFE_MAGIC))
+        data = FileReader.read_header(path)
         if data == GIRAFFE_MAGIC:
             return ArchiveFileReader(path)
         with open(path) as f:
