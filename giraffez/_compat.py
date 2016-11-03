@@ -30,7 +30,6 @@ if PY3:
     basestring = (str, bytes)
     xrange = range
     iterbytes = identity
-    filter_list = lambda a, b: list(filter(a, b))
 
     def ensure_bytes(s):
         if type(s) == str:
@@ -66,7 +65,6 @@ else:
     # Bytes object in Py3 does not require a call to ord to return a
     # numeric type 
     iterbytes = lambda x: (ord(c) for c in x)
-    filter_list = filter
 
     input = raw_input
 
