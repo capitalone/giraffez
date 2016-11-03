@@ -131,7 +131,7 @@ class TeradataCmd(Connection):
         if getattr(self, 'cmd', None):
             self.cmd.close()
 
-    def collect_stats(self, table_name, predicate=""):
+    def collect_stats(self, table_name, predicate="", silent=False):
         """
         Collect statistics on the table :code:`table_name` using the given :code:`predicate` if present
 
@@ -142,29 +142,31 @@ class TeradataCmd(Connection):
         :raises `giraffez.errors.TeradataError`: if statistic cannot be collected for :code:`table_name`
         :raises `giraffez.errors.ObjectDoesNotExist`: if the given :code:`table_name` does not exist
         """
-        self.execute_one("collect statistics on {} {}".format(table_name, predicate))
+        self.execute_one("collect statistics on {} {}".format(table_name, predicate), silent=silent)
 
-    def count_table(self, table_name):
+    def count_table(self, table_name, silent=False):
         """
         Return the row count of :code:`table_name`
 
         :param str table_name: The name of the table to be counted
+        :param bool silent: Silence console logging (within this function only)
         :return: The number of rows in :code:`table_name`
         :rtype: int
         """
-        return self.execute_one("select count(*) from {}".format(table_name)).first()[0]
+        return self.execute_one("select count(*) from {}".format(table_name), silent=silent).first()[0]
 
-    def drop_table(self, table_name):
+    def drop_table(self, table_name, silent=False):
         """
         Execute the statement :code:`drop table table_name`
 
         :param str table_name: The name of the table to be dropped
+        :param bool silent: Silence console logging (within this function only)
         :return: :code:`None` if :code:`table_name` does not exist, otherwise the result of
             the statement
         :rtype: None or :class:`~giraffez.types.Result`
         """
         try:
-            result = self.execute_one("drop table {}".format(table_name))
+            result = self.execute_one("drop table {}".format(table_name), silent=silent)
         except ObjectDoesNotExist as error:
             return None
         return result

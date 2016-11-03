@@ -421,7 +421,7 @@ class MLoadCommand(Command):
             if args.drop_all is True:
                 mload.cleanup()
             else:
-                existing_tables = filter_list(mload.cmd.exists, mload.tables)
+                existing_tables = list(filter(lambda x: mload.cmd.exists(x, silent=(log.level < DEBUG)), mload.tables))
                 if len(existing_tables) > 0:
                     log.info("MLoad", "Previous work tables found:")
                     for i, table in enumerate(existing_tables, 1):
@@ -429,7 +429,7 @@ class MLoadCommand(Command):
                     if prompt_bool("Do you want to drop these tables?", default=True):
                         for table in existing_tables:
                             log.info("MLoad", "Dropping table '{}'...".format(table))
-                            mload.cmd.drop_table(table)
+                            mload.cmd.drop_table(table, silent=True)
                     else:
                         log.fatal("Cannot continue without dropping previous job tables. Exiting ...")
             log.info("MLoad", "Executing ...")

@@ -198,9 +198,9 @@ class TeradataMLoad(Connection):
 
         :raises `giraffez.errors.TeradataError`: if a Teradata error ocurred
         """
-        for table in filter(self.cmd.exists, self.tables):
+        for table in filter(lambda x: self.cmd.exists(x, silent=(log.level < DEBUG)), self.tables):
             log.info("MLoad", "Dropping table '{}'...".format(table))
-            self.cmd.drop_table(table)
+            self.cmd.drop_table(table, silent=True)
 
     def close(self):
         log.info("MLoad", "Closing Teradata PT connection ...")
@@ -390,7 +390,7 @@ class TeradataMLoad(Connection):
         if self.table is None:
             raise GiraffeError("Cannot release. Target table has not been set.")
         log.info("MLoad", "Attempting release for table {}".format(self.table))
-        self.cmd.release_mload(self.table)
+        self.cmd.release_mload(self.table, silent=True)
 
     @property
     def status(self):
@@ -447,11 +447,11 @@ class TeradataMLoad(Connection):
         self.load.set_table(table_name)
         try:
             log.info("MLoad", "Requesting column info for table '{}' ...".format(self.table))
-            self._columns = self.cmd.get_columns(self.table)
+            self._columns = self.cmd.get_columns(self.table, silent=True)
         except MultiLoadTableExists as error:
             log.info("MLoad", "Teradata PT request failed with code '{}'.".format(error.code))
             self.release()
-            self._columns = self.cmd.get_columns(self.table)
+            self._columns = self.cmd.get_columns(self.table, silent=True)
 
     @property
     def total_count(self):
