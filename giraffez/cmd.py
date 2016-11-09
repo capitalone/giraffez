@@ -89,7 +89,7 @@ class TeradataCmd(Connection):
     def __init__(self, host=None, username=None, password=None, log_level=INFO, panic=False,
             config=None, key_file=None, dsn=None, protect=False, mload_session=False):
         if TDCLI_NOT_FOUND:
-            raise GiraffeNotFound("giraffez module was not compiled with package")
+            raise TeradataCLIv2NotFound(TeradataCLIv2NotFound.__doc__.rstrip())
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect, mload_session)
 

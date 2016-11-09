@@ -79,7 +79,7 @@ class TeradataMLoad(Connection):
     def __init__(self, table=None, host=None, username=None, password=None, log_level=INFO,
             config=None, key_file=None, dsn=None, protect=False):
         if GIRAFFE_NOT_FOUND:
-            raise GiraffeNotFound("MLoad module was not compiled with package (missing TPT API)")
+            raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
         super(TeradataMLoad, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect, mload_session=False)
 

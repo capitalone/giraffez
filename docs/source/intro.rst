@@ -37,6 +37,14 @@ Environment
 
 giraffez attempts to find the required Teradata libraries automatically during install but can be manually specified by setting the ``TERADATA_HOME`` environment variable to the desired path.
 
+The ``TERADATA_HOME`` variable is only necessary during installation and only if the required Teradata libraries are not present in the default install directories.  Some users experience problems after a successful installation due to missing environment variables.  This is due to the fact that giraffez can install using the default locations to find and compile the giraffez C extensions, however, the Python runtime relies on environmental settings to load dynamically loaded shared libraries and this takes place before the defaults can be added by a Python package (i.e. giraffez can't add the default paths/settings to Python at runtime to find these libraries).  This is generally addressed by ensuring that the correct environment variables are set for the respective platforms.
+
+For Windows, the locations for `TELAPI.lib` and `opermsgs.dll` must be in the Windows PATH variable.
+
+For Unix-like platforms, the path that contains `libtelapi.so` must be added to the ``LD_LIBRARY_PATH`` environment variable, and the path containing `opermsgs.cat` must be added to the ``NLS_PATH`` environment variable with ``%N`` placed at the end.
+
+For all other issues installing and configuring Teradata libraries, use the documents provided by `Teradata Information <http://www.info.teradata.com/>` or by engaging with the `Teradata Community <https://community.teradata.com>`.
+
 
 Install / Update
 ----------------

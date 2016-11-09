@@ -93,7 +93,7 @@ class TeradataExport(Connection):
             delimiter=DEFAULT_DELIMITER, null=DEFAULT_NULL, encoding=DEFAULT_ENCODING,
             log_level=INFO, config=None, key_file=None, dsn=None, protect=False):
         if GIRAFFE_NOT_FOUND:
-            raise GiraffeNotFound("Export module was not compiled with package (missing TPT API)")
+            raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
         super(TeradataExport, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 

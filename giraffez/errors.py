@@ -26,7 +26,35 @@ class GeneralError(GiraffeError):
 
 class GiraffeNotFound(GiraffeError):
     """
-    Raised when giraffez C module not found.
+    Raised when giraffez C modules not found.
+    """
+
+class TeradataCLIv2NotFound(GiraffeNotFound):
+    """
+    Unable to import giraffez._cli.  This indicates that either the
+    giraffez C extensions did not compile correctly, or more likely,
+    there is an issue with the environment or installation of the
+    Teradata dependencies.  The Teradata Call-Level Interface Version 2
+    requires several environment variables to be set to find the shared
+    library files and error message catalog.
+
+    For more information, refer to this section in the giraffez
+    documentation:
+        http://www.capitalone.io/giraffez/intro.html#environment.
+    """
+
+class TeradataPTAPINotFound(GiraffeNotFound):
+    """
+    Unable to import giraffez._tpt.  This indicates that either the
+    giraffez C extensions did not compile correctly, or more likely,
+    there is an issue with the environment or installation of the
+    Teradata dependencies.  The Teradata Parallel Transporter API
+    requires several environment variables to be set to find the shared
+    library files and error message catalog.
+
+    For more information, refer to this section in the giraffez
+    documentation:
+        http://www.capitalone.io/giraffez/intro.html#environment.
     """
 
 class GiraffeTypeError(GiraffeError):
