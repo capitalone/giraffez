@@ -14,12 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GIRAFFE_NOT_FOUND = False
+TPT_NOT_FOUND = False
 try:
-    #from . import _tpt
-    from giraffez import _tpt
+    from . import _tpt
 except ImportError:
-    GIRAFFE_NOT_FOUND = True
+    TPT_NOT_FOUND = True
 
 from collections import defaultdict
 
@@ -92,7 +91,7 @@ class TeradataExport(Connection):
     def __init__(self, query=None, host=None, username=None, password=None,
             delimiter=DEFAULT_DELIMITER, null=DEFAULT_NULL, encoding=DEFAULT_ENCODING,
             log_level=INFO, config=None, key_file=None, dsn=None, protect=False):
-        if GIRAFFE_NOT_FOUND:
+        if TPT_NOT_FOUND:
             raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
         super(TeradataExport, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)

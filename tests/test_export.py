@@ -48,9 +48,9 @@ class TestExport(object):
 
     def test_giraffez_not_found(self, mocker):
         with pytest.raises(GiraffeNotFound):
-            giraffez.export.GIRAFFE_NOT_FOUND = True
+            giraffez.export.TPT_NOT_FOUND = True
             export = giraffez.Export()
-        giraffez.export.GIRAFFE_NOT_FOUND = False
+        giraffez.export.TPT_NOT_FOUND = False
 
     def test_invalid_credentials(self, mocker):
         connect_mock = mocker.patch('giraffez.Export._connect')

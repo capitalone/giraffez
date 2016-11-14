@@ -1,6 +1,12 @@
 giraffez Changelog
 ======================
 
+Version 1.1.2
+-------------
+Nov 14 2016
+
+- Fix bug where GIRAFFE_NOT_FOUND global variable is overwritten by imports
+
 Version 1.1.1
 -------------
 Nov 14 2016

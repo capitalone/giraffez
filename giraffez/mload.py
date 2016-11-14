@@ -17,13 +17,14 @@
 import struct
 import warnings
 
-GIRAFFE_NOT_FOUND = False
+TPT_NOT_FOUND = False
 try:
     from . import _tpt
 except ImportError:
-    GIRAFFE_NOT_FOUND = True
+    TPT_NOT_FOUND = True
 
 from .cmd import *
+
 from .connection import *
 from .config import *
 from .constants import *
@@ -78,7 +79,7 @@ class TeradataMLoad(Connection):
 
     def __init__(self, table=None, host=None, username=None, password=None, log_level=INFO,
             config=None, key_file=None, dsn=None, protect=False):
-        if GIRAFFE_NOT_FOUND:
+        if TPT_NOT_FOUND:
             raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
         super(TeradataMLoad, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect, mload_session=False)
