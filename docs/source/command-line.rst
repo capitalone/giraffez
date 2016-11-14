@@ -129,7 +129,7 @@ Initiating a load into an existing table can be done like so::
 
     giraffez load source_file.txt database.table_name
 
-The ``load`` command necessitates that a header is present in the source file. The delimiter for the rows of the file is inferred from the content of the header, as well as the names and order of the table's target columns. 
+The ``load`` command necessitates that a header is present in the source file. The delimiter for the rows of the file is inferred from the content of the header, as well as the names and order of the table's target columns.  By default, delimiters within "double quotes" are ignored; use ``--quote-char`` to change the default quote character.
 
 .. _mload-command:
 
@@ -144,7 +144,7 @@ Initiating a load into an existing table can be done like so::
 
     giraffez mload source_file.txt database.table_name
 
-As with ``load``, the ``mload`` command uses the data file's header to determine the columns used in the destination table.
+As with ``load``, the ``mload`` command uses the data file's header to determine the columns used in the destination table.  By default, delimiters within "double quotes" are ignored; use ``--quote-char`` to change the default quote character.
 
 During the process of a load, you may be prompted to drop existing work tables for the target table. giraffez will handle the management of these auxiliary tables for you, but by default you will be prompted for a decision before they are dropped. To automatically answer "yes" for these questions (and drop the auxilliary tables should they already exist), specify the ``-y`` (or ``--drop-all``) flag with the command::
 

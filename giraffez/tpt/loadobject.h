@@ -14,26 +14,35 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_CMD_H
-#define __GIRAFFE_CMD_H
+#ifndef __GIRAFFE_LOAD_H
+#define __GIRAFFE_LOAD_H
+
+#include <Python.h>
+#include <connection.h>
+#include <schema.h>
+#include <DMLGroup.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <Python.h>
-#include "teradata/cmd.h"
-
+using namespace teradata::client::API;
 
 typedef struct {
     PyObject_HEAD
-    dbcarea_t *dbc;
-    int connected;
-} Cmd;
+    char* select_stmt;
+    Schema* table_schema;
+    DMLGroup* dml_group;
+    Connection* conn;
+    char* error_msg;
+    TD_ErrorType error_type;
+    bool table_set;
+    bool connected;
+    int connection_status;
+    int row_status;
+} Load;
 
-extern PyObject* GiraffeError;
-
-extern PyTypeObject CmdType;
+extern PyTypeObject LoadType;
 
 #ifdef __cplusplus
 }

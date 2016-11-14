@@ -29,7 +29,7 @@ user-friendly and very fast.
 """
 
 __title__ = 'giraffez'
-__version__ = '1.0.5'
+__version__ = '1.1.0'
 __authors__ = ['Christopher Marshall', 'Kyle Travis']
 __license__ = 'Apache 2.0'
 __all__     = ['Export', 'MLoad', 'Load', 'Cmd', 'Config', 'Secret']
@@ -57,6 +57,7 @@ from .load import TeradataLoad as Load
 from .logging import log, setup_logging
 from .mload import TeradataMLoad as MLoad
 from .secret import Secret
+from .types import Column, Columns, Date, Decimal, Time, Timestamp
 from .utils import register_graceful_shutdown_signal
 
 

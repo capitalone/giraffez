@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import datetime
+import decimal
 import math
 import struct
 
@@ -26,8 +27,50 @@ from .logging import *
 from ._compat import *
 
 
-__all__ = ['Column', 'Columns', 'GiraffeBytes', 'GiraffeDate', 'GiraffeTime', 'GiraffeTimestamp',
-    'Result', 'Results', 'Row']
+__all__ = ['Column', 'Columns', 'Bytes', 'Date', 'Decimal', 'Time', 'Timestamp', 'Result',
+    'Results', 'Row']
+
+
+DATE_FORMATS = [
+    "%m/%d/%Y",
+    "%Y/%m/%d",
+    "%Y-%m-%d",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y%m%d",
+]
+
+TIME_FORMATS = {
+    8: "%H:%M:%S",
+    15: "%H:%M:%S.%f",
+    19: "%Y-%m-%d %H:%M:%S",
+    22: "%Y-%m-%d %H:%M:%S.%f",
+    26: "%Y-%m-%d %H:%M:%S.%f",
+    32: "%Y-%m-%d %H:%M:%S.%f"
+}
+
+
+class Bytes(object):
+    def __init__(self, columns):
+        self.raw_array = bytearray([0] * columns.header_length)
+
+    @classmethod
+    def read(cls, f):
+        for b in iterbytes(f):
+            for i in reversed(xrange(8)):
+                yield (b >> i) & 1
+
+    def set_bit(self, offset):
+        byte, bit = divmod(offset, 8)
+        self.raw_array[byte] |= 128 >> bit
+
+    def __add__(self, other):
+        return b2s(self) + other
+
+    def __bytes__(self):
+        return bytes(self.raw_array)
+
+    def __str__(self):
+        return str(self.raw_array)
 
 
 class Column(object):
@@ -342,33 +385,9 @@ class Columns(object):
             except GiraffeTypeError as error:
                 raise GiraffeEncodeError(error)
         return column_list
-        
-
-class GiraffeBytes(object):
-    def __init__(self, columns):
-        self.raw_array = bytearray([0] * columns.header_length)
-
-    @classmethod
-    def read(cls, f):
-        for b in iterbytes(f):
-            for i in reversed(xrange(8)):
-                yield (b >> i) & 1
-
-    def set_bit(self, offset):
-        byte, bit = divmod(offset, 8)
-        self.raw_array[byte] |= 128 >> bit
-
-    def __add__(self, other):
-        return b2s(self) + other
-
-    def __bytes__(self):
-        return bytes(self.raw_array)
-
-    def __str__(self):
-        return str(self.raw_array)
 
 
-class GiraffeDate(datetime.datetime):
+class Date(datetime.datetime):
     """
     Ensures that datetime objects can be proper coerced into a
     string value of a given format.
@@ -380,7 +399,7 @@ class GiraffeDate(datetime.datetime):
     """
 
     def __init__(self, *args, **kwargs):
-        super(GiraffeDate, self).__init__()
+        super(Date, self).__init__()
 
     @classmethod
     def from_datetime(cls, dt):
@@ -434,57 +453,9 @@ class GiraffeDate(datetime.datetime):
         return unicode(self.to_string())
 
 
-class GiraffeTime(datetime.time):
-    """
-    Represents Teradata date/time data types such as TIME(0). Currently,
-    does not keep microsecond for other types like TIME(n).
-    """
-    def __new__(cls, t):
-        return datetime.time.__new__(cls, t.hour, t.minute, t.second, t.microsecond)
-
-    @classmethod
-    def from_string(cls, s):
-        fmt = TIME_FORMATS.get(len(s.strip()))
-        if fmt is not None:
-            try:
-                ts = datetime.datetime.strptime(str(s), fmt)
-                return cls(datetime.time(ts.hour, ts.minute, ts.second, ts.microsecond))
-            except ValueError as error:
-                log.debug("GiraffeTime: ", error)
-        return None
-
-
-class GiraffeTimestamp(GiraffeDate):
-    """
-    Represents Teradata date/time data types such as TIMESTAMP(n).
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(GiraffeTimestamp, self).__init__(*args, **kwargs)
-        self._original_length = None
-
-    @classmethod
-    def from_string(cls, s):
-        format = TIME_FORMATS.get(len(s.strip()))
-        if format is not None:
-            try:
-                ts = cls.strptime(str(s), format)
-                ts._original_length = len(s)
-                return ts
-            except ValueError as error:
-                log.debug("GiraffeTimestamp: ", error)
-        return None
-
-    def to_string(self, length=None):
-        if length is None:
-            length = self._original_length
-        if length is not None and length > 20:
-            value = "{0:04}-{1:02}-{2:02} {3:02}:{4:02}:{5:02}.{6:06}".format(self.year, self.month, self.day,
-                    self.hour, self.minute, self.second, self.microsecond)
-            value = value[:length]
-            return value
-        return "{0:04}-{1:02}-{2:02} {3:02}:{4:02}:{5:02}".format(self.year, self.month, self.day,
-                    self.hour, self.minute, self.second)
+class Decimal(decimal.Decimal):
+    def to_json(self):
+        return self.__str__()
 
 
 class Result(object):
@@ -503,22 +474,22 @@ class Result(object):
     .. code-block:: python
 
        for row in result:
-           print row
+           print(row)
 
     Defines the :code:`__getattr__` magic method to return a list of values for a given column:
 
     .. code-block:: python
 
-       print results.first_name # ['alice', 'bob', 'charlie', ...]
+       print(results.first_name) # ['alice', 'bob', 'charlie', ...]
 
     Defines the :code:`__getitem__` magic method to return a list of values for a given column, or numeric index:
 
     .. code-block:: python
 
-       print results.columns.names # first_name, last_name, id
-       print results['first_name'] # ['alice', 'bob', 'charlie', ...]
-       print results['id'] # ['abc123', 'bcd234', 'cde345', ...]
-       print results[2] # ['abc123', 'bcd234', 'cde345', ...]
+       print(results.columns.names) # first_name, last_name, id
+       print(results['first_name']) # ['alice', 'bob', 'charlie', ...]
+       print(results['id']) # ['abc123', 'bcd234', 'cde345', ...]
+       print(results[2]) # ['abc123', 'bcd234', 'cde345', ...]
     """
 
     def __init__(self, result):
@@ -619,7 +590,7 @@ class Results(object):
        results = cli.execute_many('''select * from table_a;
            select * from table_b;''')
        for result in results:
-           print result.rows
+           print(result.rows)
 
     Defines the :code:`__getitem__` magic method to allow numeric indexing:
 
@@ -627,7 +598,7 @@ class Results(object):
 
        results = cli.execute_many('''select * from table_a;
            select * from table_b;''')
-       print results[1] # results from 'select * from table_b'
+       print(results[1]) # results from 'select * from table_b'
     """
 
     def __init__(self, results=[]):
@@ -683,26 +654,26 @@ class Row(object):
 
        row = results.first()
        for item in row:
-           print item
+           print(item)
 
     Defines the :code:`__getattr__` magic method to return a particular field:
 
     .. code-block:: python
 
        row = results.first()
-       print row.first_name # 'alice'
+       print(row.first_name) # 'alice'
 
        for row in results:
-           print row.first_name # 'alice', 'bob', 'charlie', ...
+           print(row.first_name) # 'alice', 'bob', 'charlie', ...
 
     Defines the :code:`__getitem__` magic method to return a particular field by name or numeric index:
 
     .. code-block:: python
 
        row = results.first()
-       print row['first_name'] # 'alice'
-       print row['id'] # 'abc123'
-       print row[2] # 'abc123'
+       print(row['first_name']) # 'alice'
+       print(row['id']) # 'abc123'
+       print(row[2]) # 'abc123'
     """
 
     def __init__(self, columns, row):
@@ -757,3 +728,56 @@ class Row(object):
 
     def __str__(self):
         return self.__repr__()
+
+
+class Time(datetime.time):
+    """
+    Represents Teradata date/time data types such as TIME(0). Currently,
+    does not keep microsecond for other types like TIME(n).
+    """
+    def __new__(cls, t):
+        return datetime.time.__new__(cls, t.hour, t.minute, t.second, t.microsecond)
+
+    @classmethod
+    def from_string(cls, s):
+        fmt = TIME_FORMATS.get(len(s.strip()))
+        if fmt is not None:
+            try:
+                ts = datetime.datetime.strptime(str(s), fmt)
+                return cls(datetime.time(ts.hour, ts.minute, ts.second, ts.microsecond))
+            except ValueError as error:
+                log.debug("GiraffeTime: ", error)
+        return None
+
+
+class Timestamp(Date):
+    """
+    Represents Teradata date/time data types such as TIMESTAMP(n).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(Timestamp, self).__init__(*args, **kwargs)
+        self._original_length = None
+
+    @classmethod
+    def from_string(cls, s):
+        format = TIME_FORMATS.get(len(s.strip()))
+        if format is not None:
+            try:
+                ts = cls.strptime(str(s), format)
+                ts._original_length = len(s)
+                return ts
+            except ValueError as error:
+                log.debug("GiraffeTimestamp: ", error)
+        return None
+
+    def to_string(self, length=None):
+        if length is None:
+            length = self._original_length
+        if length is not None and length > 20:
+            value = "{0:04}-{1:02}-{2:02} {3:02}:{4:02}:{5:02}.{6:06}".format(self.year, self.month, self.day,
+                    self.hour, self.minute, self.second, self.microsecond)
+            value = value[:length]
+            return value
+        return "{0:04}-{1:02}-{2:02} {3:02}:{4:02}:{5:02}".format(self.year, self.month, self.day,
+                    self.hour, self.minute, self.second)

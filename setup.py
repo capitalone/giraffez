@@ -125,7 +125,7 @@ class Extension(_Extension):
         _Extension.__init__(self, self.name, self.sources, **kwargs)
 
         # Add local source files to include_dirs
-        self.include_dirs.append(os.path.join(os.getcwd(), "src"))
+        self.include_dirs.append(os.path.join(os.getcwd(), "giraffez"))
 
         # Windows compatbility
         if WIN:
@@ -165,26 +165,18 @@ class EncoderExtension(Extension):
     name = "giraffez._encoder"
 
     sources = [
-        "src/encoder/columns.c",
-        "src/encoder/convert.c",
-        "src/encoder/indicator.c",
-        "src/encoder/unpack.c",
-        "src/encoder/unpack_dict.c",
-        "src/encoder/unpack_str.c",
-        "src/encoder/util.c",
-        "src/encoder/stmt_info.c",
-        "giraffez/encoderobject.c",
+        "giraffez/encoder/convert.c",
+        "giraffez/encoder/types.c",
+        "giraffez/encoder/unpack.c",
+        "giraffez/encoder/encoderobject.c",
         "giraffez/encodermodule.c",
     ]
 
     depends = [
-        "src/encoder/columns.h",
-        "src/encoder/convert.h",
-        "src/encoder/indicator.h",
-        "src/encoder/unpack.h",
-        "src/encoder/util.h",
-        "src/encoder/stmt_info.h",
-        "giraffez/encoderobject.h",
+        "giraffez/encoder/convert.h",
+        "giraffez/encoder/types.h",
+        "giraffez/encoder/unpack.h",
+        "giraffez/encoder/encoderobject.h",
         "giraffez/encodermodule.c",
     ]
 
@@ -193,14 +185,12 @@ class CLIExtension(Extension):
     name = "giraffez._cli"
 
     sources = [
-        "src/teradata/cmd.c",
-        "giraffez/cmdobject.c",
+        "giraffez/cli/cmdobject.c",
         "giraffez/climodule.c"
     ]
 
     depends = [
-        "src/teradata/cmd.h",
-        "giraffez/cmdobject.h",
+        "giraffez/cli/cmdobject.h",
         "giraffez/climodule.c"
     ]
 
@@ -257,18 +247,14 @@ class TPTExtension(Extension):
     name = "giraffez._tpt"
 
     sources = [
-        "src/teradata/export.cc",
-        "src/teradata/load.cc",
-        "giraffez/exportobject.cc",
-        "giraffez/loadobject.cc",
+        "giraffez/tpt/exportobject.cc",
+        "giraffez/tpt/loadobject.cc",
         "giraffez/tptmodule.cc"
     ]
 
     depends = [
-        "src/teradata/export.h",
-        "src/teradata/load.h",
-        "giraffez/exportobject.h",
-        "giraffez/loadobject.h",
+        "giraffez/tpt/exportobject.h",
+        "giraffez/tpt/loadobject.h",
         "giraffez/tptmodule.cc"
     ]
 
@@ -405,6 +391,7 @@ if __name__ == '__main__':
 
     with io.open("README.rst", encoding="utf-8") as f:
         long_description = f.read()
+        long_description = long_description.replace('logo.png', 'logo-md.png')
 
     setup(
         name="giraffez",

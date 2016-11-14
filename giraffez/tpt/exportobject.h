@@ -14,35 +14,35 @@
  * limitations under the License.
  */
 
-#ifndef __TERADATA_EXPORT_H
-#define __TERADATA_EXPORT_H
+#ifndef __GIRAFFE_EXPORT_H
+#define __GIRAFFE_EXPORT_H
 
+#include <Python.h>
 #include <connection.h>
 #include <schema.h>
+#include "encoder/types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 using namespace teradata::client::API;
 
-class TeradataExport {
+typedef struct {
+    PyObject_HEAD
     bool connected;
     Schema* dynamic_schema;
     Connection* conn;
-  public:
     int connection_status;
     char* error_msg;
     TD_ErrorType error_type;
+    GiraffeColumns* columns;
+} Export;
 
-    TeradataExport(std::string server, std::string username, std::string password);
-    ~TeradataExport();
+extern PyTypeObject ExportType;
 
-    void initiate();
-    void get_schema();
-    void add_attribute(int attr_name, char* attr_value);
-    void add_attribute(int attr_name, int attr_value);
-    int get_one(unsigned char** row, int* length);
-    int get_buffer(unsigned char** row, int* length);
-    std::vector<Column*> get_columns();
-    void close();
-};
+#ifdef __cplusplus
+}
+#endif
 
 #endif

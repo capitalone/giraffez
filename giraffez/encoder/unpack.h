@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef __ENCODER_UTIL_H
-#define __ENCODER_UTIL_H
+#ifndef __ENCODER_UNPACK_H
+#define __ENCODER_UNPACK_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <Python.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
 #include <stdint.h>
 #endif
+#include "types.h"
 
 
 static const unsigned char reverse_lookup[256] = {
@@ -78,6 +80,33 @@ void unpack_float(unsigned char **data, double *dst);
 void unpack_char(unsigned char** data, char **str);
 void unpack_uchar(unsigned char** data, unsigned char **str);
 uint16_t unpack_string(unsigned char** data, char **str);
+
+enum GiraffeTypes {
+    GD_DEFAULT = 0,
+    GD_BYTEINT,
+    GD_SMALLINT,
+    GD_INTEGER,
+    GD_BIGINT,
+    GD_FLOAT,
+    GD_DECIMAL,
+    GD_CHAR,
+    GD_VARCHAR,
+    GD_DATE
+};
+
+uint32_t count_rows(unsigned char* data, const uint32_t length);
+void unpack_row(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
+    PyObject* row);
+void unpack_rows(unsigned char** data, const uint32_t length, GiraffeColumns* columns,
+    PyObject* rows);
+void unpack_row_dict(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
+    PyObject* row);
+void unpack_rows_dict(unsigned char** data, const uint32_t length, GiraffeColumns* columns,
+    PyObject* rows);
+void unpack_row_str(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
+    PyObject* row, const char* null, const char* delimiter);
+void unpack_rows_str(unsigned char** data, const uint32_t length, GiraffeColumns* columns,
+    PyObject* rows, const char* null, const char* delimiter);
 
 #ifdef __cplusplus
 }

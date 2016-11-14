@@ -32,10 +32,60 @@ from .types import *
 from ._compat import *
 
 
-__all__ = ['check_input', 'date_handler', 'char_handler', 'null_handler', 'dict_to_json',
-    'python_to_bytes', 'python_to_dict', 'python_to_strings', 'strings_to_text',
-    'teradata_to_archive', 'text_to_strings', 'teradata_to_python', 'python_to_sql',
-    'python_to_teradata', 'unpack', 'unpack_from', 'unpack_integer', 'unpack_stmt_info']
+__all__ = ['check_input', 'CharHandler', 'DateHandler', 'DecimalHandler', 'FloatHandler',
+    'null_handler', 'dict_to_json', 'python_to_bytes', 'python_to_dict', 'python_to_strings',
+    'strings_to_text', 'teradata_to_archive', 'text_to_strings', 'teradata_to_python',
+    'python_to_sql', 'python_to_teradata', 'unpack', 'unpack_from', 'unpack_integer',
+    'unpack_stmt_info']
+
+
+FORMAT_LENGTH = {1: "b", 2: "h", 4: "i", 8 : "q", 16: "Qq"}
+
+
+class Handler(object):
+    handlers = []
+
+    def __init__(self, columns):
+        if not isinstance(columns, Columns):
+            raise GiraffeEncodeError("Type '{}' must be type giraffez.types.Columns".format(type(columns)))
+        self.columns = columns
+        self._columns = []
+        for index, column in enumerate(self.columns):
+            for cond, fn in self.handlers:
+                if column.type in cond:
+                    self._columns.append((fn, index))
+
+    def __call__(self, data):
+        for fn, index in self._columns:
+            if data[index] is not None:
+                data[index] = fn(data[index])
+        return data
+
+
+class CharHandler(Handler):
+    handlers = [
+        (CHAR_TYPES | VAR_TYPES, replace_cr),
+    ]
+
+
+class DateHandler(Handler):
+    handlers = [
+        (DATE_TYPES, Date.from_integer),
+        (TIME_TYPES, Time.from_string),
+        (TIMESTAMP_TYPES, Timestamp.from_string)
+    ]
+
+
+class DecimalHandler(Handler):
+    handlers = [
+        (DECIMAL_TYPES, Decimal),
+    ]
+
+
+class FloatHandler(Handler):
+    handlers = [
+        (DECIMAL_TYPES, pipeline([float, str])),
+    ]
 
 
 def check_input(columns, items):
@@ -43,50 +93,11 @@ def check_input(columns, items):
         error_message = "Columns list contains {} columns and {} items provided.".format(len(columns), len(items))
         raise GiraffeEncodeError("{}: \n\t{!r}".format(error_message, items))
 
-def char_handler(columns):
-    _columns = []
-    for index, column in enumerate(columns):
-        if column.type in CHAR_TYPES | VAR_TYPES:
-            _columns.append((replace_cr, index))
-    def _char_handler(data):
-        for fn, index in _columns:
-            data[index] = fn(data[index])
-        return data
-    return _char_handler
-
-def date_handler(columns):
-    _columns = []
-    for index, column in enumerate(columns):
-        if column.type in DATE_TYPES:
-            _columns.append((GiraffeDate.from_integer, index))
-        elif column.type in TIME_TYPES:
-            _columns.append((GiraffeTime.from_string, index))
-        elif column.type in TIMESTAMP_TYPES:
-            _columns.append((GiraffeTimestamp.from_string, index))
-    def _date_handler(data):
-        for fn, index in _columns:
-            if data[index] is not None:
-                data[index] = fn(data[index])
-        return data
-    return _date_handler
-
-def float_handler(columns):
-    _columns = []
-    for index, column in enumerate(columns):
-        if column.type in DECIMAL_TYPES:
-            _columns.append((pipeline([float, str]), index))
-    def _float_handler(data):
-        for fn, index in _columns:
-            if data[index] is not None:
-                data[index] = fn(data[index])
-        return data
-    return _float_handler
-
 def null_handler(null=None):
     nulls = {"", None, null}
-    def _null_handler(items):
+    def _handler(items):
         return [item if item not in nulls else None for item in items]
-    return _null_handler
+    return _handler
 
 def dict_to_json(record):
     try:
@@ -129,7 +140,7 @@ def teradata_to_python(columns):
     def _encoder(data):
         items = []
         indicator, data = data[0:columns.header_length], data[columns.header_length:]
-        for column, nullable in zip(columns, GiraffeBytes.read(indicator)):
+        for column, nullable in zip(columns, Bytes.read(indicator)):
             if column.type in ALL_INTEGER_TYPES:
                 value, data = unpack_integer(data[0:column.length], column.length), data[column.length:]
             elif column.type in FLOAT_TYPES:
@@ -157,11 +168,11 @@ def teradata_to_python(columns):
                 value = value.replace("\r", "\n")
             elif column.type in DATE_TYPES:
                 n, data = unpack_integer(data[0:column.length], column.length), data[column.length:]
-                value = GiraffeDate.from_integer(n)
+                value = Date.from_integer(n)
             elif column.type in TIME_TYPES:
-                value, data = GiraffeTime.from_string(data[0:column.length]), data[column.length:]
+                value, data = Time.from_string(data[0:column.length]), data[column.length:]
             elif column.type in TIMESTAMP_TYPES:
-                value, data = GiraffeTimestamp.from_string(data[0:column.length]), data[column.length:]
+                value, data = Timestamp.from_string(data[0:column.length]), data[column.length:]
             else:
                 value, data = data[0:column.length], data[column.length:]
             if nullable:
@@ -173,16 +184,16 @@ def teradata_to_python(columns):
 def python_to_sql(table_name, columns, date_conversion=True):
     if date_conversion:
         def convert_date(s):
-            value = GiraffeDate.from_string(s)
+            value = Date.from_string(s)
             if value is None:
                 raise GiraffeEncodeError("Cannot convert date '{}'".format(s))
             return value.to_string()
 
         def convert_datetime(s, length):
             if isinstance(s, datetime.date):
-                value = GiraffeTimestamp.from_datetime(s)
+                value = Timestamp.from_datetime(s)
             else:
-                value = GiraffeTimestamp.from_string(s)
+                value = Timestamp.from_string(s)
             if value is None:
                 raise GiraffeEncodeError("Cannot convert datetime '{}'".format(s))
             return value.to_string(length)
@@ -199,7 +210,7 @@ def python_to_sql(table_name, columns, date_conversion=True):
                 value = quote_string(escape_quotes(item))
             elif column.type in DATE_TYPES:
                 if isinstance(item, datetime.date):
-                    value = str(GiraffeDate.from_datetime(item).to_integer())
+                    value = str(Date.from_datetime(item).to_integer())
                 else:
                     value = quote_string(convert_date(escape_quotes(item)))
             elif column.type in TIME_TYPES | TIMESTAMP_TYPES:
@@ -214,13 +225,13 @@ def python_to_sql(table_name, columns, date_conversion=True):
 
 def python_to_teradata(columns, allow_precision_loss=False):
     if allow_precision_loss:
-        _float_handler = float_handler(columns)
+        _float_handler = FloatHandler(columns)
     else:
         _float_handler = lambda a: a
     def _encoder(items):
         check_input(columns, items)
         items = _float_handler(items)
-        indicator = GiraffeBytes(columns)
+        indicator = Bytes(columns)
         data = [indicator]
         for i, (item, column) in enumerate(zip(items, columns)):
             if item is None:
@@ -268,7 +279,7 @@ def python_to_teradata(columns, allow_precision_loss=False):
             elif column.type in VAR_TYPES:
                 data.append(struct.pack("H", len(item)) + ensure_bytes(item))
             elif column.type in DATE_TYPES:
-                date_value = GiraffeDate.from_string(item)
+                date_value = Date.from_string(item)
                 if date_value:
                     value = struct.pack("i", int(date_value))
                 else:

@@ -16,83 +16,83 @@ class TestTypes(object):
     def test_read_indicator_bytes(self):
         indicator = b"\x01\x0f\x80"
         expected = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
         indicator = b"\x17"
         expected = [0, 0, 0, 1, 0, 1, 1, 1]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
         indicator = b"\xc8\xc0"
         expected = [1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
         indicator = b"\xc1\xc8\xc2"
         expected = [1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
         indicator = b"\xc2\xc9\xc0"
         expected = [1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
         indicator = b"\x00\x00\x00"
         expected = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
         indicator = b"\x00"
         expected = [0, 0, 0, 0, 0, 0, 0, 0]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
         indicator = b"\xff\xff\xff"
         expected = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
         indicator = b"\xff"
         expected = [1, 1, 1, 1, 1, 1, 1, 1]
-        assert list(GiraffeBytes.read(indicator)) == expected
+        assert list(Bytes.read(indicator)) == expected
 
     def test_write_indicator_bytes(self):
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 17))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 17))
         expected_bytes = b"\x01\x0f\x80"
         set_indicator(indicator, [7, 12, 13, 14, 15, 16])
         assert bytes(indicator) == expected_bytes
 
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 6))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 6))
         expected_bytes = b"\x40"
         set_indicator(indicator, [1])
         assert bytes(indicator) == expected_bytes
 
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 10))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 10))
         expected_bytes = b"\xc8\xc0"
         set_indicator(indicator, [0, 1, 4, 8, 9])
         assert bytes(indicator) == expected_bytes
 
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 24))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 24))
         expected_bytes = b"\xc1\xc8\xc2"
         set_indicator(indicator, [0, 1, 7, 8, 9, 12, 16, 17, 22])
         assert bytes(indicator) == expected_bytes
 
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 24))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 24))
         expected_bytes = b"\xc2\xc9\xc0"
         set_indicator(indicator, [0, 1, 6, 8, 9, 12, 15, 16, 17])
         assert bytes(indicator) == expected_bytes
 
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 17))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 17))
         expected_bytes = b"\x00\x00\x00"
         set_indicator(indicator, [])
         assert bytes(indicator) == expected_bytes
 
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 6))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 6))
         expected_bytes = b"\x00"
         set_indicator(indicator, [])
         assert bytes(indicator) == expected_bytes
 
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 24))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 24))
         expected_bytes = b"\xff\xff\xff"
         set_indicator(indicator, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
             19, 20, 21, 22, 23])
         assert bytes(indicator) == expected_bytes
 
-        indicator = GiraffeBytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 8))
+        indicator = Bytes(Columns([("", TD_VARCHAR, 10, 0, 0)] * 8))
         expected_bytes = b"\xff"
         set_indicator(indicator, [0, 1, 2, 3, 4, 5, 6, 7])
         assert bytes(indicator) == expected_bytes

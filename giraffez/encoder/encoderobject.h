@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-#include "indicator.h"
-#include <stddef.h>
-#include <stdlib.h>
-#include "util.h"
+#ifndef __GIRAFFE_ENCODER_H
+#define __GIRAFFE_ENCODER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <Python.h>
+#include "types.h"
 
 
-void indicator_init(unsigned char** ind, unsigned char** data, size_t header_length) {
-    size_t i;
-    *ind = (unsigned char*)malloc(sizeof(unsigned char)*header_length);
-    for (i=0; i<header_length; i++) {
-        (*ind)[i] = reverse_lookup[*((*data)++)];
-    }
+typedef struct {
+    PyObject_HEAD
+    GiraffeColumns* columns;
+} Encoder;
+
+extern PyTypeObject EncoderType;
+
+#ifdef __cplusplus
 }
+#endif
 
-int indicator_read(unsigned char* ind, size_t pos) {
-    return (ind[pos/8] & (1 << (pos % 8)));
-}
-
-void indicator_free(unsigned char** ind) {
-    free(*ind);
-}
+#endif

@@ -15,11 +15,11 @@
  */
 
 #include <Python.h>
-#include "compat.h"
+#include "_compat.h"
 
 
-#include "exportobject.h"
-#include "loadobject.h"
+#include "tpt/exportobject.h"
+#include "tpt/loadobject.h"
 
 
 #ifdef __cplusplus

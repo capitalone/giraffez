@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __TERADATA_STMT_INFO_H
-#define __TERADATA_STMT_INFO_H
+#ifndef __ENCODER_INDICATOR_H
+#define __ENCODER_INDICATOR_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +28,38 @@ extern "C" {
 #include <stdint.h>
 #endif
 
+
+typedef struct {
+    char* Database;
+    char* Table;
+    char* Name;
+    uint16_t Type;
+    uint64_t Length;
+    uint16_t Precision;
+    uint16_t Interval;
+    uint16_t Scale;
+    uint16_t GDType;
+    char* Alias;
+    char* Title;
+    char* Format;
+    char* Default;
+    char* Nullable;
+} GiraffeColumn;
+
+typedef struct {
+    size_t size;
+    size_t length;
+    size_t header_length;
+    GiraffeColumn* array;
+} GiraffeColumns;
+
+void columns_init(GiraffeColumns *c, size_t initial_size);
+void columns_append(GiraffeColumns *c, GiraffeColumn element);
+void columns_free(GiraffeColumns *c);
+
+void indicator_init(unsigned char** ind, unsigned char** data, size_t header_length);
+int indicator_read(unsigned char* ind, size_t pos);
+void indicator_free(unsigned char** ind);
 
 typedef struct {
     uint16_t ExtensionLayout;
@@ -87,4 +119,3 @@ void parse_ext(unsigned char** data, StatementInfoColumn* column, const uint16_t
 #endif
 
 #endif
-

@@ -93,6 +93,9 @@ class Command(ArgumentParser):
             formatter_class=HelpFormatter, add_help=False, conflict_handler='resolve')
         self.has_subcommands = False
         self.register_args(self.arguments)
+
+        for global_arg in self.global_arguments:
+            global_arg.group = "global options"
         self.register_args(self.global_arguments)
         self.set_defaults(name=self.name)
         if self.default:

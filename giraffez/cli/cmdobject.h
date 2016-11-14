@@ -14,23 +14,45 @@
  * limitations under the License.
  */
 
-#ifndef __ENCODER_INDICATOR_H
-#define __ENCODER_INDICATOR_H
+#ifndef __GIRAFFE_CMD_H
+#define __GIRAFFE_CMD_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stddef.h>
+#define NO_CLIV2_ERROR_T
+#define STRING_CLI
+
+#define CONNECTED     0
+#define NOT_CONNECTED 1
+#define OK            0
+#define STOP          1
+#define FAILED       -1
+#define PCL_FAIL     -2
+#define PCL_ERR      -3
 
 
-void indicator_init(unsigned char** ind, unsigned char** data, size_t header_length);
-int indicator_read(unsigned char* ind, size_t pos);
-void indicator_free(unsigned char** ind);
+#include <Python.h>
+#include <dbcarea.h>
+#include <parcel.h>
+
+
+typedef struct DBCAREA dbcarea_t;
+
+typedef struct {
+    PyObject_HEAD
+    dbcarea_t *dbc;
+    int connected;
+    Int32 result;
+    int status;
+} Cmd;
+
+extern PyObject* GiraffeError;
+extern PyTypeObject CmdType;
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

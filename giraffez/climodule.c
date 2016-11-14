@@ -15,10 +15,10 @@
  */
 
 #include <Python.h>
-#include "compat.h"
+#include "_compat.h"
 
 
-#include "cmdobject.h"
+#include "cli/cmdobject.h"
 
 
 #ifdef __cplusplus

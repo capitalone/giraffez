@@ -15,10 +15,9 @@
  */
 
 #include "encoderobject.h"
-#include "compat.h"
-#include "encoder/columns.h"
-#include "encoder/unpack.h"
-#include "encoder/stmt_info.h"
+#include "_compat.h"
+#include "types.h"
+#include "unpack.h"
 
 
 static void Encoder_dealloc(Encoder* self) {
@@ -30,7 +29,6 @@ static void Encoder_dealloc(Encoder* self) {
 
 static PyObject* Encoder_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     Encoder* self;
-
     self = (Encoder*)type->tp_alloc(type, 0);
     return (PyObject*)self;
 }
@@ -44,20 +42,15 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
         self->columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
         self->columns->array = NULL;
     }
-
     if (!PyArg_ParseTuple(args, "O", &columns_obj)) {
         return 0;
     }
-
     columns_init(self->columns, 1);
-
     iterator = PyObject_GetIter(columns_obj);
-
     if (iterator == NULL) {
         PyErr_SetString(PyExc_ValueError, "No columns found.");
         return 0;
     }
-
     while ((column_obj = PyIter_Next(iterator))) {
         PyObject* column_name = PyObject_GetAttrString(column_obj, "name");
         PyObject* column_type = PyObject_GetAttrString(column_obj, "type");
@@ -78,13 +71,10 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
         Py_DECREF(column_precision);
         Py_DECREF(column_scale);
         Py_DECREF(gd_type);
-
         columns_append(self->columns, *column);
     }
     self->columns->header_length = (int)ceil(self->columns->length/8.0);
-    
     Py_DECREF(iterator);
-
     return 0;
 }
 
@@ -93,9 +83,9 @@ static PyObject* Encoder_count_rows(PyObject* self, PyObject* args) {
     uint32_t n;
 
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    n = count_rows((unsigned char*) buffer.buf, buffer.len);
+    n = count_rows((unsigned char*)buffer.buf, buffer.len);
     PyBuffer_Release(&buffer);
     return PyLong_FromLong(n);
 }
@@ -106,10 +96,9 @@ static PyObject* Encoder_unpack_row(Encoder* self, PyObject* args) {
     unsigned char* data;
 
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    data = (unsigned char*) buffer.buf;
-
+    data = (unsigned char*)buffer.buf;
     row = PyList_New(self->columns->length);
     unpack_row(&data, buffer.len, self->columns, row);
     PyBuffer_Release(&buffer);
@@ -122,10 +111,9 @@ static PyObject* Encoder_unpack_rows(Encoder* self, PyObject* args) {
     PyObject* rows;
 
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    data = (unsigned char*) buffer.buf;
-
+    data = (unsigned char*)buffer.buf;
     rows = PyList_New(0);
     unpack_rows(&data, buffer.len, self->columns, rows);
     PyBuffer_Release(&buffer);
@@ -138,10 +126,9 @@ static PyObject* Encoder_unpack_row_dict(Encoder* self, PyObject* args) {
     PyObject* row;
 
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    data = (unsigned char*) buffer.buf;
-
+    data = (unsigned char*)buffer.buf;
     row = PyDict_New();
     unpack_row_dict(&data, buffer.len, self->columns, row);
     PyBuffer_Release(&buffer);
@@ -154,10 +141,9 @@ static PyObject* Encoder_unpack_rows_dict(Encoder* self, PyObject* args) {
     PyObject* rows;
 
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    data = (unsigned char*) buffer.buf;
-
+    data = (unsigned char*)buffer.buf;
     rows = PyList_New(0);
     unpack_rows_dict(&data, buffer.len, self->columns, rows);
     PyBuffer_Release(&buffer);
@@ -172,10 +158,9 @@ static PyObject* Encoder_unpack_row_str(Encoder* self, PyObject* args) {
     PyObject* row;
 
     if (!PyArg_ParseTuple(args, "s*ss", &buffer, &null, &delimiter)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    data = (unsigned char*) buffer.buf;
-
+    data = (unsigned char*)buffer.buf;
     row = PyList_New(self->columns->length);
     unpack_row_str(&data, buffer.len, self->columns, row, null, delimiter);
     PyBuffer_Release(&buffer);
@@ -190,10 +175,9 @@ static PyObject* Encoder_unpack_rows_str(Encoder* self, PyObject* args) {
     PyObject* rows;
 
     if (!PyArg_ParseTuple(args, "s*ss", &buffer, &null, &delimiter)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    data = (unsigned char*) buffer.buf;
-
+    data = (unsigned char*)buffer.buf;
     rows = PyList_New(0);
     unpack_rows_str(&data, buffer.len, self->columns, rows, null, delimiter);
     PyBuffer_Release(&buffer);
@@ -210,10 +194,9 @@ static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
     size_t i;
 
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
-        Py_RETURN_NONE;
+        return NULL;
     }
-    data = (unsigned char*) buffer.buf;
-
+    data = (unsigned char*)buffer.buf;
     s = (StatementInfo*)malloc(sizeof(StatementInfo));
     stmt_info_init(s, 1);
     parse_stmt_info(&data, s, buffer.len);
