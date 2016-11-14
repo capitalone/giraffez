@@ -1,4 +1,3 @@
 recursive-include giraffez *.h
-recursive-include src *.h
 include requirements.txt
 include requirements-dev.txt

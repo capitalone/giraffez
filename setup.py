@@ -391,7 +391,7 @@ if __name__ == '__main__':
 
     with io.open("README.rst", encoding="utf-8") as f:
         long_description = f.read()
-        long_description.replace('logo.png', 'logo-md.png')
+        long_description = long_description.replace('logo.png', 'logo-md.png')
 
     setup(
         name="giraffez",
