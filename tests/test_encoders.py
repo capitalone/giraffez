@@ -260,9 +260,9 @@ class TestEncoders(object):
         handler = DateHandler(columns)
         results = handler(expected_text)
 
-        assert isinstance(results[0], GiraffeDate)
-        assert isinstance(results[1], GiraffeTime)
-        assert isinstance(results[2], GiraffeTimestamp)
+        assert isinstance(results[0], Date)
+        assert isinstance(results[1], Time)
+        assert isinstance(results[2], Timestamp)
 
         assert str(results[0]) == expected_results[0]
         assert str(results[1]) == expected_results[1]
@@ -306,7 +306,7 @@ class TestEncoders(object):
 
     def test_python_to_bytes(self):
         null = "NULL"
-        expected_text = [42, "3.14", None, "40", "", None, GiraffeDate.from_string("2006-01-02")]
+        expected_text = [42, "3.14", None, "40", "", None, Date.from_string("2006-01-02")]
         expected_strings = [b"42", b"3.14", b"NULL", b"40", b"", b"NULL", b"2006-01-02"]
         encoder = python_to_bytes(null)
         result_strings = encoder(expected_text)
@@ -314,7 +314,7 @@ class TestEncoders(object):
 
     def test_python_to_strings(self):
         null = "NULL"
-        expected_text = [42, "3.14", None, "40", "", None, GiraffeDate.from_string("2006-01-02")]
+        expected_text = [42, "3.14", None, "40", "", None, Date.from_string("2006-01-02")]
         expected_strings = ["42", "3.14", "NULL", "40", "", "NULL", "2006-01-02"]
         encoder = python_to_strings(null)
         result_strings = encoder(expected_text)

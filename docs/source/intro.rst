@@ -9,14 +9,14 @@ Python packages
 
 - `PyYAML <http://pyyaml.org/>`_
 - `PyCrypto <https://www.dlitz.net/software/pycrypto/>`_
-- *(optional)* `ujson <https://github.com/esnme/ultrajson>`_ (See :ref:`FAQ`) for more information)
+- *(optional)* `ujson <https://github.com/esnme/ultrajson>`_ (See the :ref:`FAQ <ujson>` for more information)
 
 Third-party libraries
 
 - `Teradata Call-Level Interface Version 2 <http://downloads.teradata.com/download/connectivity/teradata-cliv2-for-linux>`_ (CLIv2)
 - `Teradata Parallel Transporter API <https://developer.teradata.com/tools/articles/teradata-parallel-transporter/teradata-parallel-transporter-1-basics>`_ (TPT API)
 
-Please note that giraffez will install successfully without these libraries. They were made optional to allow the ``giraffez config`` and ``giraffez secret`` features to be accessible without needing the Teradata libraries installed.
+Features of giraffez like ``giraffez config`` and ``giraffez secret`` do not rely on either of the Third-party libraries, however, to reduce complexity of the package installation, all of the requirements must be installed and configured for any giraffez features.  This was mostly due to how pip works when installing a package with optional logical components.  Pip silences the installation output and only shows the output should an exception be encountered during the installation process.  This was creating a lot of confusion for users so the decision was made that all dependencies should be met when installing giraffez.
 
 More information on these libraries can be found :ref:`here <teradata-libraries>`.
 
@@ -72,7 +72,8 @@ It will be installed the next time you open a new terminal or if you want to act
    source ~/.bashrc
 
 
-Note that this requires the use of bash as your shell. It will most likely work with other shells with little modification but has not been tested.
+Note that this requires the use of bash as your shell. It will most likely work with other shells with little modification but has not been tested. Additionally, this puts the completion script in the system's completion folder, but can be used locally by simply sourcing the file (i.e. ``source <path>/giraffez-completion.bash``) in your shell's rc file.
+
 
 Compatibility and Supported Platforms
 -------------------------------------

@@ -57,6 +57,7 @@ from .load import TeradataLoad as Load
 from .logging import log, setup_logging
 from .mload import TeradataMLoad as MLoad
 from .secret import Secret
+from .types import Column, Columns, Date, Decimal, Time, Timestamp
 from .utils import register_graceful_shutdown_signal
 
 

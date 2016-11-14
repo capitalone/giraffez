@@ -33,3 +33,12 @@ Why is ujson an optional requirement?
 -------------------------------------
 
 When performing an Export to json, the ujson package is much faster than Python's standard library json. Python's json package is much slower because it provides a much more complete json marshaling package, whereas ujson is sufficiently complete for the purpose of creating well-formed json from this type of data.
+
+.. _export-header:
+
+Why are the column aliases incorrect when using Export?
+-------------------------------------------------------
+
+A regression was introduced after version 13.10 of the Teradata Parallel Transporter API that causes inconsistent behavior with column aliases in Export operations.  When dealing with columns that are aliased the Teradata library does not return the name specified in the alias.  It seemed that when dealing with columns that are aliased that it would instead return the underlying column name or when dealing with computed fields returning a blank string.
+
+This affects any part of giraffez that makes use of the :class:`giraffez.Export <giraffez.export.TeradataExport>` class (it does not affect `giraffez.Cmd <giraffez.cmd.TeradataCmd>`).  Unfortunately, this is rooted in the proprietary Teradata libraries and cannot be fixed within giraffez, so the recommendation is to simply hardcode the column names with the query in those cases.

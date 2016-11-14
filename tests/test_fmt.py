@@ -4,7 +4,7 @@ import pytest
 
 import giraffez
 from giraffez.fmt import *
-from giraffez.types import GiraffeDate
+from giraffez.types import Date
 
 
 class TestFmt(object):
@@ -12,7 +12,7 @@ class TestFmt(object):
         rows = [
             ('col1', 'col2', 'col3'),
             ('one', 'two', 'three'),
-            ('value1', 2, GiraffeDate(2015, 11, 8)),
+            ('value1', 2, Date(2015, 11, 8)),
         ]
         result = format_table(rows)
         expected_result = """col1   | col2 | col3      

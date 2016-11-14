@@ -1,6 +1,16 @@
 giraffez Changelog
 ======================
 
+Version 1.1.0
+-------------
+Nov 14 2016
+
+- Restructure/consolidate C files
+- File text parsing now uses the Python csv module (#15)
+- Decimal type now returns as giraffez.Decimal (only in giraffez.Cmd)
+- Fix reader modes in Python 3 when using gzip on non-archive output
+- Rename some internal types for consistency
+
 Version 1.0.5
 -------------
 Oct 5 2016

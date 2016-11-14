@@ -70,15 +70,15 @@ class CharHandler(Handler):
 
 class DateHandler(Handler):
     handlers = [
-        (DATE_TYPES, GiraffeDate.from_integer),
-        (TIME_TYPES, GiraffeTime.from_string),
-        (TIMESTAMP_TYPES, GiraffeTimestamp.from_string)
+        (DATE_TYPES, Date.from_integer),
+        (TIME_TYPES, Time.from_string),
+        (TIMESTAMP_TYPES, Timestamp.from_string)
     ]
 
 
 class DecimalHandler(Handler):
     handlers = [
-        (DECIMAL_TYPES, GiraffeDecimal),
+        (DECIMAL_TYPES, Decimal),
     ]
 
 
@@ -140,7 +140,7 @@ def teradata_to_python(columns):
     def _encoder(data):
         items = []
         indicator, data = data[0:columns.header_length], data[columns.header_length:]
-        for column, nullable in zip(columns, GiraffeBytes.read(indicator)):
+        for column, nullable in zip(columns, Bytes.read(indicator)):
             if column.type in ALL_INTEGER_TYPES:
                 value, data = unpack_integer(data[0:column.length], column.length), data[column.length:]
             elif column.type in FLOAT_TYPES:
@@ -168,11 +168,11 @@ def teradata_to_python(columns):
                 value = value.replace("\r", "\n")
             elif column.type in DATE_TYPES:
                 n, data = unpack_integer(data[0:column.length], column.length), data[column.length:]
-                value = GiraffeDate.from_integer(n)
+                value = Date.from_integer(n)
             elif column.type in TIME_TYPES:
-                value, data = GiraffeTime.from_string(data[0:column.length]), data[column.length:]
+                value, data = Time.from_string(data[0:column.length]), data[column.length:]
             elif column.type in TIMESTAMP_TYPES:
-                value, data = GiraffeTimestamp.from_string(data[0:column.length]), data[column.length:]
+                value, data = Timestamp.from_string(data[0:column.length]), data[column.length:]
             else:
                 value, data = data[0:column.length], data[column.length:]
             if nullable:
@@ -184,16 +184,16 @@ def teradata_to_python(columns):
 def python_to_sql(table_name, columns, date_conversion=True):
     if date_conversion:
         def convert_date(s):
-            value = GiraffeDate.from_string(s)
+            value = Date.from_string(s)
             if value is None:
                 raise GiraffeEncodeError("Cannot convert date '{}'".format(s))
             return value.to_string()
 
         def convert_datetime(s, length):
             if isinstance(s, datetime.date):
-                value = GiraffeTimestamp.from_datetime(s)
+                value = Timestamp.from_datetime(s)
             else:
-                value = GiraffeTimestamp.from_string(s)
+                value = Timestamp.from_string(s)
             if value is None:
                 raise GiraffeEncodeError("Cannot convert datetime '{}'".format(s))
             return value.to_string(length)
@@ -210,7 +210,7 @@ def python_to_sql(table_name, columns, date_conversion=True):
                 value = quote_string(escape_quotes(item))
             elif column.type in DATE_TYPES:
                 if isinstance(item, datetime.date):
-                    value = str(GiraffeDate.from_datetime(item).to_integer())
+                    value = str(Date.from_datetime(item).to_integer())
                 else:
                     value = quote_string(convert_date(escape_quotes(item)))
             elif column.type in TIME_TYPES | TIMESTAMP_TYPES:
@@ -231,7 +231,7 @@ def python_to_teradata(columns, allow_precision_loss=False):
     def _encoder(items):
         check_input(columns, items)
         items = _float_handler(items)
-        indicator = GiraffeBytes(columns)
+        indicator = Bytes(columns)
         data = [indicator]
         for i, (item, column) in enumerate(zip(items, columns)):
             if item is None:
@@ -279,7 +279,7 @@ def python_to_teradata(columns, allow_precision_loss=False):
             elif column.type in VAR_TYPES:
                 data.append(struct.pack("H", len(item)) + ensure_bytes(item))
             elif column.type in DATE_TYPES:
-                date_value = GiraffeDate.from_string(item)
+                date_value = Date.from_string(item)
                 if date_value:
                     value = struct.pack("i", int(date_value))
                 else:
