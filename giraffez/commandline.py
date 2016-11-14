@@ -290,6 +290,7 @@ class FmtCommand(Command):
         Argument("-d", "--delimiter", help="Transform delimiter"),
         Argument("-n", "--null", help="Transform null ex. 'None to NULL'"),
         Argument("--head", const=9, nargs="?", type=int, help="Only output N rows"),
+        Argument("--header", default=False, help="Output table header"),
         Argument("--count", default=False, help="Count the table")
     ]
 
@@ -297,7 +298,7 @@ class FmtCommand(Command):
         with Reader(args.input_file) as f:
             log.verbose("Debug[1]", "File type: ", f)
             if isinstance(f, ArchiveFileReader):
-                columns = f.columns()
+                columns = f.columns
             else:
                 columns = f.header
             for column in columns:
@@ -309,16 +310,9 @@ class FmtCommand(Command):
                 log.info("Lines: ", i)
             else:
                 processors = []
+                dst_delimiter = DEFAULT_DELIMITER
                 if args.delimiter:
-                    src_delimiter, dst_delimiter = args.delimiter.split(" to ", 1)
-                    dst_delimiter = unescape_string(dst_delimiter)
-                    if src_delimiter != f.delimiter:
-                        src_delimiter = f.delimiter
-                else:
-                    src_delimiter = f.delimiter
-                    dst_delimiter = f.delimiter
-                if dst_delimiter is None:
-                    dst_delimiter = DEFAULT_DELIMITER
+                    dst_delimiter = unescape_string(args.delimiter)
                 if isinstance(f, ArchiveFileReader):
                     encoder = _encoder.Encoder(columns)
                     processors.append(encoder.unpack_row)
@@ -330,6 +324,8 @@ class FmtCommand(Command):
                 processors.append(python_to_strings(dst_null))
                 processors.append(strings_to_text(dst_delimiter))
                 processor = pipeline(processors)
+                if args.header:
+                    print(dst_delimiter.join(f.header))
                 i = 0
                 for i, line in enumerate(f, 1):
                     if args.head and args.head < i:

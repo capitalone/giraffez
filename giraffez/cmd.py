@@ -137,6 +137,7 @@ class TeradataCmd(Connection):
 
         :param str table_name: The name of the table to collect statistics on
         :param str predicate: The predicate of the collect statistics statement, which follows the table name
+        :param bool silent: Silence console logging (within this function only)
         :return: The result of the collect statistics statement
         :rtype: None or :class:`~giraffez.types.Result`
         :raises `giraffez.errors.TeradataError`: if statistic cannot be collected for :code:`table_name`
