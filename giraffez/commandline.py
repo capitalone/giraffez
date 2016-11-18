@@ -144,7 +144,7 @@ class ConfigCommand(Command):
             result = Config.write_default(args.conf)
             if result:
                 log.write(colors.green(result))
-                log.write(MESSAGE_WRITE_DEFAULT.format(args.conf))
+                log.write(message_write_default.format(args.conf))
             else:
                 log.write(colors.fail("Was not successful"))
             create_key_file(args.key)
