@@ -106,7 +106,7 @@ def latest_teradata_version(search_directory):
     try:
         directories = []
         for d in os.listdir(search_directory):
-            if re.search("[\d\.]+", d):
+            if re.match("[\d\.]+", d):
                 directories.append(d)
         if not directories:
             return None
@@ -301,7 +301,7 @@ class TPTExtension(Extension):
         elif platform.system() == 'Darwin':
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
-                tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib64")
+                tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib")
             else:
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib")
