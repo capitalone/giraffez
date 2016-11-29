@@ -122,5 +122,5 @@ class MainCommand(Command):
                 raise error
         except InvalidCredentialsError as error:
             if args.protect:
-                Config.lock_connection(args.conf, args.dsn)
+                Config.lock_connection(args.conf, args.dsn, args.key)
             raise error

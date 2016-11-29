@@ -151,7 +151,7 @@ class ConfigCommand(Command):
             log.write("Key file '{}' created successfully.".format(args.key))
         elif args.get is not None:
             key = args.get
-            with Config(args.conf) as c:
+            with Config(conf=args.conf, key_file=args.key) as c:
                 value = c.get_value(key)
             if value == -1:
                 log.write("{}: not set".format(key))
@@ -162,19 +162,19 @@ class ConfigCommand(Command):
                     value = "{}:\n{}\n".format(key, value)
                 log.write(value)
         elif args.list:
-            with Config(args.conf) as c:
+            with Config(conf=args.conf, key_file=args.key) as c:
                 log.write(c.list_value(args.decrypt))
         elif args.set is not None:
             key, value = args.set
-            with Config(args.conf, "w") as c:
+            with Config(conf=args.conf, mode="w", key_file=args.key) as c:
                 c.set_value(key, value)
                 c.write()
         elif args.unset is not None:
-            with Config(args.conf, "w") as c:
+            with Config(conf=args.conf, mode="w", key_file=args.key) as c:
                 c.unset_value(args.unset)
                 c.write()
         elif args.unlock is not None:
-            Config.unlock_connection(args.conf, args.unlock)
+            Config.unlock_connection(args.conf, args.unlock, args.key)
 
 
 class ExportCommand(Command):
@@ -531,7 +531,7 @@ class SecretCommand(Command):
     ]
 
     def run(self, args):
-        with Config(args.conf, args.key) as c:
+        with Config(conf=args.conf, key_file=args.key) as c:
             if not args.key_value.startswith("secure.") and \
                     not args.key_value.startswith("connections."):
                 key = "secure.{}".format(args.key_value)
