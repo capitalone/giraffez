@@ -11,7 +11,6 @@ from distutils.command.build_ext import build_ext
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 
 
-WIN = sys.platform.startswith('win')
 PY3 = sys.version_info[0] == 3
 
 if not PY3:
@@ -62,31 +61,52 @@ def fix_compile(remove_flags):
 # strict-prototypes is only valid for C code so causes invalid warnings
 # with C++.
 # unreachable-code is considered to be a broken warning and has been
-# removed from newer versions of gcc
+# removed from newer versions of gcc.
 remove_flags = ['-Wstrict-prototypes', '-Wunreachable-code']
 fix_compile(remove_flags)
 
-def get_teradata_home():
+def is_64bit():
+    if sys.maxsize > 2**32:
+        return True
+    return False
+
+def find_teradata_home():
     """
     Attempts to find the Teradata install directory with the defaults
-    for a given platform.
+    for a given platform.  Should always return `None` when the defaults
+    are not present and the TERADATA_HOME environment variable wasn't
+    explicitly set to the correct install location.
     """
-    if WIN:
+    if platform.system() == 'Windows':
+        # The default installation path for Windows is split between the
+        # Windows directories for 32-bit/64-bit applications.  It is
+        # worth noting that Teradata archiecture installed should match
+        # the architecture of the Python architecture being used (i.e.
+        # TTU 32-bit is required /w Python 32-bit and TTU 64-bit is
+        # required for Python 64-bit).
         if is_64bit():
-            return get_teradata_version("C:/Program Files/Teradata/Client")
+            return latest_teradata_version("C:/Program Files/Teradata/Client")
         else:
-            return get_teradata_version("C:/Program Files (x86)/Teradata/Client")
+            return latest_teradata_version("C:/Program Files (x86)/Teradata/Client")
+    elif platform.system() == 'Linux':
+        return latest_teradata_version("/opt/teradata/client")
+    elif platform.system() == 'Darwin':
+        return latest_teradata_version("/Library/Application Support/teradata/client")
     else:
-        return get_teradata_version("/opt/teradata/client")
+        # In the case nothing is found, the default for Linux is
+        # attempted as a last effort to find the correct install
+        # directory.
+        return latest_teradata_version("/opt/teradata/client")
 
-def get_teradata_version(search_directory):
+def latest_teradata_version(search_directory):
     """
-    Returns the highest version number in a directory
+    Attempts to find the latest version of Teradata installed based upon
+    the default Teradata installation directory structure.
     """
     try:
         directories = []
         for d in os.listdir(search_directory):
-            if re.search("\d+\.\d+", d):
+            if re.match("[\d\.]+", d):
                 directories.append(d)
         if not directories:
             return None
@@ -95,19 +115,14 @@ def get_teradata_version(search_directory):
         sys.stderr.write("Teradata FileNotFound.")
         return None
 
-def get_version():
+def giraffez_version():
     version_regex = re.compile(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', re.MULTILINE)
 
     with open('giraffez/__init__.py', 'r') as f:
         return version_regex.search(f.read()).group(1)
 
-def is_64bit():
-    if sys.maxsize > 2**32:
-        return True
-    return False
 
-
-TERADATA_HOME = os.environ.get('TERADATA_HOME', get_teradata_home())
+TERADATA_HOME = os.environ.get('TERADATA_HOME', find_teradata_home())
 
 
 class Extension(_Extension):
@@ -128,7 +143,7 @@ class Extension(_Extension):
         self.include_dirs.append(os.path.join(os.getcwd(), "giraffez"))
 
         # Windows compatbility
-        if WIN:
+        if platform.system() == 'Windows':
             if is_64bit():
                 self.define_macros.append(('WIN64', 1))
             else:
@@ -286,7 +301,7 @@ class TPTExtension(Extension):
         elif platform.system() == 'Darwin':
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
-                tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib64")
+                tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib")
             else:
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib")
@@ -399,7 +414,7 @@ if __name__ == '__main__':
         long_description=long_description,
         license="Apache 2.0",
         url="https://github.com/capitalone/giraffez",
-        version=get_version(),
+        version=giraffez_version(),
         packages=find_packages(exclude=['tests*']),
         ext_modules=ext_modules,
         entry_points={
