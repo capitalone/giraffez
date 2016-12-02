@@ -22,42 +22,12 @@
 #include <dbcarea.h>
 #include <parcel.h>
 #include "_compat.h"
-
+#include "encoder/columns.h"
+#include "encoder/types.h"
+#include "encoder/unpack.h"
 
 PyObject* GiraffeError;
 
-static char cnta[4];
-static char session_charset[36];
-
-static int fetch_request(dbcarea_t* dbc, char cnta[]) {
-    int status = OK;
-    Int32 result = EM_OK;
-    Py_BEGIN_ALLOW_THREADS
-    dbc->i_sess_id = dbc->o_sess_id;
-    dbc->i_req_id = dbc->o_req_id;
-    dbc->func = DBFFET;
-    DBCHCL(&result, cnta, dbc);
-    if (result == REQEXHAUST) {
-        status = STOP;
-    } else if (result != EM_OK) {
-        status = FAILED;
-    } else {
-        switch ((Int16)dbc->fet_parcel_flavor) {
-        case PclSUCCESS:
-            break;
-        case PclRECORD:
-            break;
-        case PclFAILURE:
-            status = PCL_FAIL;
-            break;
-        case PclERROR:
-            status = PCL_ERR;
-            break;
-        }
-    }
-    Py_END_ALLOW_THREADS
-    return status;
-}
 
 static PyObject* Cmd_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     Cmd* self;
@@ -68,18 +38,16 @@ static PyObject* Cmd_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
 static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
     char *host=NULL, *username=NULL, *password=NULL;
     char logonstr[1024] = "";
-
     if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
         return -1;
     }
-
     sprintf(logonstr, "%s/%s,%s", host, username, password);
     self->connected = NOT_CONNECTED;
     self->status = OK;
     self->result = EM_OK;
     self->dbc = (dbcarea_t*)malloc(sizeof(dbcarea_t));
     self->dbc->total_len = sizeof(dbcarea_t);
-    DBCHINI(&self->result, cnta, self->dbc);
+    DBCHINI(&self->result, self->cnta, self->dbc);
     if (self->result != EM_OK) {
         PyErr_SetString(GiraffeError, "CLIv2: init failed");
         return -1;
@@ -94,7 +62,7 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
     self->dbc->var_len_req = 'N';
     self->dbc->var_len_fetch = 'N';
     self->dbc->save_resp_buf = 'N';
-    self->dbc->two_resp_bufs = 'N';
+    self->dbc->two_resp_bufs = 'Y';
     self->dbc->ret_time = 'N';
     self->dbc->parcel_mode = 'Y';
     self->dbc->wait_for_resp = 'Y';
@@ -104,35 +72,46 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
     self->dbc->maximum_parcel = 'H';
     self->dbc->max_decimal_returned = 38;
     self->dbc->charset_type = 'N';
-    snprintf(session_charset, 32, "%-30s", "UTF8");
-    self->dbc->inter_ptr = session_charset;
+
+    snprintf(self->session_charset, 32, "%-30s", "UTF8");
+    self->dbc->inter_ptr = self->session_charset;
     self->dbc->logon_ptr = logonstr;
     self->dbc->logon_len = (UInt32) strlen(logonstr);
     self->dbc->func = DBFCON;
-    DBCHCL(&self->result, cnta, self->dbc);
+    DBCHCL(&self->result, self->cnta, self->dbc);
     if (self->result != EM_OK) {
-        PyErr_SetString(GiraffeError, "CLIv2: connect failed");
+        PyErr_Format(GiraffeError, "CLIv2: connect failed -- %s", self->dbc->msg_text);
         return -1;
     }
-    self->status = fetch_request(self->dbc, cnta);
+    self->dbc->i_sess_id = self->dbc->o_sess_id;
+    self->dbc->i_req_id = self->dbc->o_req_id;
+    self->dbc->func = DBFFET;
+    DBCHCL(&self->result, self->cnta, self->dbc);
+    if (self->dbc->fet_ret_data_len < 1) {
+        PyErr_Format(GiraffeError, "%d: Connection to host '%s' failed.", -1, (char*)host);
+        return -1;
+    }
+    if (self->result == EM_OK) {
+        switch (self->dbc->fet_parcel_flavor) {
+        case PclFAILURE:
+            self->status = PCL_FAIL;
+            break;
+        case PclERROR:
+            self->status = PCL_ERR;
+            break;
+        }
+    }
     self->dbc->i_sess_id = self->dbc->o_sess_id;
     self->dbc->i_req_id = self->dbc->o_req_id;
     self->dbc->func = DBFERQ;
-    DBCHCL(&self->result, cnta, self->dbc);
+    DBCHCL(&self->result, self->cnta, self->dbc);
     if (self->result != EM_OK) {
         PyErr_SetString(GiraffeError, "CLIv2: end request failed");
         return -1;
     }
-    if (self->status != 0) {
-        char err_msg[256] = "";
-        if (self->status == -1 || self->dbc->fet_ret_data_len < 1) {
-            // msg_text can only be read after DBCHINI initializes the dbcarea_t
-            snprintf(err_msg, 256, "%d: Connection to host '%s' failed.", self->status, (char*)host);
-        } else {
-            struct CliFailureType *Error_Fail = (struct CliFailureType *) self->dbc->fet_data_ptr;
-            snprintf(err_msg, 256, "%d: %s", Error_Fail->Code, Error_Fail->Msg);
-        }
-        PyErr_SetString(GiraffeError, err_msg);
+    if (self->status != OK) {
+        struct CliFailureType *ErrorFail = (struct CliFailureType *) self->dbc->fet_data_ptr;
+        PyErr_Format(GiraffeError, "%d: %s", ErrorFail->Code, ErrorFail->Msg);
         return -1;
     }
     self->connected = CONNECTED;
@@ -142,107 +121,163 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
 static PyObject* Cmd_close(Cmd* self) {
     if (self->connected == CONNECTED) {
         self->dbc->func = DBFDSC;
-        DBCHCL(&self->result, cnta, self->dbc);
+        DBCHCL(&self->result, self->cnta, self->dbc);
     }
-    DBCHCLN(&self->result, cnta);
+    DBCHCLN(&self->result, self->cnta);
     self->connected = NOT_CONNECTED;
     return Py_BuildValue("i", self->connected);
 }
 
 static void Cmd_dealloc(Cmd* self) {
-    Cmd_close(self);
     if (self->dbc != NULL) {
         free(self->dbc);
+        self->dbc = NULL;
+    }
+    if (self->columns != NULL) {
+        columns_free(self->columns);
     }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
     char* command = NULL;
-    PyObject* statementinfo = PyBytes_FromStringAndSize(NULL, 0);
-    PyObject* rows = PyBytes_FromStringAndSize(NULL, 0);
-    PyObject* results = NULL;
-    PyObject* data = PyList_New(0);
-    PyObject* error = NULL;
-
     if (self->connected == NOT_CONNECTED) {
         PyErr_SetString(GiraffeError, "1: Connection not established.");
         return NULL;
     }
-
     if (!PyArg_ParseTuple(args, "s", &command)) {
         return NULL;
     }
-
     self->dbc->req_ptr = command;
     self->dbc->req_len = (UInt32) strlen(command);
     self->dbc->func = DBFIRQ;
-    DBCHCL(&self->result, cnta, self->dbc);
+    DBCHCL(&self->result, self->cnta, self->dbc);
     if (self->result != EM_OK) {
         Cmd_close(self);
-        PyErr_SetString(GiraffeError, "CLIv2: initiate request failed");
+        PyErr_Format(GiraffeError, "CLIv2: initiate request failed -- %s", self->dbc->msg_text);
         return NULL;
-    }
-
-    while ((self->status = fetch_request(self->dbc, cnta)) == OK) {
-        size_t length = self->dbc->fet_ret_data_len;
-        if (self->dbc->fet_parcel_flavor == PclRECORD) {
-            unsigned char v1 = (self->dbc->fet_ret_data_len & 0xff);
-            unsigned char v2 = (self->dbc->fet_ret_data_len & 0xff00) >> 8;
-            PyObject* s = PyBytes_FromFormat("%c%c", v1, v2);
-            PyBytes_Concat(&rows, s);
-            Py_DECREF(s);
-        }
-        if (self->dbc->fet_parcel_flavor == PclSTATEMENTINFO) {
-            PyObject* s = PyBytes_FromStringAndSize(self->dbc->fet_data_ptr, length);
-            PyBytes_Concat(&statementinfo, s);
-            Py_DECREF(s);
-        } else if (self->dbc->fet_parcel_flavor == PclRECORD) {
-            PyObject* s = PyBytes_FromStringAndSize(self->dbc->fet_data_ptr, length);
-            PyBytes_Concat(&rows, s);
-            Py_DECREF(s);
-        } else if (self->dbc->fet_parcel_flavor == PclENDSTATEMENT) {
-            PyObject* d = PyDict_New();
-            if (statementinfo) {
-                PyDict_SetItemString(d, "stmtinfo", statementinfo);
-                Py_DECREF(statementinfo);
-            } else {
-                Py_INCREF(Py_None);
-                PyDict_SetItemString(d, "stmtinfo", Py_None);
-            }
-            PyDict_SetItemString(d, "rows", rows);
-            Py_DECREF(rows);
-            statementinfo = PyBytes_FromStringAndSize(NULL, 0);
-            rows = PyBytes_FromStringAndSize(NULL, 0);
-            PyList_Append(data, d);
-            Py_DECREF(d);
-        }
-    }
-    if (self->status == FAILED) {
-        error = Py_BuildValue("(is)", self->status, self->dbc->msg_text);
-    } else if (self->status == PCL_FAIL) {
-        struct CliFailureType *ErrorFail = (struct CliFailureType *) self->dbc->fet_data_ptr;
-        error = Py_BuildValue("(is)", ErrorFail->Code, ErrorFail->Msg);
-    } else if (self->status == PCL_ERR) {
-        struct CliErrorType *ErrorFail = (struct CliErrorType *) self->dbc->fet_data_ptr;
-        error = Py_BuildValue("(is)", ErrorFail->Code, ErrorFail->Msg);
-    } else {
-        Py_INCREF(Py_None);
-        error = Py_None;
     }
     self->dbc->i_sess_id = self->dbc->o_sess_id;
     self->dbc->i_req_id = self->dbc->o_req_id;
-    self->dbc->func = DBFERQ;
-    DBCHCL(&self->result, cnta, self->dbc);
-    results = Py_BuildValue("(OO)", data, error);
-    Py_DECREF(data);
-    Py_XDECREF(error);
-    return results;
+    self->dbc->func = DBFFET;
+    if (self->columns != NULL) {
+        columns_free(self->columns);
+        self->columns = NULL;
+    }
+    return Py_BuildValue("i", 0);
+}
+
+static PyObject* Cmd_columns(Cmd* self) {
+    int i;
+    PyObject* d;
+    PyObject* columns;
+    GiraffeColumn* column;
+    if (self->columns == NULL) {
+        Py_RETURN_NONE;
+    }
+    columns = PyList_New(self->columns->length);
+    for (i=0; i<self->columns->length; i++) {
+        column = &self->columns->array[i];
+        d = PyDict_New();
+        PyDict_SetItemString(d, "name", PyUnicode_FromString(column->Name));
+        PyDict_SetItemString(d, "title", PyUnicode_FromString(column->Title));
+        PyDict_SetItemString(d, "alias", PyUnicode_FromString(column->Alias));
+        PyDict_SetItemString(d, "type", PyLong_FromLong((long)column->Type));
+        PyDict_SetItemString(d, "length", PyLong_FromLong((long)column->Length));
+        PyDict_SetItemString(d, "precision", PyLong_FromLong((long)column->Precision));
+        PyDict_SetItemString(d, "scale", PyLong_FromLong((long)column->Scale));
+        PyDict_SetItemString(d, "nullable", PyUnicode_FromString(column->Nullable));
+        PyDict_SetItemString(d, "default", PyUnicode_FromString(column->Default));
+        PyDict_SetItemString(d, "format", PyUnicode_FromString(column->Format));
+        PyList_SetItem(columns, i, d);
+    }
+    return columns;
+}
+
+static PyObject* Cmd_fetch_one(Cmd* self, PyObject* args) {
+    PyObject* row = NULL;
+    StatementInfoColumn *scolumn;
+    StatementInfo *s;
+    GiraffeColumn *column;
+    int i;
+    Py_BEGIN_ALLOW_THREADS
+    DBCHCL(&self->result, self->cnta, self->dbc);
+    Py_END_ALLOW_THREADS
+    if (self->result == REQEXHAUST) {
+        self->dbc->i_sess_id = self->dbc->o_sess_id;
+        self->dbc->i_req_id = self->dbc->o_req_id;
+        self->dbc->func = DBFERQ;
+        DBCHCL(&self->result, self->cnta, self->dbc);
+        PyErr_Format(PyExc_StopIteration, "%d: %s", self->result, self->dbc->msg_text);
+        return NULL;
+    } else if (self->result != EM_OK) {
+        PyErr_Format(GiraffeError, "%d: %s", self->status, self->dbc->msg_text);
+        return NULL;
+    }
+    if (self->status == PCL_FAIL) {
+        struct CliFailureType *ErrorFail = (struct CliFailureType *) self->dbc->fet_data_ptr;
+        PyErr_Format(GiraffeError, "%d: %s", ErrorFail->Code, ErrorFail->Msg);
+        return NULL;
+    } else if (self->status == PCL_ERR) {
+        struct CliErrorType *ErrorFail = (struct CliErrorType *) self->dbc->fet_data_ptr;
+        PyErr_Format(GiraffeError, "%d: %s", ErrorFail->Code, ErrorFail->Msg);
+        return NULL;
+    }
+    switch (self->dbc->fet_parcel_flavor) {
+        case PclRECORD:
+            row = PyList_New(self->columns->length);
+            /*unpack_row(&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len, self->columns, row);*/
+            unpack_row_x((unsigned char**)&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len, self->columns, row);
+            break;
+        case PclSTATEMENTINFO:
+            s = (StatementInfo*)malloc(sizeof(StatementInfo));
+            stmt_info_init(s, 1);
+            unpack_stmt_info((unsigned char**)&self->dbc->fet_data_ptr, s, self->dbc->fet_ret_data_len);
+            self->columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
+            columns_init(self->columns, 1);
+            for (i=0; i<s->length; i++) {
+                scolumn = &s->array[i];
+                column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
+                column->Name = strdup(scolumn->Name);
+                column->Type = scolumn->Type;
+                column->Length = scolumn->Length;
+                column->Precision = scolumn->Precision;
+                column->Scale = scolumn->Scale;
+                column->Alias = scolumn->Alias;
+                column->Title = scolumn->Title;
+                column->Format = scolumn->Format;
+                column->Default = scolumn->Default;
+                column->Nullable = scolumn->CanReturnNull;
+                column->GDType = tdtype_to_gdtype(scolumn->Type);
+                columns_append(self->columns, *column);
+            }
+            self->columns->header_length = (int)ceil(self->columns->length/8.0);
+            stmt_info_free(s);
+            break;
+        case PclFAILURE:
+            self->status = PCL_FAIL;
+            break;
+        case PclERROR:
+            self->status = PCL_ERR;
+            break;
+        case PclENDSTATEMENT:
+            break;
+        case PclENDREQUEST:
+            break;
+        default:
+            break;
+    }
+    if (row == NULL) {
+        Py_RETURN_NONE;
+    }
+    return row;
 }
 
 static PyMethodDef Cmd_methods[] = {
     {"close", (PyCFunction)Cmd_close, METH_NOARGS, ""},
+    {"columns", (PyCFunction)Cmd_columns, METH_NOARGS, ""},
     {"execute", (PyCFunction)Cmd_execute, METH_VARARGS, ""},
+    {"fetch_one", (PyCFunction)Cmd_fetch_one, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };
 

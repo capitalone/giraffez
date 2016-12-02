@@ -180,17 +180,23 @@ class EncoderExtension(Extension):
     name = "giraffez._encoder"
 
     sources = [
+        "giraffez/encoder/columns.c",
         "giraffez/encoder/convert.c",
+        "giraffez/encoder/pytypes.c",
         "giraffez/encoder/types.c",
         "giraffez/encoder/unpack.c",
+        "giraffez/encoder/util.c",
         "giraffez/encoder/encoderobject.c",
         "giraffez/encodermodule.c",
     ]
 
     depends = [
+        "giraffez/encoder/columns.h",
         "giraffez/encoder/convert.h",
         "giraffez/encoder/types.h",
+        "giraffez/encoder/types.h",
         "giraffez/encoder/unpack.h",
+        "giraffez/encoder/util.h",
         "giraffez/encoder/encoderobject.h",
         "giraffez/encodermodule.c",
     ]
@@ -201,13 +207,15 @@ class CLIExtension(Extension):
 
     sources = [
         "giraffez/cli/cmdobject.c",
-        "giraffez/climodule.c"
+        "giraffez/climodule.c",
     ]
 
     depends = [
         "giraffez/cli/cmdobject.h",
-        "giraffez/climodule.c"
+        "giraffez/climodule.c",
     ]
+
+    depends_on = [EncoderExtension]
 
     cli_include_dir = None
     cli_library_dir = None
@@ -264,13 +272,13 @@ class TPTExtension(Extension):
     sources = [
         "giraffez/tpt/exportobject.cc",
         "giraffez/tpt/loadobject.cc",
-        "giraffez/tptmodule.cc"
+        "giraffez/tptmodule.cc",
     ]
 
     depends = [
         "giraffez/tpt/exportobject.h",
         "giraffez/tpt/loadobject.h",
-        "giraffez/tptmodule.cc"
+        "giraffez/tptmodule.cc",
     ]
 
     depends_on = [EncoderExtension]

@@ -23,98 +23,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "_compat.h"
+#include "columns.h"
 #include "convert.h"
+#include "pytypes.h"
 #include "types.h"
+#include "util.h"
 
-
-void unpack_int8_t(unsigned char **data, int8_t *dst) {
-    *dst = *((*data)++);
-}
-
-void unpack_int16_t(unsigned char **data, int16_t *dst) {
-    *dst = *((*data)++);
-    *dst |= (*((*data)++) & 0xffLL) << 8;
-}
-
-void unpack_uint16_t(unsigned char **data, uint16_t *dst) {
-    *dst = *((*data)++);
-    *dst |= (*((*data)++) & 0xffULL) << 8;
-}
-
-void unpack_int32_t(unsigned char **data, int32_t *dst) {
-    *dst = *((*data)++);
-    *dst |= (*((*data)++) & 0xffLL) << 8;
-    *dst |= (*((*data)++) & 0xffLL) << 16;
-    *dst |= (*((*data)++) & 0xffLL) << 24;
-}
-
-void unpack_int64_t(unsigned char **data, int64_t *dst) {
-    *dst = *((*data)++);
-    *dst |= (*((*data)++) & 0xffLL) << 8;
-    *dst |= (*((*data)++) & 0xffLL) << 16;
-    *dst |= (*((*data)++) & 0xffLL) << 24;
-    *dst |= (*((*data)++) & 0xffLL) << 32;
-    *dst |= (*((*data)++) & 0xffLL) << 40;
-    *dst |= (*((*data)++) & 0xffLL) << 48;
-    *dst |= (*((*data)++) & 0xffLL) << 56;
-}
-
-void unpack_uint64_t(unsigned char **data, uint64_t *dst) {
-    *dst = *((*data)++);
-    *dst |= (*((*data)++) & 0xffULL) << 8;
-    *dst |= (*((*data)++) & 0xffULL) << 16;
-    *dst |= (*((*data)++) & 0xffULL) << 24;
-    *dst |= (*((*data)++) & 0xffULL) << 32;
-    *dst |= (*((*data)++) & 0xffULL) << 40;
-    *dst |= (*((*data)++) & 0xffULL) << 48;
-    *dst |= (*((*data)++) & 0xffULL) << 56;
-}
-
-void unpack_float(unsigned char **data, double *dst) {
-    dsplit_t u;
-
-    u.b[0] = *((*data)++);
-    u.b[1] = *((*data)++);
-    u.b[2] = *((*data)++);
-    u.b[3] = *((*data)++);
-    u.b[4] = *((*data)++);
-    u.b[5] = *((*data)++);
-    u.b[6] = *((*data)++);
-    u.b[7] = *((*data)++);
-    *dst = u.d;
-}
-
-void unpack_char(unsigned char** data, char **str) {
-    char* dest = (char*)malloc(sizeof(char)+1);
-    memcpy(dest, (char*)*data, 1);
-    dest[1] = '\0';
-    *str = dest;
-    *data += 1;
-}
-
-void unpack_uchar(unsigned char** data, unsigned char **str) {
-    unsigned char* dest = (unsigned char*)malloc(sizeof(unsigned char)+1);
-    memcpy(dest, (unsigned char*)*data, 1);
-    dest[1] = '\0';
-    *str = dest;
-    *data += 1;
-}
-
-uint16_t unpack_string(unsigned char** data, char **str) {
-    uint16_t len = 0;
-    unpack_uint16_t(data, &len);
-    if (len > 0) {
-        char* dst = (char*)malloc(len+1);
-        memcpy(dst, (char*)*data, len);
-        dst[len] = '\0';
-        *str = dst;
-        *data += len;
-    } else {
-        *str = (char*)malloc(1);
-        (*str)[0] = 0;
-    }
-    return len;
-}
 
 uint32_t count_rows(unsigned char* data, const uint32_t length) {
     unsigned char *start = data;
@@ -128,22 +42,200 @@ uint32_t count_rows(unsigned char* data, const uint32_t length) {
     return n;
 }
 
-void unpack_rows(unsigned char** data, const uint32_t length, GiraffeColumns* columns,
-        PyObject* rows) {
+#define DEFAULT_DELIMITER PyUnicode_FromString("|");
+#define DEFAULT_NULLVALUE PyUnicode_FromString("NULL")
+
+const uint16_t VARCHAR_NULL_LENGTH = 2;
+
+uint16_t unpack_null_length(GiraffeColumn* column){
+    if (column->GDType == GD_VARCHAR) {
+        return VARCHAR_NULL_LENGTH;
+    }
+    return column->Length;
+}
+
+EncoderSettings* encoder_new(GiraffeColumns* columns) {
+    EncoderSettings* e;
+    e = (EncoderSettings*)malloc(sizeof(EncoderSettings));
+    e->Columns = columns;
+    e->Delimiter = DEFAULT_DELIMITER;
+    Py_INCREF(Py_None);
+    e->NullValue = Py_None;
+    e->Encoder = unpack_row_s;
+    return e;
+}
+
+void encoder_set_encoding(EncoderSettings* e, EncodingType t) {
+    switch (t) {
+        case ENCODING_STRING:
+            e->Encoder = unpack_row_s;
+            break;
+        case ENCODING_DICT:
+            e->Encoder = unpack_row_dict;
+            break;
+    }
+}
+
+void encoder_set_delimiter(EncoderSettings* e, const char* delimiter) {
+    e->Delimiter = PyUnicode_FromString(delimiter);
+}
+
+void encoder_set_null(EncoderSettings* e, const char* null) {
+    e->NullValue = PyUnicode_FromString(null);
+}
+
+PyObject* unpack_rows(EncoderSettings* settings, unsigned char** data, const uint32_t length) {
     PyObject* row;
+    PyObject* rows;
+    GiraffeColumns* columns;
+    PyObject* (*encoder)(EncoderSettings*,unsigned char**,const uint16_t);
     unsigned char* start = *data;
+    rows = PyList_New(0);
+    columns = settings->Columns;
+    encoder = settings->Encoder;
 
     while ((*data-start) < length) {
         uint16_t row_length = 0;
         unpack_uint16_t(data, &row_length);
-        row = PyList_New(columns->length);
-        unpack_row(data, row_length, columns, row);
+        row = encoder(settings, data, row_length);
         PyList_Append(rows, row);
         Py_DECREF(row);
     }
+    return rows;
 }
 
-void unpack_row(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
+PyObject* unpack_row_s(EncoderSettings* settings, unsigned char** data, const uint16_t length) {
+    PyObject* row;
+    PyObject* row_str;
+    GiraffeColumn* column;
+    GiraffeColumns* columns;
+    size_t i;
+    int nullable;
+    unsigned char* ind;
+    columns = settings->Columns;
+    row = PyList_New(columns->length);
+    indicator_init(&ind, data, columns->header_length);
+    for (i=0; i<columns->length; i++) {
+        column = &columns->array[i];
+        nullable = indicator_read(ind, i);
+        if (nullable) {
+            *data += column->NullLength;
+            PyList_SetItem(row, i, settings->NullValue);
+            continue;
+        }
+        PyList_SetItem(row, i, unpack_row_item_s(data, column));
+    }
+    indicator_free(&ind);
+    row_str = PyUnicode_Join(settings->Delimiter, row);
+    Py_DECREF(row);
+    return row_str;
+}
+
+PyObject* unpack_row_dict(EncoderSettings* settings, unsigned char** data, const uint16_t length) {
+    PyObject* item;
+    PyObject* row;
+    GiraffeColumn* column;
+    GiraffeColumns* columns;
+    size_t i;
+    int nullable;
+    unsigned char* ind;
+    columns = settings->Columns;
+    row = PyDict_New();
+    indicator_init(&ind, data, columns->header_length);
+    for (i=0; i<columns->length; i++) {
+        column = &columns->array[i];
+        nullable = indicator_read(ind, i);
+        if (nullable) {
+            *data += column->NullLength;
+            PyDict_SetItemString(row, column->Name, settings->NullValue);
+            continue;
+        }
+        item = unpack_row_item(data, column);
+        PyDict_SetItemString(row, column->Name, item);
+        Py_DECREF(item);
+    }
+    indicator_free(&ind);
+    return row;
+}
+
+PyObject* unpack_row(EncoderSettings* settings, unsigned char** data, const uint16_t length) {
+    PyObject* row;
+    GiraffeColumn* column;
+    GiraffeColumns* columns;
+    size_t i;
+    int nullable;
+    unsigned char* ind;
+    columns = settings->Columns;
+    row = PyList_New(columns->length);
+    indicator_init(&ind, data, columns->header_length);
+    for (i=0; i<columns->length; i++) {
+        column = &columns->array[i];
+        nullable = indicator_read(ind, i);
+        if (nullable) {
+            *data += column->NullLength;
+            PyList_SetItem(row, i, settings->NullValue);
+            continue;
+        }
+        PyList_SetItem(row, i, unpack_row_item(data, column));
+    }
+    indicator_free(&ind);
+    return row;
+}
+
+PyObject* unpack_row_item(unsigned char** data, GiraffeColumn* column) {
+    switch (column->GDType) {
+        case GD_BYTEINT:
+            return byte_to_pylong(data);
+        case GD_SMALLINT:
+            return short_to_pylong(data);
+        case GD_INTEGER:
+            return int_to_pylong(data);
+        case GD_BIGINT:
+            return long_to_pylong(data);
+        case GD_FLOAT:
+            return float_to_pyfloat(data);
+        case GD_DECIMAL:
+            return decimal_to_pystring(data, column->Length, column->Scale);
+        case GD_CHAR:
+            return char_to_pystring(data, column->Length);
+        case GD_VARCHAR:
+            return vchar_to_pystring(data);
+        case GD_DATE:
+            // return int_to_pylong(data);
+            return date_to_pystring(data);
+        default:
+            return char_to_pystring(data, column->Length);
+    }
+    return NULL;
+}
+
+PyObject* unpack_row_item_s(unsigned char** data, GiraffeColumn* column) {
+    switch (column->GDType) {
+        case GD_BYTEINT:
+            return byte_to_pystring(data);
+        case GD_SMALLINT:
+            return short_to_pystring(data);
+        case GD_INTEGER:
+            return int_to_pystring(data);
+        case GD_BIGINT:
+            return long_to_pystring(data);
+        case GD_FLOAT:
+            return float_to_pystring(data);
+        case GD_DECIMAL:
+            return decimal_to_pystring(data, column->Length, column->Scale);
+        case GD_CHAR:
+            return char_to_pystring(data, column->Length);
+        case GD_VARCHAR:
+            return vchar_to_pystring(data);
+        case GD_DATE:
+            return date_to_pystring(data);
+        default:
+            return char_to_pystring(data, column->Length);
+    }
+    return NULL;
+}
+
+void unpack_row_x(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
         PyObject* row) {
     size_t i;
     int nullable;
@@ -179,16 +271,32 @@ void unpack_row(unsigned char** data, const uint16_t length, GiraffeColumns* col
                 PyList_SetItem(row, i, float_to_pyfloat(data));
                 break;
             case GD_DECIMAL:
-                PyList_SetItem(row, i, decimal_to_pystring(data, column->Length, column->Scale));
+                PyList_SetItem(row, i, giraffez_decimal_from_pystring(decimal_to_pystring(data,
+                    column->Length, column->Scale)));
                 break;
             case GD_CHAR:
-                PyList_SetItem(row, i, char_to_pystring(data, column->Length));
+                switch (column->Type) {
+                    case TIMESTAMP_NN:
+                    case TIMESTAMP_N:
+                    case TIMESTAMP_NNZ:
+                    case TIMESTAMP_NZ:
+                        PyList_SetItem(row, i, char_to_timestamp(data, column->Length));
+                        break;
+                    case TIME_NN:
+                    case TIME_N:
+                    case TIME_NNZ:
+                    case TIME_NZ:
+                        PyList_SetItem(row, i, char_to_time(data, column->Length));
+                        break;
+                    default:
+                        PyList_SetItem(row, i, char_to_pystring(data, column->Length));
+                }
                 break;
             case GD_VARCHAR:
                 PyList_SetItem(row, i, vchar_to_pystring(data));
                 break;
             case GD_DATE:
-                PyList_SetItem(row, i, int_to_pylong(data));
+                PyList_SetItem(row, i, date_to_pydate(data));
                 break;
             default:
                 PyList_SetItem(row, i, char_to_pystring(data, column->Length));
@@ -197,165 +305,57 @@ void unpack_row(unsigned char** data, const uint16_t length, GiraffeColumns* col
     indicator_free(&ind);
 }
 
-void unpack_rows_str(unsigned char** data, const uint32_t length, GiraffeColumns* columns,
-        PyObject* rows, const char* null, const char* delimiter) {
-    PyObject* row;
-    PyObject* row_str;
+void unpack_stmt_info(unsigned char** data, StatementInfo* s, const uint32_t length) {
     unsigned char* start = *data;
-
-    PyObject* sep = PyUnicode_FromString(delimiter);
-    while ((*data-start) < length) {
-        uint16_t row_length = 0;
-        unpack_uint16_t(data, &row_length);
-        row = PyList_New(columns->length);
-        unpack_row_str(data, row_length, columns, row, null, delimiter);
-        row_str = PyUnicode_Join(sep, row);
-        PyList_Append(rows, row_str);
-        Py_DECREF(row);
-        Py_DECREF(row_str);
-    }
-    Py_DECREF(sep);
-}
-
-void unpack_row_str(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
-        PyObject* row, const char* null, const char* delimiter) {
-    size_t i;
-    int nullable;
-    unsigned char* ind;
-    indicator_init(&ind, data, columns->header_length);
-    for (i=0; i<columns->length; i++) {
-        GiraffeColumn* column = &columns->array[i];
-        nullable = indicator_read(ind, i);
-        if (nullable) {
-            if (column->GDType == GD_VARCHAR) {
-                *data += 2;
-            } else {
-                *data += column->Length;
-            }
-            PyList_SetItem(row, i, PyUnicode_FromString(null));
+    StatementInfoColumn* column;
+    while ((*data - start) < length) {
+        column = (StatementInfoColumn*)malloc(sizeof(StatementInfoColumn));
+        unpack_uint16_t(data, &column->ExtensionLayout);
+        unpack_uint16_t(data, &column->ExtensionType);
+        unpack_uint16_t(data, &column->ExtensionLength);
+        if (column->ExtensionLayout != 1) {
+            *data += column->ExtensionLength;
             continue;
         }
-        switch (column->GDType) {
-            case GD_BYTEINT:
-                PyList_SetItem(row, i, byte_to_pystring(data));
-                break;
-            case GD_SMALLINT:
-                PyList_SetItem(row, i, short_to_pystring(data));
-                break;
-            case GD_INTEGER:
-                PyList_SetItem(row, i, int_to_pystring(data));
-                break;
-            case GD_BIGINT:
-                PyList_SetItem(row, i, long_to_pystring(data));
-                break;
-            case GD_FLOAT:
-                PyList_SetItem(row, i, float_to_pystring(data));
-                break;
-            case GD_DECIMAL:
-                PyList_SetItem(row, i, decimal_to_pystring(data, column->Length, column->Scale));
-                break;
-            case GD_CHAR:
-                PyList_SetItem(row, i, char_to_pystring(data, column->Length));
-                break;
-            case GD_VARCHAR:
-                PyList_SetItem(row, i, vchar_to_pystring(data));
-                break;
-            case GD_DATE:
-                PyList_SetItem(row, i, date_to_pystring(data));
-                break;
-            default:
-                PyList_SetItem(row, i, char_to_pystring(data, column->Length));
-        }
+        unpack_stmt_info_ext(data, column, column->ExtensionLength);
+        stmt_info_append(s, *column);
     }
-    indicator_free(&ind);
 }
 
-void unpack_rows_dict(unsigned char** data, const uint32_t length, GiraffeColumns* columns,
-        PyObject* rows) {
-    PyObject* row;
+void unpack_stmt_info_ext(unsigned char** data, StatementInfoColumn* column, const uint16_t length) {
     unsigned char* start = *data;
-
-    while ((*data-start) < length) {
-        uint16_t row_length = 0;
-        unpack_uint16_t(data, &row_length);
-        row = PyDict_New();
-        unpack_row_dict(data, row_length, columns, row);
-        PyList_Append(rows, row);
-        Py_DECREF(row);
+    unpack_string(data, &column->Database);
+    unpack_string(data, &column->Table);
+    unpack_string(data, &column->Name);
+    unpack_uint16_t(data, &column->Position);
+    unpack_string(data, &column->Alias);
+    unpack_string(data, &column->Title);
+    unpack_string(data, &column->Format);
+    unpack_string(data, &column->Default);
+    unpack_char(data, &column->IdentityColumn);
+    unpack_char(data, &column->DefinitelyWritable);
+    unpack_char(data, &column->NotDefinedNotNull);
+    unpack_char(data, &column->CanReturnNull);
+    unpack_char(data, &column->PermittedInWhere);
+    unpack_char(data, &column->Writable);
+    unpack_uint16_t(data, &column->Type);
+    unpack_uint16_t(data, &column->UDType);
+    unpack_string(data, &column->TypeName);
+    unpack_string(data, &column->DataTypeMiscInfo);
+    unpack_uint64_t(data, &column->Length);
+    unpack_uint16_t(data, &column->Precision);
+    unpack_uint16_t(data, &column->Interval);
+    unpack_uint16_t(data, &column->Scale);
+    unpack_uchar(data, &column->CharacterSetType);
+    unpack_uint64_t(data, &column->TotalNumberCharacters);
+    unpack_uchar(data, &column->CaseSensitive);
+    unpack_uchar(data, &column->NumericItemSigned);
+    unpack_uchar(data, &column->UniquelyDescribesRow);
+    unpack_uchar(data, &column->OnlyMemberUniqueIndex);
+    unpack_uchar(data, &column->IsExpression);
+    unpack_uchar(data, &column->PermittedInOrderBy);
+    // Sometimes extra data...
+    if ((*data-start) < length) {
+        *data += (length - (*data-start));
     }
-}
-
-void unpack_row_dict(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
-        PyObject* row) {
-    PyObject* item;
-    size_t i;
-    int nullable;
-    unsigned char* ind;
-    indicator_init(&ind, data, columns->header_length);
-    for (i=0; i<columns->length; i++) {
-        GiraffeColumn* column = &columns->array[i];
-        nullable = indicator_read(ind, i);
-        if (nullable) {
-            if (column->GDType == GD_VARCHAR) {
-                *data += 2;
-            } else {
-                *data += column->Length;
-            }
-            Py_INCREF(Py_None);
-            PyDict_SetItemString(row, column->Name, Py_None);
-            continue;
-        }
-        switch (column->GDType) {
-            case GD_BYTEINT:
-                item = byte_to_pylong(data);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            case GD_SMALLINT:
-                item = short_to_pylong(data);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            case GD_INTEGER:
-                item = int_to_pylong(data);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            case GD_BIGINT:
-                item = long_to_pylong(data);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            case GD_FLOAT:
-                item = float_to_pyfloat(data);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            case GD_DECIMAL:
-                item = decimal_to_pystring(data, column->Length, column->Scale);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            case GD_CHAR:
-                item = char_to_pystring(data, column->Length);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            case GD_VARCHAR:
-                item = vchar_to_pystring(data);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            case GD_DATE:
-                item = date_to_pystring(data);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-                break;
-            default:
-                item = char_to_pystring(data, column->Length);
-                PyDict_SetItemString(row, column->Name, item);
-                Py_DECREF(item);
-        }
-    }
-    indicator_free(&ind);
 }

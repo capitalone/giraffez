@@ -22,8 +22,15 @@
 #endif
 #include <stdlib.h>
 #include "_compat.h"
-#include "convert.h"
-#include "unpack.h"
+#include "encoder/convert.h"
+/*#include "encoder/unpack.h"*/
+#include "encoder/pytypes.h"
+#include "encoder/util.h"
+#include "types.h"
+
+#define BUFFER_SIZE 8 * 1024
+
+static char buffer[BUFFER_SIZE];
 
 
 PyObject* byte_to_pylong(unsigned char** data) {
@@ -42,6 +49,41 @@ PyObject* char_to_pystring(unsigned char** data, const uint64_t column_length) {
     PyObject* str = PyUnicode_FromStringAndSize((char*)*data, column_length);
     *data += column_length;
     return str;
+}
+
+PyObject* char_to_time(unsigned char** data, const uint64_t column_length) {
+    struct tm tm;
+    memset(&tm, '\0', sizeof(tm));
+    memcpy(buffer, (char*)*data, column_length);
+    buffer[column_length] = '\0';
+    if (strptime(buffer, "%H:%M:%S", &tm) != NULL) {
+        *data += column_length;
+        return giraffez_time_from_time(tm.tm_hour, tm.tm_min, tm.tm_sec, 0);
+    }
+    return char_to_pystring(data, column_length);
+}
+
+PyObject* char_to_timestamp(unsigned char** data, const uint64_t column_length) {
+    struct tm tm;
+    memset(&tm, '\0', sizeof(tm));
+    memcpy(buffer, (char*)*data, column_length);
+    buffer[column_length] = '\0';
+    if (strptime(buffer, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
+        *data += column_length;
+        return giraffez_ts_from_datetime(tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour,
+            tm.tm_min, tm.tm_sec, 0);
+    }
+    return char_to_pystring(data, column_length);
+}
+
+PyObject* date_to_pydate(unsigned char** data) {
+    int32_t l, year, month, day;
+    unpack_int32_t(data, &l);
+    l += 19000000;
+    year = l / 10000;
+    month = (l % 10000) / 100;
+    day = l % 100;
+    return giraffez_date_from_datetime(year, month, day, 0, 0, 0, 0);
 }
 
 PyObject* date_to_pystring(unsigned char** data) {

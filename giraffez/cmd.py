@@ -101,32 +101,6 @@ class TeradataCmd(Connection):
         except _cli.error as error:
             raise TeradataError(error)
 
-    def _execute(self, command):
-        try:
-            results, error = self.cmd.execute(command)
-            if error is not None:
-                raise TeradataError(error)
-            log.debug("Debug[2]", repr(results))
-        except _cli.error as error:
-            raise TeradataError(error)
-        for result in results:
-            stmt_info = result.get('stmtinfo', None)
-            if not stmt_info:
-                raise GiraffeError("Statement Info header not received")
-            columns = _encoder.Encoder.unpack_stmt_info(stmt_info)
-            result["columns"] = Columns(columns)
-            for column in result["columns"]:
-                log.verbose("Debug[1]", repr(column))
-            encoder = _encoder.Encoder(result["columns"])
-            processor = pipeline([
-                DateHandler(result["columns"]),
-                CharHandler(result["columns"]),
-                DecimalHandler(result["columns"]),
-                lambda s: Row(result["columns"], s)
-            ])
-            result["rows"] = [processor(row) for row in encoder.unpack_rows(result["rows"])]
-        return results
-
     def close(self):
         if getattr(self, 'cmd', None):
             self.cmd.close()
@@ -195,7 +169,29 @@ class TeradataCmd(Connection):
         if sanitize:
             command = prepare_statement(command) # accounts for comments and newlines
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
-        return Results(self._execute(command))
+        try:
+            self.cmd.execute(command)
+            data = self.cmd.fetch_one()
+            data = self.cmd.fetch_one()
+            columns = Columns(self.cmd.columns())
+            processor = pipeline([
+                lambda s: Row(columns, s)
+            ])
+            import threading
+            def _next():
+                while True:
+                    try:
+                        data = self.cmd.fetch_one()
+                        if data is None:
+                            continue
+                        #yield processor(data)
+                        yield Row(columns, data)
+                        #yield data
+                    except StopIteration as error:
+                        break
+            return Result({'columns': columns, 'rows': _next()})
+        except _cli.error as error:
+            raise TeradataError(error)
 
     def execute_one(self, command, sanitize=True, silent=False):
         """

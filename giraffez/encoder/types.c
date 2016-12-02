@@ -22,118 +22,138 @@
 #include <stdint.h>
 #endif
 #include <stdlib.h>
-#include "unpack.h"
 
 
-void columns_init(GiraffeColumns *c, size_t initial_size) {
-    c->array = (GiraffeColumn*)malloc(initial_size * sizeof(GiraffeColumn));
-    c->length = 0;
-    c->size = initial_size;
-}
-
-void columns_append(GiraffeColumns *c, GiraffeColumn element) {
-    if (c->length == c->size) {
-        c->size *= 2;
-        c->array = (GiraffeColumn*)realloc(c->array, c->size
-            * sizeof(GiraffeColumn));
+uint16_t tdtype_to_gdtype(uint16_t t) {
+    switch (t) {
+        case BLOB_NN:
+        case BLOB_N:
+        case BLOB_AS_DEFERRED_NN:
+        case BLOB_AS_DEFERRED_N:
+        case BLOB_AS_LOCATOR_NN:
+        case BLOB_AS_LOCATOR_N:
+        case BLOB_AS_DEFERRED_NAME_NN:
+        case BLOB_AS_DEFERRED_NAME_N:
+        case CLOB_NN:
+        case CLOB_N:
+        case CLOB_AS_DEFERRED_NN:
+        case CLOB_AS_DEFERRED_N:
+        case CLOB_AS_LOCATOR_NN:
+        case CLOB_AS_LOCATOR_N:
+        case UDT_NN:
+        case UDT_N:
+        case DISTINCT_UDT_NN:
+        case DISTINCT_UDT_N:
+        case STRUCT_UDT_NN:
+        case STRUCT_UDT_N:
+            return GD_DEFAULT;
+        case VARCHAR_NN:
+        case VARCHAR_N:
+            return GD_VARCHAR;
+        case CHAR_NN:
+        case CHAR_N:
+            return GD_CHAR;
+        case LONG_VARCHAR_NN:
+        case LONG_VARCHAR_N:
+        case VARGRAPHIC_NN:
+        case VARGRAPHIC_N:
+            return GD_VARCHAR;
+        case GRAPHIC_NN:
+        case GRAPHIC_N:
+            return GD_DEFAULT;
+        case LONG_VARGRAPHIC_NN:
+        case LONG_VARGRAPHIC_N:
+            return GD_VARCHAR;
+        case FLOAT_NN:
+        case FLOAT_N:
+            return GD_FLOAT;
+        case DECIMAL_NN:
+        case DECIMAL_N:
+            return GD_DECIMAL;
+        case INTEGER_NN:
+        case INTEGER_N:
+            return GD_INTEGER;
+        case SMALLINT_NN:
+        case SMALLINT_N:
+            return GD_SMALLINT;
+        case ARRAY_1D_NN:
+        case ARRAY_1D_N:
+        case ARRAY_ND_NN:
+        case ARRAY_ND_N:
+            return GD_DEFAULT;
+        case BIGINT_NN:
+        case BIGINT_N:
+            return GD_BIGINT;
+        case VARBYTE_NN:
+        case VARBYTE_N:
+            return GD_VARCHAR;
+        case BYTE_NN:
+        case BYTE_N:
+            return GD_CHAR;
+        case LONG_VARBYTE_NN:
+        case LONG_VARBYTE_N:
+            return GD_VARCHAR;
+        case DATE_NNA:
+        case DATE_NA:
+            return GD_DEFAULT;
+        case DATE_NN:
+        case DATE_N:
+            return GD_DATE;
+        case BYTEINT_NN:
+        case BYTEINT_N:
+            return GD_BYTEINT;
+        case TIME_NN:
+        case TIME_N:
+        case TIMESTAMP_NN:
+        case TIMESTAMP_N:
+        case TIME_NNZ:
+        case TIME_NZ:
+        case TIMESTAMP_NNZ:
+        case TIMESTAMP_NZ:
+            return GD_CHAR;
+        case INTERVAL_YEAR_NN:
+        case INTERVAL_YEAR_N:
+        case INTERVAL_YEAR_TO_MONTH_NN:
+        case INTERVAL_YEAR_TO_MONTH_N:
+        case INTERVAL_MONTH_NN:
+        case INTERVAL_MONTH_N:
+        case INTERVAL_DAY_NN:
+        case INTERVAL_DAY_N:
+        case INTERVAL_DAY_TO_HOUR_NN:
+        case INTERVAL_DAY_TO_HOUR_N:
+        case INTERVAL_DAY_TO_MINUTE_NN:
+        case INTERVAL_DAY_TO_MINUTE_N:
+        case INTERVAL_DAY_TO_SECOND_NN:
+        case INTERVAL_DAY_TO_SECOND_N:
+        case INTERVAL_HOUR_NN:
+        case INTERVAL_HOUR_N:
+        case INTERVAL_HOUR_TO_MINUTE_NN:
+        case INTERVAL_HOUR_TO_MINUTE_N:
+        case INTERVAL_HOUR_TO_SECOND_NN:
+        case INTERVAL_HOUR_TO_SECOND_N:
+        case INTERVAL_MINUTE_NN:
+        case INTERVAL_MINUTE_N:
+        case INTERVAL_MINUTE_TO_SECOND_NN:
+        case INTERVAL_MINUTE_TO_SECOND_N:
+        case INTERVAL_SECOND_NN:
+        case INTERVAL_SECOND_N:
+        case PERIOD_DATE_NN:
+        case PERIOD_DATE_N:
+        case PERIOD_TIME_NN:
+        case PERIOD_TIME_N:
+        case PERIOD_TIME_NNZ:
+        case PERIOD_TIME_NZ:
+        case PERIOD_TIMESTAMP_NN:
+        case PERIOD_TIMESTAMP_N:
+        case PERIOD_TIMESTAMP_NNZ:
+        case PERIOD_TIMESTAMP_NZ:
+        case XML_TEXT_NN:
+        case XML_TEXT_N:
+        case XML_TEXT_DEFERRED_NN:
+        case XML_TEXT_DEFERRED_N:
+        case XML_TEXT_LOCATOR_NN:
+        case XML_TEXT_LOCATOR_N:
+            return GD_DEFAULT;
     }
-    c->array[c->length++] = element;
-}
-
-void columns_free(GiraffeColumns *c) {
-    free(c->array);
-    c->array = NULL;
-    c->length = c->size = 0;
-}
-
-void indicator_init(unsigned char** ind, unsigned char** data, size_t header_length) {
-    size_t i;
-    *ind = (unsigned char*)malloc(sizeof(unsigned char)*header_length);
-    for (i=0; i<header_length; i++) {
-        (*ind)[i] = reverse_lookup[*((*data)++)];
-    }
-}
-
-int indicator_read(unsigned char* ind, size_t pos) {
-    return (ind[pos/8] & (1 << (pos % 8)));
-}
-
-void indicator_free(unsigned char** ind) {
-    free(*ind);
-}
-
-void stmt_info_init(StatementInfo *s, size_t initial_size) {
-    s->array = (StatementInfoColumn*)malloc(initial_size * sizeof(StatementInfoColumn));
-    s->length = 0;
-    s->size = initial_size;
-}
-
-void stmt_info_append(StatementInfo *s, StatementInfoColumn element) {
-    if (s->length == s->size) {
-        s->size *= 2;
-        s->array = (StatementInfoColumn*)realloc(s->array, s->size
-            * sizeof(StatementInfoColumn));
-    }
-    s->array[s->length++] = element;
-}
-
-void stmt_info_free(StatementInfo *s) {
-    free(s->array);
-    s->array = NULL;
-    s->length = s->size = 0;
-}
-
-void parse_stmt_info(unsigned char** data, StatementInfo* s, const uint32_t length) {
-    unsigned char* start = *data;
-    StatementInfoColumn* column;
-    while ((*data - start) < length) {
-        column = (StatementInfoColumn*)malloc(sizeof(StatementInfoColumn));
-        unpack_uint16_t(data, &column->ExtensionLayout);
-        unpack_uint16_t(data, &column->ExtensionType);
-        unpack_uint16_t(data, &column->ExtensionLength);
-        if (column->ExtensionLayout != 1) {
-            *data += column->ExtensionLength;
-            continue;
-        }
-        parse_ext(data, column, column->ExtensionLength);
-        stmt_info_append(s, *column);
-    }
-}
-
-void parse_ext(unsigned char** data, StatementInfoColumn* column, const uint16_t length) {
-    unsigned char* start = *data;
-    unpack_string(data, &column->Database);
-    unpack_string(data, &column->Table);
-    unpack_string(data, &column->Name);
-    unpack_uint16_t(data, &column->Position);
-    unpack_string(data, &column->Alias);
-    unpack_string(data, &column->Title);
-    unpack_string(data, &column->Format);
-    unpack_string(data, &column->Default);
-    unpack_char(data, &column->IdentityColumn);
-    unpack_char(data, &column->DefinitelyWritable);
-    unpack_char(data, &column->NotDefinedNotNull);
-    unpack_char(data, &column->CanReturnNull);
-    unpack_char(data, &column->PermittedInWhere);
-    unpack_char(data, &column->Writable);
-    unpack_uint16_t(data, &column->Type);
-    unpack_uint16_t(data, &column->UDType);
-    unpack_string(data, &column->TypeName);
-    unpack_string(data, &column->DataTypeMiscInfo);
-    unpack_uint64_t(data, &column->Length);
-    unpack_uint16_t(data, &column->Precision);
-    unpack_uint16_t(data, &column->Interval);
-    unpack_uint16_t(data, &column->Scale);
-    unpack_uchar(data, &column->CharacterSetType);
-    unpack_uint64_t(data, &column->TotalNumberCharacters);
-    unpack_uchar(data, &column->CaseSensitive);
-    unpack_uchar(data, &column->NumericItemSigned);
-    unpack_uchar(data, &column->UniquelyDescribesRow);
-    unpack_uchar(data, &column->OnlyMemberUniqueIndex);
-    unpack_uchar(data, &column->IsExpression);
-    unpack_uchar(data, &column->PermittedInOrderBy);
-    // Sometimes extra data...
-    if ((*data-start) < length) {
-        *data += (length - (*data-start));
-    }
+    return GD_DEFAULT;
 }

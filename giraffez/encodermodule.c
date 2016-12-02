@@ -17,14 +17,12 @@
 #include <Python.h>
 #include "_compat.h"
 
-
 #include "encoder/encoderobject.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif 
-
 
 static PyMethodDef module_methods[] = {
     {NULL}  /* Sentinel */

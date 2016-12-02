@@ -413,7 +413,12 @@ class Date(datetime.datetime):
         try:
             if not d:
                 return None
-            return cls.strptime(str(d + 19000000), "%Y%m%d")
+            d += 19000000
+            year = d // 10000;
+            month = (d % 10000) // 100
+            day = d % 100
+            return cls(year=year, month=month, day=day)
+            #return cls.strptime(str(d + 19000000), "%Y%m%d")
         except ValueError as error:
             log.debug(error)
             return None
@@ -512,7 +517,8 @@ class Result(object):
         :rtype: :class:`~giraffez.types.Row`
         """
         try:
-            return self.result["rows"][0]
+            #return self.result["rows"][0]
+            return next(self.rows)
         except IndexError:
             return None
 
@@ -525,7 +531,9 @@ class Result(object):
             (ordered corresponding to :meth:`~giraffez.types.Result.columns`)
         :rtype: list of :class:`~giraffez.types.Row`
         """
-        return self.result["rows"]
+        for row in self.result["rows"]:
+            yield row
+        #return self.result["rows"]
 
     def items(self):
         """
@@ -735,8 +743,8 @@ class Time(datetime.time):
     Represents Teradata date/time data types such as TIME(0). Currently,
     does not keep microsecond for other types like TIME(n).
     """
-    def __new__(cls, t):
-        return datetime.time.__new__(cls, t.hour, t.minute, t.second, t.microsecond)
+    #def __new__(cls, t):
+        #return datetime.time.__new__(cls, t.hour, t.minute, t.second, t.microsecond)
 
     @classmethod
     def from_string(cls, s):
@@ -744,7 +752,7 @@ class Time(datetime.time):
         if fmt is not None:
             try:
                 ts = datetime.datetime.strptime(str(s), fmt)
-                return cls(datetime.time(ts.hour, ts.minute, ts.second, ts.microsecond))
+                return cls(ts.hour, ts.minute, ts.second, ts.microsecond)
             except ValueError as error:
                 log.debug("GiraffeTime: ", error)
         return None

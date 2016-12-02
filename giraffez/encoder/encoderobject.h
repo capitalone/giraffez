@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 #include <Python.h>
-#include "types.h"
+#include "columns.h"
 
 
 typedef struct {

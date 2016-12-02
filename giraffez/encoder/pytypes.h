@@ -14,32 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_EXPORT_H
-#define __GIRAFFE_EXPORT_H
+#ifndef __ENCODER_PYTYPES_H
+#define __ENCODER_PYTYPES_H
 
 #include <Python.h>
-#include <connection.h>
-#include <schema.h>
-#include "encoder/columns.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-using namespace teradata::client::API;
+#include <stddef.h>
+#if defined(WIN32) || defined(WIN64)
+#include <pstdint.h>
+#else
+#include <stdint.h>
+#endif
 
-typedef struct {
-    PyObject_HEAD
-    bool connected;
-    Schema* dynamic_schema;
-    Connection* conn;
-    int connection_status;
-    char* error_msg;
-    TD_ErrorType error_type;
-    GiraffeColumns* columns;
-} Export;
+int giraffez_decimal_import();
+int giraffez_datetime_import();
 
-extern PyTypeObject ExportType;
+PyObject* giraffez_decimal_from_pystring(PyObject* obj);
+PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, int minute,
+    int second, int microsecond);
+PyObject* giraffez_time_from_time(int hour, int minute, int second, int microsecond);
+PyObject* giraffez_ts_from_datetime(int year, int month, int day, int hour, int minute, int second,
+    int microsecond);
 
 #ifdef __cplusplus
 }

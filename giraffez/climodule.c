@@ -16,6 +16,7 @@
 
 #include <Python.h>
 #include "_compat.h"
+#include "encoder/pytypes.h"
 
 
 #include "cli/cmdobject.h"
@@ -36,6 +37,7 @@ static struct PyModuleDef moduledef = {
 };
 #endif
 
+
 MOD_INIT(_cli)
 {
     PyObject* m;
@@ -49,6 +51,9 @@ MOD_INIT(_cli)
 #else
     m = Py_InitModule("_cli", module_methods);
 #endif
+
+    giraffez_datetime_import();
+    giraffez_decimal_import();
 
     if (m == NULL) {
         return MOD_ERROR_VAL;

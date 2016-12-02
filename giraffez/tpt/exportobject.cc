@@ -122,9 +122,12 @@ static PyObject* Export_get_buffer_dict(Export* self, PyObject* args, PyObject* 
     if (export_status == TD_END_Method) {
         Py_RETURN_NONE;
     }
-    PyObject* rows = PyList_New(0);
-    unpack_rows_dict(&data, length, self->columns, rows);
-    return rows;
+    EncoderSettings* e = encoder_new(self->columns);
+    encoder_set_encoding(e, ENCODING_DICT);
+    return unpack_rows(e, &data, length);
+    //PyObject* rows = PyList_New(0);
+    //unpack_rows_dict(&data, length, self->columns, rows);
+    //return rows;
 }
 
 static PyObject* Export_get_buffer_raw(Export* self, PyObject* args, PyObject* kwds) {
@@ -153,9 +156,14 @@ static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* k
     if (export_status == TD_END_Method) {
         Py_RETURN_NONE;
     }
-    PyObject* rows = PyList_New(0);
-    unpack_rows_str(&data, length, self->columns, rows, null, delimiter);
-    return rows;
+    EncoderSettings* e = encoder_new(self->columns);
+    encoder_set_encoding(e, ENCODING_STRING);
+    encoder_set_delimiter(e, delimiter);
+    encoder_set_null(e, null);
+    return unpack_rows(e, &data, length);
+    //PyObject* rows = PyList_New(0);
+    //unpack_rows_str(&data, length, self->columns, rows, null, delimiter);
+    //return rows;
 }
 
 static PyObject* Export_get_schema(Export* self, PyObject* args, PyObject* kwds) {
@@ -207,6 +215,7 @@ static PyObject* Export_set_columns(Export* self, PyObject* args, PyObject* kwds
         column->Precision = (uint16_t)PyLong_AsLong(column_precision);
         column->Scale = (uint16_t)PyLong_AsLong(column_scale);
         column->GDType = (uint16_t)PyLong_AsLong(gd_type);
+        column->NullLength = unpack_null_length(column);
         Py_DECREF(column_name);
         Py_DECREF(column_type);
         Py_DECREF(column_length);
