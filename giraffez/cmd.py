@@ -174,10 +174,10 @@ class TeradataCmd(Connection):
             data = self.cmd.fetch_one()
             data = self.cmd.fetch_one()
             columns = Columns(self.cmd.columns())
-            processor = pipeline([
-                lambda s: Row(columns, s)
-            ])
-            import threading
+            
+            #processor = pipeline([
+                #lambda s: Row(columns, s)
+            #])
             def _next():
                 while True:
                     try:
@@ -186,7 +186,6 @@ class TeradataCmd(Connection):
                             continue
                         #yield processor(data)
                         yield Row(columns, data)
-                        #yield data
                     except StopIteration as error:
                         break
             return Result({'columns': columns, 'rows': _next()})

@@ -46,6 +46,7 @@ typedef struct EncoderSettings {
 typedef enum EncodingType {
     ENCODING_STRING = 0,
     ENCODING_DICT,
+    ENCODING_CUSTOM_TYPES,
 } EncodingType;
 
 EncoderSettings* encoder_new(GiraffeColumns* columns);
@@ -60,6 +61,7 @@ PyObject* unpack_row_s(EncoderSettings* settings, unsigned char** data, const ui
 PyObject* unpack_row_dict(EncoderSettings* settings, unsigned char** data, const uint16_t length);
 PyObject* unpack_row_item(unsigned char** data, GiraffeColumn* column);
 PyObject* unpack_row_item_s(unsigned char** data, GiraffeColumn* column);
+PyObject* unpack_row_item_x(unsigned char** data, GiraffeColumn* column);
 
 void unpack_row_x(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
     PyObject* row);

@@ -37,6 +37,7 @@ extern "C" {
 #include <dbcarea.h>
 #include <parcel.h>
 #include "encoder/columns.h"
+#include "encoder/unpack.h"
 
 
 typedef struct DBCAREA dbcarea_t;
@@ -50,6 +51,7 @@ typedef struct {
     GiraffeColumns *columns;
     char cnta[4];
     char session_charset[36];
+    EncoderSettings* encoder;
 } Cmd;
 
 extern PyObject* GiraffeError;

@@ -133,6 +133,10 @@ static void Cmd_dealloc(Cmd* self) {
         free(self->dbc);
         self->dbc = NULL;
     }
+    if (self->encoder != NULL) {
+        free(self->encoder);
+        self->encoder = NULL;
+    }
     if (self->columns != NULL) {
         columns_free(self->columns);
     }
@@ -160,6 +164,10 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
     self->dbc->i_sess_id = self->dbc->o_sess_id;
     self->dbc->i_req_id = self->dbc->o_req_id;
     self->dbc->func = DBFFET;
+    if (self->encoder != NULL) {
+        free(self->encoder);
+        self->encoder = NULL;
+    }
     if (self->columns != NULL) {
         columns_free(self->columns);
         self->columns = NULL;
@@ -191,6 +199,8 @@ static PyObject* Cmd_columns(Cmd* self) {
         PyDict_SetItemString(d, "format", PyUnicode_FromString(column->Format));
         PyList_SetItem(columns, i, d);
     }
+    self->encoder = encoder_new(self->columns);
+    encoder_set_encoding(self->encoder, ENCODING_CUSTOM_TYPES);
     return columns;
 }
 
@@ -225,9 +235,10 @@ static PyObject* Cmd_fetch_one(Cmd* self, PyObject* args) {
     }
     switch (self->dbc->fet_parcel_flavor) {
         case PclRECORD:
-            row = PyList_New(self->columns->length);
+            /*row = PyList_New(self->columns->length);*/
             /*unpack_row(&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len, self->columns, row);*/
-            unpack_row_x((unsigned char**)&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len, self->columns, row);
+            /*unpack_row_x((unsigned char**)&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len, self->columns, row);*/
+            row = unpack_row(self->encoder, (unsigned char**)&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len);
             break;
         case PclSTATEMENTINFO:
             s = (StatementInfo*)malloc(sizeof(StatementInfo));
@@ -249,6 +260,7 @@ static PyObject* Cmd_fetch_one(Cmd* self, PyObject* args) {
                 column->Default = scolumn->Default;
                 column->Nullable = scolumn->CanReturnNull;
                 column->GDType = tdtype_to_gdtype(scolumn->Type);
+                column->NullLength = unpack_null_length(column);
                 columns_append(self->columns, *column);
             }
             self->columns->header_length = (int)ceil(self->columns->length/8.0);

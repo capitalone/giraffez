@@ -73,6 +73,9 @@ void encoder_set_encoding(EncoderSettings* e, EncodingType t) {
         case ENCODING_DICT:
             e->Encoder = unpack_row_dict;
             break;
+        case ENCODING_CUSTOM_TYPES:
+            e->Encoder = unpack_row;
+            break;
     }
 }
 
@@ -176,7 +179,8 @@ PyObject* unpack_row(EncoderSettings* settings, unsigned char** data, const uint
             PyList_SetItem(row, i, settings->NullValue);
             continue;
         }
-        PyList_SetItem(row, i, unpack_row_item(data, column));
+        /*PyList_SetItem(row, i, unpack_row_item(data, column));*/
+        PyList_SetItem(row, i, unpack_row_item_x(data, column));
     }
     indicator_free(&ind);
     return row;
@@ -229,6 +233,46 @@ PyObject* unpack_row_item_s(unsigned char** data, GiraffeColumn* column) {
             return vchar_to_pystring(data);
         case GD_DATE:
             return date_to_pystring(data);
+        default:
+            return char_to_pystring(data, column->Length);
+    }
+    return NULL;
+}
+
+PyObject* unpack_row_item_x(unsigned char** data, GiraffeColumn* column) {
+    switch (column->GDType) {
+        case GD_BYTEINT:
+            return byte_to_pylong(data);
+        case GD_SMALLINT:
+            return short_to_pylong(data);
+        case GD_INTEGER:
+            return int_to_pylong(data);
+        case GD_BIGINT:
+            return long_to_pylong(data);
+        case GD_FLOAT:
+            return float_to_pyfloat(data);
+        case GD_DECIMAL:
+            return giraffez_decimal_from_pystring(decimal_to_pystring(data,
+                column->Length, column->Scale));
+        case GD_CHAR:
+            switch (column->Type) {
+                case TIMESTAMP_NN:
+                case TIMESTAMP_N:
+                case TIMESTAMP_NNZ:
+                case TIMESTAMP_NZ:
+                    return char_to_timestamp(data, column->Length);
+                case TIME_NN:
+                case TIME_N:
+                case TIME_NNZ:
+                case TIME_NZ:
+                    return char_to_time(data, column->Length);
+                default:
+                    return char_to_pystring(data, column->Length);
+            }
+        case GD_VARCHAR:
+            return vchar_to_pystring(data);
+        case GD_DATE:
+            return date_to_pydate(data);
         default:
             return char_to_pystring(data, column->Length);
     }

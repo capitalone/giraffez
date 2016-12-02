@@ -43,11 +43,11 @@ PyObject* byte_to_pystring(unsigned char** data);
 
 PyObject* char_to_pystring(unsigned char** data, const uint64_t column_length);
 
-PyObject* date_to_pydate(unsigned char** data);
-
 PyObject* char_to_time(unsigned char** data, const uint64_t column_length);
 
 PyObject* char_to_timestamp(unsigned char** data, const uint64_t column_length);
+
+PyObject* date_to_pydate(unsigned char** data);
 
 PyObject* date_to_pystring(unsigned char** data);
 
