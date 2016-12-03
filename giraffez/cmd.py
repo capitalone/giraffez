@@ -173,7 +173,8 @@ class TeradataCmd(Connection):
             self.cmd.execute(command)
             data = self.cmd.fetch_one()
             data = self.cmd.fetch_one()
-            columns = Columns(self.cmd.columns())
+            #columns = Columns(self.cmd.columns())
+            columns = self.cmd.columns()
             
             #processor = pipeline([
                 #lambda s: Row(columns, s)
@@ -186,9 +187,11 @@ class TeradataCmd(Connection):
                             continue
                         #yield processor(data)
                         yield Row(columns, data)
+                        #yield data
                     except StopIteration as error:
                         break
             return Result({'columns': columns, 'rows': _next()})
+            #return _next()
         except _cli.error as error:
             raise TeradataError(error)
 

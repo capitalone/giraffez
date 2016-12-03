@@ -26,6 +26,8 @@
 #include "unpack.h"
 
 
+static PyObject* ColumnsType;
+
 static PyObject* DecimalType;
 
 static PyObject* DateType;
@@ -34,20 +36,15 @@ static PyObject* TimeType;
 
 static PyObject* TimestampType;
 
-
-int giraffez_decimal_import() {
-    PyObject* decimalmod;
-    decimalmod = PyImport_ImportModule("giraffez.types");
-    if (!decimalmod) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import decimal");
+int giraffez_columns_import() {
+    PyObject* mod;
+    mod = PyImport_ImportModule("giraffez.types");
+    if (!mod) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import module giraffez.types");
         return -1;
     }
-    DecimalType = PyObject_GetAttrString(decimalmod, "Decimal");
-    Py_DECREF(decimalmod);
-    if (DecimalType == NULL) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import decimal.Decimal");
-        return -1;
-    }
+    ColumnsType = PyObject_GetAttrString(mod, "Columns");
+    Py_DECREF(mod);
     return 0;
 }
 
@@ -65,11 +62,44 @@ int giraffez_datetime_import() {
     return 0;
 }
 
-PyObject* giraffez_decimal_from_pystring(PyObject* s) {
-    PyObject* obj;
-    obj = PyObject_CallFunction(DecimalType, "O", s);
-    Py_DECREF(s);
-    return obj;
+int giraffez_decimal_import() {
+    PyObject* decimalmod;
+    decimalmod = PyImport_ImportModule("giraffez.types");
+    if (!decimalmod) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import decimal");
+        return -1;
+    }
+    DecimalType = PyObject_GetAttrString(decimalmod, "Decimal");
+    Py_DECREF(decimalmod);
+    if (DecimalType == NULL) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import decimal.Decimal");
+        return -1;
+    }
+    return 0;
+}
+
+PyObject* giraffez_columns_from_columns(GiraffeColumns* c) {
+    size_t i;
+    GiraffeColumn* column;
+    PyObject* d;
+    PyObject* columns;
+    columns = PyList_New(c->length);
+    for (i=0; i<c->length; i++) {
+        column = &c->array[i];
+        d = PyDict_New();
+        PyDict_SetItemString(d, "name", PyUnicode_FromString(column->Name));
+        PyDict_SetItemString(d, "title", PyUnicode_FromString(column->Title));
+        PyDict_SetItemString(d, "alias", PyUnicode_FromString(column->Alias));
+        PyDict_SetItemString(d, "type", PyLong_FromLong((long)column->Type));
+        PyDict_SetItemString(d, "length", PyLong_FromLong((long)column->Length));
+        PyDict_SetItemString(d, "precision", PyLong_FromLong((long)column->Precision));
+        PyDict_SetItemString(d, "scale", PyLong_FromLong((long)column->Scale));
+        PyDict_SetItemString(d, "nullable", PyUnicode_FromString(column->Nullable));
+        PyDict_SetItemString(d, "default", PyUnicode_FromString(column->Default));
+        PyDict_SetItemString(d, "format", PyUnicode_FromString(column->Format));
+        PyList_SetItem(columns, i, d);
+    }
+    return PyObject_CallFunction(ColumnsType, "O", columns);
 }
 
 PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, int minute,
@@ -86,4 +116,11 @@ PyObject* giraffez_ts_from_datetime(int year, int month, int day, int hour, int 
         int microsecond) {
     return PyObject_CallFunction(TimestampType, "iiiiiii", year, month, day, hour, minute, second,
         microsecond);
+}
+
+PyObject* giraffez_decimal_from_pystring(PyObject* s) {
+    PyObject* obj;
+    obj = PyObject_CallFunction(DecimalType, "O", s);
+    Py_DECREF(s);
+    return obj;
 }

@@ -23,11 +23,13 @@ extern "C" {
 
 #include <Python.h>
 #include "columns.h"
+#include "encoder.h"
 
 
 typedef struct {
     PyObject_HEAD
     GiraffeColumns* columns;
+    EncoderSettings* encoder;
 } Encoder;
 
 extern PyTypeObject EncoderType;

@@ -53,6 +53,7 @@ typedef struct {
     size_t size;
     size_t length;
     size_t header_length;
+    unsigned char* buffer;
     GiraffeColumn* array;
 } GiraffeColumns;
 
@@ -60,9 +61,8 @@ void columns_init(GiraffeColumns *c, size_t initial_size);
 void columns_append(GiraffeColumns *c, GiraffeColumn element);
 void columns_free(GiraffeColumns *c);
 
-void indicator_init(unsigned char** ind, unsigned char** data, size_t header_length);
+void indicator_set(GiraffeColumns* columns, unsigned char** data);
 int indicator_read(unsigned char* ind, size_t pos);
-void indicator_free(unsigned char** ind);
 
 typedef struct {
     uint16_t ExtensionLayout;

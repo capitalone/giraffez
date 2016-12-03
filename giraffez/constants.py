@@ -831,6 +831,8 @@ GD_DECIMAL          = 6
 GD_CHAR             = 7
 GD_VARCHAR          = 8
 GD_DATE             = 9
+GD_TIME             = 10
+GD_TIMESTAMP        = 11
 
 gd_type_map = {
     BLOB_NN: GD_DEFAULT,
@@ -891,10 +893,10 @@ gd_type_map = {
     DATE_N: GD_DATE,
     BYTEINT_NN: GD_BYTEINT,
     BYTEINT_N: GD_BYTEINT,
-    TIME_NN: GD_CHAR,
-    TIME_N: GD_CHAR,
-    TIMESTAMP_NN: GD_CHAR,
-    TIMESTAMP_N: GD_CHAR,
+    TIME_NN: GD_TIME,
+    TIME_N: GD_TIME,
+    TIMESTAMP_NN: GD_TIMESTAMP,
+    TIMESTAMP_N: GD_TIMESTAMP,
     TIME_NNZ: GD_CHAR,
     TIME_NZ: GD_CHAR,
     TIMESTAMP_NNZ: GD_CHAR,

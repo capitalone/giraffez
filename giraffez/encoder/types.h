@@ -30,6 +30,7 @@ extern "C" {
 #include <stdint.h>
 #endif
 
+extern const uint16_t VARCHAR_NULL_LENGTH;
 
 enum GiraffeTypes {
     GD_DEFAULT = 0,
@@ -41,7 +42,9 @@ enum GiraffeTypes {
     GD_DECIMAL,
     GD_CHAR,
     GD_VARCHAR,
-    GD_DATE
+    GD_DATE,
+    GD_TIME,
+    GD_TIMESTAMP
 };
 
 enum TeradataTypes {
@@ -155,7 +158,7 @@ enum TeradataTypes {
     XML_TEXT_LOCATOR_N = 861
 };
 
-uint16_t tdtype_to_gdtype(uint16_t t);
+uint16_t teradata_type_to_giraffez_type(uint16_t t);
 
 #ifdef __cplusplus
 }

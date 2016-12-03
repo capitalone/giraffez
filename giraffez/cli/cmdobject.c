@@ -23,6 +23,7 @@
 #include <parcel.h>
 #include "_compat.h"
 #include "encoder/columns.h"
+#include "encoder/pytypes.h"
 #include "encoder/types.h"
 #include "encoder/unpack.h"
 
@@ -72,11 +73,10 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
     self->dbc->maximum_parcel = 'H';
     self->dbc->max_decimal_returned = 38;
     self->dbc->charset_type = 'N';
-
     snprintf(self->session_charset, 32, "%-30s", "UTF8");
     self->dbc->inter_ptr = self->session_charset;
     self->dbc->logon_ptr = logonstr;
-    self->dbc->logon_len = (UInt32) strlen(logonstr);
+    self->dbc->logon_len = (UInt32)strlen(logonstr);
     self->dbc->func = DBFCON;
     DBCHCL(&self->result, self->cnta, self->dbc);
     if (self->result != EM_OK) {
@@ -110,7 +110,7 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
         return -1;
     }
     if (self->status != OK) {
-        struct CliFailureType *ErrorFail = (struct CliFailureType *) self->dbc->fet_data_ptr;
+        struct CliFailureType *ErrorFail = (struct CliFailureType*) self->dbc->fet_data_ptr;
         PyErr_Format(GiraffeError, "%d: %s", ErrorFail->Code, ErrorFail->Msg);
         return -1;
     }
@@ -153,7 +153,7 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
         return NULL;
     }
     self->dbc->req_ptr = command;
-    self->dbc->req_len = (UInt32) strlen(command);
+    self->dbc->req_len = (UInt32)strlen(command);
     self->dbc->func = DBFIRQ;
     DBCHCL(&self->result, self->cnta, self->dbc);
     if (self->result != EM_OK) {
@@ -176,40 +176,18 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
 }
 
 static PyObject* Cmd_columns(Cmd* self) {
-    int i;
-    PyObject* d;
     PyObject* columns;
-    GiraffeColumn* column;
     if (self->columns == NULL) {
         Py_RETURN_NONE;
     }
-    columns = PyList_New(self->columns->length);
-    for (i=0; i<self->columns->length; i++) {
-        column = &self->columns->array[i];
-        d = PyDict_New();
-        PyDict_SetItemString(d, "name", PyUnicode_FromString(column->Name));
-        PyDict_SetItemString(d, "title", PyUnicode_FromString(column->Title));
-        PyDict_SetItemString(d, "alias", PyUnicode_FromString(column->Alias));
-        PyDict_SetItemString(d, "type", PyLong_FromLong((long)column->Type));
-        PyDict_SetItemString(d, "length", PyLong_FromLong((long)column->Length));
-        PyDict_SetItemString(d, "precision", PyLong_FromLong((long)column->Precision));
-        PyDict_SetItemString(d, "scale", PyLong_FromLong((long)column->Scale));
-        PyDict_SetItemString(d, "nullable", PyUnicode_FromString(column->Nullable));
-        PyDict_SetItemString(d, "default", PyUnicode_FromString(column->Default));
-        PyDict_SetItemString(d, "format", PyUnicode_FromString(column->Format));
-        PyList_SetItem(columns, i, d);
-    }
+    columns = giraffez_columns_from_columns(self->columns);
     self->encoder = encoder_new(self->columns);
-    encoder_set_encoding(self->encoder, ENCODING_CUSTOM_TYPES);
+    encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
     return columns;
 }
 
 static PyObject* Cmd_fetch_one(Cmd* self, PyObject* args) {
     PyObject* row = NULL;
-    StatementInfoColumn *scolumn;
-    StatementInfo *s;
-    GiraffeColumn *column;
-    int i;
     Py_BEGIN_ALLOW_THREADS
     DBCHCL(&self->result, self->cnta, self->dbc);
     Py_END_ALLOW_THREADS
@@ -225,46 +203,22 @@ static PyObject* Cmd_fetch_one(Cmd* self, PyObject* args) {
         return NULL;
     }
     if (self->status == PCL_FAIL) {
-        struct CliFailureType *ErrorFail = (struct CliFailureType *) self->dbc->fet_data_ptr;
+        struct CliFailureType *ErrorFail = (struct CliFailureType*) self->dbc->fet_data_ptr;
         PyErr_Format(GiraffeError, "%d: %s", ErrorFail->Code, ErrorFail->Msg);
         return NULL;
     } else if (self->status == PCL_ERR) {
-        struct CliErrorType *ErrorFail = (struct CliErrorType *) self->dbc->fet_data_ptr;
+        struct CliErrorType *ErrorFail = (struct CliErrorType*) self->dbc->fet_data_ptr;
         PyErr_Format(GiraffeError, "%d: %s", ErrorFail->Code, ErrorFail->Msg);
         return NULL;
     }
     switch (self->dbc->fet_parcel_flavor) {
         case PclRECORD:
-            /*row = PyList_New(self->columns->length);*/
-            /*unpack_row(&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len, self->columns, row);*/
-            /*unpack_row_x((unsigned char**)&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len, self->columns, row);*/
-            row = unpack_row(self->encoder, (unsigned char**)&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len);
+            row = self->encoder->UnpackRowFunc(self->encoder,
+                (unsigned char**)&self->dbc->fet_data_ptr, self->dbc->fet_ret_data_len);
             break;
         case PclSTATEMENTINFO:
-            s = (StatementInfo*)malloc(sizeof(StatementInfo));
-            stmt_info_init(s, 1);
-            unpack_stmt_info((unsigned char**)&self->dbc->fet_data_ptr, s, self->dbc->fet_ret_data_len);
-            self->columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
-            columns_init(self->columns, 1);
-            for (i=0; i<s->length; i++) {
-                scolumn = &s->array[i];
-                column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
-                column->Name = strdup(scolumn->Name);
-                column->Type = scolumn->Type;
-                column->Length = scolumn->Length;
-                column->Precision = scolumn->Precision;
-                column->Scale = scolumn->Scale;
-                column->Alias = scolumn->Alias;
-                column->Title = scolumn->Title;
-                column->Format = scolumn->Format;
-                column->Default = scolumn->Default;
-                column->Nullable = scolumn->CanReturnNull;
-                column->GDType = tdtype_to_gdtype(scolumn->Type);
-                column->NullLength = unpack_null_length(column);
-                columns_append(self->columns, *column);
-            }
-            self->columns->header_length = (int)ceil(self->columns->length/8.0);
-            stmt_info_free(s);
+            self->columns = unpack_stmt_info_to_columns((unsigned char**)&self->dbc->fet_data_ptr,
+                self->dbc->fet_ret_data_len);
             break;
         case PclFAILURE:
             self->status = PCL_FAIL;

@@ -124,10 +124,7 @@ static PyObject* Export_get_buffer_dict(Export* self, PyObject* args, PyObject* 
     }
     EncoderSettings* e = encoder_new(self->columns);
     encoder_set_encoding(e, ENCODING_DICT);
-    return unpack_rows(e, &data, length);
-    //PyObject* rows = PyList_New(0);
-    //unpack_rows_dict(&data, length, self->columns, rows);
-    //return rows;
+    return e->UnpackRowsFunc(e, &data, length);
 }
 
 static PyObject* Export_get_buffer_raw(Export* self, PyObject* args, PyObject* kwds) {
@@ -160,10 +157,7 @@ static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* k
     encoder_set_encoding(e, ENCODING_STRING);
     encoder_set_delimiter(e, delimiter);
     encoder_set_null(e, null);
-    return unpack_rows(e, &data, length);
-    //PyObject* rows = PyList_New(0);
-    //unpack_rows_str(&data, length, self->columns, rows, null, delimiter);
-    //return rows;
+    return e->UnpackRowsFunc(e, &data, length);
 }
 
 static PyObject* Export_get_schema(Export* self, PyObject* args, PyObject* kwds) {
@@ -207,24 +201,19 @@ static PyObject* Export_set_columns(Export* self, PyObject* args, PyObject* kwds
         PyObject* column_length = PyObject_GetAttrString(column_obj, "length");
         PyObject* column_precision = PyObject_GetAttrString(column_obj, "precision");
         PyObject* column_scale = PyObject_GetAttrString(column_obj, "scale");
-        PyObject* gd_type = PyObject_GetAttrString(column_obj, "gd_type");
         GiraffeColumn* column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
         column->Name = strdup(PyUnicode_AsUTF8(column_name));
         column->Type = (uint16_t)PyLong_AsLong(column_type);
         column->Length = (uint64_t)PyLong_AsLong(column_length);
         column->Precision = (uint16_t)PyLong_AsLong(column_precision);
         column->Scale = (uint16_t)PyLong_AsLong(column_scale);
-        column->GDType = (uint16_t)PyLong_AsLong(gd_type);
-        column->NullLength = unpack_null_length(column);
         Py_DECREF(column_name);
         Py_DECREF(column_type);
         Py_DECREF(column_length);
         Py_DECREF(column_precision);
         Py_DECREF(column_scale);
-        Py_DECREF(gd_type);
         columns_append(self->columns, *column);
     }
-    self->columns->header_length = (int)ceil(self->columns->length/8.0);
     Py_DECREF(iterator);
     Py_RETURN_NONE;
 }

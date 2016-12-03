@@ -28,44 +28,22 @@ extern "C" {
 #include <stdint.h>
 #endif
 #include "columns.h"
+#include "encoder.h"
 
 
 uint32_t count_rows(unsigned char* data, const uint32_t length);
-uint16_t unpack_null_length(GiraffeColumn* column);
-
-typedef struct EncoderSettings {
-    GiraffeColumns* Columns;
-    //const char* Delimiter;
-    //const char* NullValue;
-    PyObject* Delimiter;
-    PyObject* NullValue;
-
-    PyObject* (*Encoder)(struct EncoderSettings*,unsigned char**,const uint16_t);
-} EncoderSettings;
-
-typedef enum EncodingType {
-    ENCODING_STRING = 0,
-    ENCODING_DICT,
-    ENCODING_CUSTOM_TYPES,
-} EncodingType;
-
-EncoderSettings* encoder_new(GiraffeColumns* columns);
-void encoder_set_encoding(EncoderSettings* e, EncodingType t);
-void encoder_set_delimiter(EncoderSettings* e, const char* delimiter);
-void encoder_set_null(EncoderSettings* e, const char* null);
 
 PyObject* unpack_rows(EncoderSettings* settings, unsigned char** data, const uint32_t length);
 
-PyObject* unpack_row(EncoderSettings* settings, unsigned char** data, const uint16_t length);
-PyObject* unpack_row_s(EncoderSettings* settings, unsigned char** data, const uint16_t length);
 PyObject* unpack_row_dict(EncoderSettings* settings, unsigned char** data, const uint16_t length);
-PyObject* unpack_row_item(unsigned char** data, GiraffeColumn* column);
-PyObject* unpack_row_item_s(unsigned char** data, GiraffeColumn* column);
-PyObject* unpack_row_item_x(unsigned char** data, GiraffeColumn* column);
+PyObject* unpack_row_str(EncoderSettings* settings, unsigned char** data, const uint16_t length);
+PyObject* unpack_row_list(EncoderSettings* settings, unsigned char** data, const uint16_t length);
 
-void unpack_row_x(unsigned char** data, const uint16_t length, GiraffeColumns* columns,
-    PyObject* row);
+PyObject* unpack_row_item_as_str(unsigned char** data, GiraffeColumn* column);
+PyObject* unpack_row_item_with_builtin_types(unsigned char** data, GiraffeColumn* column);
+PyObject* unpack_row_item_with_giraffe_types(unsigned char** data, GiraffeColumn* column);
 
+GiraffeColumns* unpack_stmt_info_to_columns(unsigned char** data, const uint32_t length);
 void unpack_stmt_info(unsigned char** data, StatementInfo* s, const uint32_t length);
 void unpack_stmt_info_ext(unsigned char** data, StatementInfoColumn* column, const uint16_t length);
 

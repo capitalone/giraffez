@@ -29,10 +29,13 @@ extern "C" {
 #else
 #include <stdint.h>
 #endif
+#include "columns.h"
 
+int giraffez_columns_import();
 int giraffez_decimal_import();
 int giraffez_datetime_import();
 
+PyObject* giraffez_columns_from_columns(GiraffeColumns* c);
 PyObject* giraffez_decimal_from_pystring(PyObject* obj);
 PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, int minute,
     int second, int microsecond);

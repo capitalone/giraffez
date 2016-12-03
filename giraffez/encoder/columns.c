@@ -23,21 +23,32 @@
 #endif
 #include <stdlib.h>
 
+#include "types.h"
 #include "util.h"
+
 
 void columns_init(GiraffeColumns *c, size_t initial_size) {
     c->array = (GiraffeColumn*)malloc(initial_size * sizeof(GiraffeColumn));
     c->length = 0;
     c->size = initial_size;
+    c->header_length = 0;
+    c->buffer = (unsigned char*)malloc(c->header_length * sizeof(unsigned char));
 }
 
 void columns_append(GiraffeColumns *c, GiraffeColumn element) {
     if (c->length == c->size) {
         c->size *= 2;
-        c->array = (GiraffeColumn*)realloc(c->array, c->size
-            * sizeof(GiraffeColumn));
+        c->array = (GiraffeColumn*)realloc(c->array, c->size * sizeof(GiraffeColumn));
+    }
+    element.GDType = teradata_type_to_giraffez_type(element.Type);
+    if (element.GDType == GD_VARCHAR) {
+        element.NullLength = VARCHAR_NULL_LENGTH;
+    } else {
+        element.NullLength = element.Length;
     }
     c->array[c->length++] = element;
+    c->header_length = (int)ceil(c->length/8.0);
+    c->buffer = (unsigned char*)realloc(c->buffer, c->header_length * sizeof(unsigned char));
 }
 
 void columns_free(GiraffeColumns *c) {
@@ -46,20 +57,15 @@ void columns_free(GiraffeColumns *c) {
     c->length = c->size = 0;
 }
 
-void indicator_init(unsigned char** ind, unsigned char** data, size_t header_length) {
+void indicator_set(GiraffeColumns* columns, unsigned char** data) {
     size_t i;
-    *ind = (unsigned char*)malloc(sizeof(unsigned char)*header_length);
-    for (i=0; i<header_length; i++) {
-        (*ind)[i] = reverse_lookup[*((*data)++)];
+    for (i=0; i<columns->header_length; i++) {
+        columns->buffer[i] = reverse_lookup[*((*data)++)];
     }
 }
 
 int indicator_read(unsigned char* ind, size_t pos) {
     return (ind[pos/8] & (1 << (pos % 8)));
-}
-
-void indicator_free(unsigned char** ind) {
-    free(*ind);
 }
 
 void stmt_info_init(StatementInfo *s, size_t initial_size) {

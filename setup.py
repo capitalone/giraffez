@@ -182,6 +182,7 @@ class EncoderExtension(Extension):
     sources = [
         "giraffez/encoder/columns.c",
         "giraffez/encoder/convert.c",
+        "giraffez/encoder/encoder.c",
         "giraffez/encoder/pytypes.c",
         "giraffez/encoder/types.c",
         "giraffez/encoder/unpack.c",
@@ -193,6 +194,7 @@ class EncoderExtension(Extension):
     depends = [
         "giraffez/encoder/columns.h",
         "giraffez/encoder/convert.h",
+        "giraffez/encoder/encoder.h",
         "giraffez/encoder/types.h",
         "giraffez/encoder/types.h",
         "giraffez/encoder/unpack.h",

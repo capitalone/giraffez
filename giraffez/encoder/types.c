@@ -24,7 +24,10 @@
 #include <stdlib.h>
 
 
-uint16_t tdtype_to_gdtype(uint16_t t) {
+const uint16_t VARCHAR_NULL_LENGTH = 2;
+
+
+uint16_t teradata_type_to_giraffez_type(uint16_t t) {
     switch (t) {
         case BLOB_NN:
         case BLOB_N:
@@ -104,10 +107,13 @@ uint16_t tdtype_to_gdtype(uint16_t t) {
             return GD_BYTEINT;
         case TIME_NN:
         case TIME_N:
+            return GD_TIME;
         case TIMESTAMP_NN:
         case TIMESTAMP_N:
+            return GD_TIMESTAMP;
         case TIME_NNZ:
         case TIME_NZ:
+            return GD_CHAR;
         case TIMESTAMP_NNZ:
         case TIMESTAMP_NZ:
             return GD_CHAR;

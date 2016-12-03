@@ -21,6 +21,10 @@
 
 
 static void Encoder_dealloc(Encoder* self) {
+    if (self->encoder != NULL) {
+        free(self->encoder);
+        self->encoder = NULL;
+    }
     if (self->columns != NULL) {
         columns_free(self->columns);
     }
@@ -37,7 +41,6 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
     PyObject* columns_obj;
     PyObject* column_obj;
     PyObject* iterator;
-
     if (self->columns == NULL) {
         self->columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
         self->columns->array = NULL;
@@ -57,32 +60,28 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
         PyObject* column_length = PyObject_GetAttrString(column_obj, "length");
         PyObject* column_precision = PyObject_GetAttrString(column_obj, "precision");
         PyObject* column_scale = PyObject_GetAttrString(column_obj, "scale");
-        PyObject* gd_type = PyObject_GetAttrString(column_obj, "gd_type");
         GiraffeColumn* column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
         column->Name = strdup(PyUnicode_AsUTF8(column_name));
-        column->Type = (int16_t)PyLong_AsLong(column_type);
-        column->Length = (int16_t)PyLong_AsLong(column_length);
-        column->Precision = (int16_t)PyLong_AsLong(column_precision);
-        column->Scale = (int16_t)PyLong_AsLong(column_scale);
-        column->GDType = (int16_t)PyLong_AsLong(gd_type);
-        column->NullLength = unpack_null_length(column);
+        column->Type = (uint16_t)PyLong_AsLong(column_type);
+        column->Length = (uint16_t)PyLong_AsLong(column_length);
+        column->Precision = (uint16_t)PyLong_AsLong(column_precision);
+        column->Scale = (uint16_t)PyLong_AsLong(column_scale);
         Py_DECREF(column_name);
         Py_DECREF(column_type);
         Py_DECREF(column_length);
         Py_DECREF(column_precision);
         Py_DECREF(column_scale);
-        Py_DECREF(gd_type);
         columns_append(self->columns, *column);
     }
-    self->columns->header_length = (int)ceil(self->columns->length/8.0);
     Py_DECREF(iterator);
+    self->encoder = encoder_new(self->columns);
+    encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
     return 0;
 }
 
 static PyObject* Encoder_count_rows(PyObject* self, PyObject* args) {
     Py_buffer buffer;
     uint32_t n;
-
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
@@ -91,140 +90,35 @@ static PyObject* Encoder_count_rows(PyObject* self, PyObject* args) {
     return PyLong_FromLong(n);
 }
 
+static PyObject* Encoder_set_encoding(Encoder* self, PyObject* args) {
+    int encoding;
+    if (!PyArg_ParseTuple(args, "i", &encoding)) {
+        return NULL;
+    }
+    encoder_set_encoding(self->encoder, encoding);
+    Py_RETURN_NONE;
+}
+
 static PyObject* Encoder_unpack_row(Encoder* self, PyObject* args) {
     Py_buffer buffer;
     PyObject* row;
-    /*unsigned char* data;*/
-
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
-    EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ENCODING_DICT);
-    /*row = unpack_row(e, &((unsigned char*)buffer.buf), buffer.len);*/
-    row = unpack_row(e, (unsigned char**)&buffer.buf, buffer.len);
-    /*data = (unsigned char*)buffer.buf;*/
-    /*row = unpack_row(e, &data, buffer.len);*/
+    row = self->encoder->UnpackRowFunc(self->encoder, (unsigned char**)&buffer.buf, buffer.len);
     PyBuffer_Release(&buffer);
     return row;
-    /*data = (unsigned char*)buffer.buf;*/
-    /*row = PyList_New(self->columns->length);*/
-    /*unpack_row(&data, buffer.len, self->columns, row);*/
-    /*PyBuffer_Release(&buffer);*/
-    /*return row;*/
 }
 
 static PyObject* Encoder_unpack_rows(Encoder* self, PyObject* args) {
     Py_buffer buffer;
-    /*unsigned char* data;*/
     PyObject* rows;
-
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
-    EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ENCODING_DICT);
-    /*rows = unpack_rows(e, &(unsigned char*)buffer.buf, buffer.len);*/
-    rows = unpack_rows(e, (unsigned char**)&buffer.buf, buffer.len);
+    rows = self->encoder->UnpackRowsFunc(self->encoder, (unsigned char**)&buffer.buf, buffer.len);
     PyBuffer_Release(&buffer);
     return rows;
-    /*data = (unsigned char*)buffer.buf;*/
-    /*rows = PyList_New(0);*/
-    /*unpack_rows(&data, buffer.len, self->columns, rows);*/
-    /*PyBuffer_Release(&buffer);*/
-    /*return rows;*/
-}
-
-static PyObject* Encoder_unpack_row_dict(Encoder* self, PyObject* args) {
-    Py_buffer buffer;
-    /*unsigned char* data;*/
-    PyObject* row;
-
-    if (!PyArg_ParseTuple(args, "s*", &buffer)) {
-        return NULL;
-    }
-    EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ENCODING_DICT);
-    /*row = unpack_row(e, &(unsigned char*)buffer.buf, buffer.len);*/
-    row = unpack_row(e, (unsigned char**)&buffer.buf, buffer.len);
-    PyBuffer_Release(&buffer);
-    return row;
-    /*data = (unsigned char*)buffer.buf;*/
-    /*row = PyDict_New();*/
-    /*unpack_row_dict(&data, buffer.len, self->columns, row);*/
-    /*PyBuffer_Release(&buffer);*/
-    /*return row;*/
-}
-
-static PyObject* Encoder_unpack_rows_dict(Encoder* self, PyObject* args) {
-    Py_buffer buffer;
-    /*unsigned char* data;*/
-    PyObject* rows;
-
-    if (!PyArg_ParseTuple(args, "s*", &buffer)) {
-        return NULL;
-    }
-    EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ENCODING_DICT);
-    /*rows = unpack_rows(e, &(unsigned char*)buffer.buf, buffer.len);*/
-    rows = unpack_rows(e, (unsigned char**)&buffer.buf, buffer.len);
-    PyBuffer_Release(&buffer);
-    return rows;
-    /*data = (unsigned char*)buffer.buf;*/
-    /*rows = PyList_New(0);*/
-    /*unpack_rows_dict(&data, buffer.len, self->columns, rows);*/
-    /*PyBuffer_Release(&buffer);*/
-    /*return rows;*/
-}
-
-static PyObject* Encoder_unpack_row_str(Encoder* self, PyObject* args) {
-    Py_buffer buffer;
-    char* null;
-    char* delimiter;
-    /*unsigned char* data;*/
-    PyObject* row;
-
-    if (!PyArg_ParseTuple(args, "s*ss", &buffer, &null, &delimiter)) {
-        return NULL;
-    }
-    EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ENCODING_STRING);
-    encoder_set_delimiter(e, delimiter);
-    encoder_set_null(e, null);
-    /*row = unpack_row(e, &(unsigned char*)buffer.buf, buffer.len);*/
-    row = unpack_row(e, (unsigned char**)&buffer.buf, buffer.len);
-    PyBuffer_Release(&buffer);
-    return row;
-    /*data = (unsigned char*)buffer.buf;*/
-    /*row = PyList_New(self->columns->length);*/
-    /*unpack_row_str(&data, buffer.len, self->columns, row, null, delimiter);*/
-    /*PyBuffer_Release(&buffer);*/
-    /*return row;*/
-}
-
-static PyObject* Encoder_unpack_rows_str(Encoder* self, PyObject* args) {
-    Py_buffer buffer;
-    char* null;
-    char* delimiter;
-    /*unsigned char* data;*/
-    PyObject* rows;
-
-    if (!PyArg_ParseTuple(args, "s*ss", &buffer, &null, &delimiter)) {
-        return NULL;
-    }
-    EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ENCODING_STRING);
-    encoder_set_delimiter(e, delimiter);
-    encoder_set_null(e, null);
-    /*rows = unpack_rows(e, &(unsigned char*)buffer.buf, buffer.len);*/
-    rows = unpack_rows(e, (unsigned char**)&buffer.buf, buffer.len);
-    PyBuffer_Release(&buffer);
-    return rows;
-    /*data = (unsigned char*)buffer.buf;*/
-    /*rows = PyList_New(0);*/
-    /*unpack_rows_str(&data, buffer.len, self->columns, rows, null, delimiter);*/
-    /*PyBuffer_Release(&buffer);*/
-    /*return rows;*/
 }
 
 static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
@@ -235,7 +129,6 @@ static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
     StatementInfoColumn* column;
     PyObject* d;
     size_t i;
-
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
@@ -267,12 +160,9 @@ static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
 
 static PyMethodDef Encoder_methods[] = {
     {"count_rows", (PyCFunction)Encoder_count_rows, METH_STATIC|METH_VARARGS, ""},
+    {"set_encoding", (PyCFunction)Encoder_set_encoding, METH_VARARGS, ""},
     {"unpack_row", (PyCFunction)Encoder_unpack_row, METH_VARARGS, ""},
     {"unpack_rows", (PyCFunction)Encoder_unpack_rows, METH_VARARGS, ""},
-    {"unpack_row_dict", (PyCFunction)Encoder_unpack_row_dict, METH_VARARGS, ""},
-    {"unpack_rows_dict", (PyCFunction)Encoder_unpack_rows_dict, METH_VARARGS, ""},
-    {"unpack_row_str", (PyCFunction)Encoder_unpack_row_str, METH_VARARGS, ""},
-    {"unpack_rows_str", (PyCFunction)Encoder_unpack_rows_str, METH_VARARGS, ""},
     {"unpack_stmt_info", (PyCFunction)Encoder_unpack_stmt_info, METH_STATIC|METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };
