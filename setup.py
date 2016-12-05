@@ -209,11 +209,13 @@ class CLIExtension(Extension):
 
     sources = [
         "giraffez/cli/cmdobject.c",
+        "giraffez/cli/tdcli.c",
         "giraffez/climodule.c",
     ]
 
     depends = [
         "giraffez/cli/cmdobject.h",
+        "giraffez/cli/tdcli.h",
         "giraffez/climodule.c",
     ]
 

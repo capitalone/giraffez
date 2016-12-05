@@ -175,18 +175,21 @@ PyObject* unpack_row_item_with_giraffe_types(unsigned char** data, GiraffeColumn
         case GD_FLOAT:
             return float_to_pyfloat(data);
         case GD_DECIMAL:
-            return giraffez_decimal_from_pystring(decimal_to_pystring(data,
-                column->Length, column->Scale));
+            /*return giraffez_decimal_from_pystring(decimal_to_pystring(data,*/
+                /*column->Length, column->Scale));*/
+            return decimal_to_pystring(data, column->Length, column->Scale);
         case GD_CHAR:
             return char_to_pystring(data, column->Length);
         case GD_VARCHAR:
             return vchar_to_pystring(data);
         case GD_DATE:
-            return date_to_pydate(data);
-        case GD_TIME:
-            return char_to_time(data, column->Length);
-        case GD_TIMESTAMP:
-            return char_to_timestamp(data, column->Length);
+            /*return date_to_pydate(data);*/
+            return date_to_pystring(data);
+            /*return int_to_pylong(data);*/
+        /*case GD_TIME:*/
+            /*return char_to_time(data, column->Length);*/
+        /*case GD_TIMESTAMP:*/
+            /*return char_to_timestamp(data, column->Length);*/
         default:
             return char_to_pystring(data, column->Length);
     }

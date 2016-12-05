@@ -171,23 +171,18 @@ class TeradataCmd(Connection):
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
         try:
             self.cmd.execute(command)
-            data = self.cmd.fetch_one()
-            data = self.cmd.fetch_one()
-            #columns = Columns(self.cmd.columns())
+            self.cmd.fetch_one()
             columns = self.cmd.columns()
-            
-            #processor = pipeline([
-                #lambda s: Row(columns, s)
-            #])
             def _next():
                 while True:
                     try:
                         data = self.cmd.fetch_one()
                         if data is None:
                             continue
-                        #yield processor(data)
-                        yield Row(columns, data)
-                        #yield data
+                        #yield Row(columns, data)
+                        yield data
+                        #yield Row(self.cmd.columns(), data)
+                        #yield Row(*data)
                     except StopIteration as error:
                         break
             return Result({'columns': columns, 'rows': _next()})

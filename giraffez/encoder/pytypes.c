@@ -32,9 +32,12 @@ static PyObject* DecimalType;
 
 static PyObject* DateType;
 
+static PyObject* RowType;
+
 static PyObject* TimeType;
 
 static PyObject* TimestampType;
+
 
 int giraffez_columns_import() {
     PyObject* mod;
@@ -44,6 +47,7 @@ int giraffez_columns_import() {
         return -1;
     }
     ColumnsType = PyObject_GetAttrString(mod, "Columns");
+    RowType = PyObject_GetAttrString(mod, "Row");
     Py_DECREF(mod);
     return 0;
 }
@@ -122,5 +126,12 @@ PyObject* giraffez_decimal_from_pystring(PyObject* s) {
     PyObject* obj;
     obj = PyObject_CallFunction(DecimalType, "O", s);
     Py_DECREF(s);
+    return obj;
+}
+
+PyObject* giraffez_row_from_list(PyObject* columns, PyObject* row) {
+    PyObject* obj;
+    obj = PyObject_CallFunction(RowType, "OO", columns, row);
+    Py_DECREF(row);
     return obj;
 }

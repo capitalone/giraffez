@@ -42,6 +42,7 @@ PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, in
 PyObject* giraffez_time_from_time(int hour, int minute, int second, int microsecond);
 PyObject* giraffez_ts_from_datetime(int year, int month, int day, int hour, int minute, int second,
     int microsecond);
+PyObject* giraffez_row_from_list(PyObject* columns, PyObject* row);
 
 #ifdef __cplusplus
 }

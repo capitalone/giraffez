@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_CMD_H
-#define __GIRAFFE_CMD_H
+#ifndef __GIRAFFE_TDCLI_H
+#define __GIRAFFE_TDCLI_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,27 +38,31 @@ extern "C" {
 #include <parcel.h>
 #include "encoder/columns.h"
 #include "encoder/unpack.h"
-#include "tdcli.h"
 
 
-//typedef struct DBCAREA dbcarea_t;
+typedef struct DBCAREA dbcarea_t;
 
-typedef struct {
-    PyObject_HEAD
-    //dbcarea_t *dbc;
-    int connected;
-    //Int32 result;
-    int status;
-    GiraffeColumns *columns;
-    //char cnta[4];
-    //char session_charset[36];
-    TeradataConnection* conn;
-    EncoderSettings* encoder;
-    PyObject* columns_obj;
-} Cmd;
+typedef struct TeradataConnection {
+    dbcarea_t* dbc;
+    char cnta[4];
+    char logonstr[1024];
+    char session_charset[36];
+    Int32 result;
+} TeradataConnection;
 
-extern PyObject* GiraffeError;
-extern PyTypeObject CmdType;
+typedef struct CliFailureType TeradataFailure;
+typedef struct CliErrorType TeradataError;
+
+TeradataError* tdcli_read_error(char* dataptr);
+TeradataFailure* tdcli_read_failure(char* dataptr);
+TeradataConnection* tdcli_new();
+uint16_t tdcli_connect(TeradataConnection* conn, const char* host, const char* username, const char* password);
+uint16_t tdcli_fetch(TeradataConnection* conn);
+uint16_t tdcli_fetch_record(TeradataConnection* conn);
+uint16_t tdcli_execute(TeradataConnection* conn, const char* command);
+uint16_t tdcli_end_request(TeradataConnection* conn);
+void tdcli_close(TeradataConnection* conn, uint16_t connected);
+void tdcli_free(TeradataConnection* conn);
 
 #ifdef __cplusplus
 }

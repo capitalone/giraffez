@@ -16,6 +16,7 @@
 
 #include "encoderobject.h"
 #include "_compat.h"
+#include "pytypes.h"
 #include "types.h"
 #include "unpack.h"
 
@@ -123,39 +124,13 @@ static PyObject* Encoder_unpack_rows(Encoder* self, PyObject* args) {
 
 static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
     Py_buffer buffer;
-    unsigned char* data;
-    StatementInfo* s;
-    PyObject* columns;
-    StatementInfoColumn* column;
-    PyObject* d;
-    size_t i;
+    GiraffeColumns* columns;
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
-    data = (unsigned char*)buffer.buf;
-    s = (StatementInfo*)malloc(sizeof(StatementInfo));
-    stmt_info_init(s, 1);
-    unpack_stmt_info(&data, s, buffer.len);
-    columns = PyList_New(0);
-    for (i=0; i<s->length; i++) {
-        column = &s->array[i];
-        d = PyDict_New();
-        PyDict_SetItemString(d, "name", PyUnicode_FromString(column->Name));
-        PyDict_SetItemString(d, "title", PyUnicode_FromString(column->Title));
-        PyDict_SetItemString(d, "alias", PyUnicode_FromString(column->Alias));
-        PyDict_SetItemString(d, "type", PyLong_FromLong((long)column->Type));
-        PyDict_SetItemString(d, "length", PyLong_FromLong((long)column->Length));
-        PyDict_SetItemString(d, "precision", PyLong_FromLong((long)column->Precision));
-        PyDict_SetItemString(d, "scale", PyLong_FromLong((long)column->Scale));
-        PyDict_SetItemString(d, "nullable", PyUnicode_FromString(column->CanReturnNull));
-        PyDict_SetItemString(d, "default", PyUnicode_FromString(column->Default));
-        PyDict_SetItemString(d, "format", PyUnicode_FromString(column->Format));
-        PyList_Append(columns, d);
-        Py_DECREF(d);
-    }
-    stmt_info_free(s);
+    columns = unpack_stmt_info_to_columns((unsigned char**)buffer.buf, buffer.len);
     PyBuffer_Release(&buffer);
-    return columns;
+    return giraffez_columns_from_columns(columns);
 }
 
 static PyMethodDef Encoder_methods[] = {
