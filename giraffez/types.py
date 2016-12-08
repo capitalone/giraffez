@@ -15,7 +15,6 @@
 # limitations under the License.
 
 import datetime
-import decimal
 import math
 import struct
 
@@ -684,6 +683,8 @@ class Row(object):
        print(row[2]) # 'abc123'
     """
 
+    __slots__ = ('columns', 'column_map', 'row')
+
     def __init__(self, columns, row):
         self.columns = columns
         self.column_map = columns._column_map
@@ -743,8 +744,6 @@ class Time(datetime.time):
     Represents Teradata date/time data types such as TIME(0). Currently,
     does not keep microsecond for other types like TIME(n).
     """
-    #def __new__(cls, t):
-        #return datetime.time.__new__(cls, t.hour, t.minute, t.second, t.microsecond)
 
     @classmethod
     def from_string(cls, s):

@@ -144,14 +144,18 @@ static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* k
     unsigned char* data = NULL;
     int length;
     int export_status;
-    char* null;
-    char* delimiter;
-    if (!PyArg_ParseTuple(args, "ss", &null, &delimiter)) {
+    PyObject* null;
+    PyObject* delimiter;
+    if (!PyArg_ParseTuple(args, "OO", &null, &delimiter)) {
         return NULL;
     }
     export_status = self->conn->GetBuffer((char**)&data, (TD_Length*)&length);
     if (export_status == TD_END_Method) {
         Py_RETURN_NONE;
+    }
+    if (!PyUnicode_Check(delimiter)) {
+        PyErr_SetString(PyExc_TypeError, "Delimiter must be string");
+        return NULL;
     }
     EncoderSettings* e = encoder_new(self->columns);
     encoder_set_encoding(e, ENCODING_STRING);
@@ -188,6 +192,7 @@ static PyObject* Export_set_columns(Export* self, PyObject* args, PyObject* kwds
     if (!PyArg_ParseTuple(args, "O", &columns_obj)) {
         return NULL;
     }
+    // TODO: create function for going from giraffez.Columns to GiraffeColumns
     columns_init(self->columns, 1);
     PyObject* iterator = PyObject_GetIter(columns_obj);
     PyObject* column_obj;

@@ -233,7 +233,7 @@ class ExportCommand(Command):
                     for n, chunk in enumerate(export.results(), 1):
                         i += _encoder.Encoder.count_rows(chunk)
                         if n % 50 == 0 and args.output_file:
-                            log.info("\rExport", "Processed {} rows".format(int(round(i, -5))), console=False)
+                            log.info("\rExport", "Processed {} rows".format(int(round(i, -5))), console=True)
                         out.writen(chunk)
                     log.info("\rExport", "Processed {} rows".format(i))
                 else:

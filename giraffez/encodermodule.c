@@ -16,6 +16,7 @@
 
 #include <Python.h>
 #include "_compat.h"
+#include "encoder/pytypes.h"
 
 #include "encoder/encoderobject.h"
 
@@ -47,6 +48,10 @@ MOD_INIT(_encoder)
 #else
     m = Py_InitModule("_encoder", module_methods);
 #endif
+
+    giraffez_columns_import();
+    giraffez_datetime_import();
+    giraffez_decimal_import();
 
     if (m == NULL) {
         return MOD_ERROR_VAL;

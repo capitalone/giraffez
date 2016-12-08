@@ -171,22 +171,8 @@ class TeradataCmd(Connection):
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
         try:
             self.cmd.execute(command)
-            self.cmd.fetch_one()
             columns = self.cmd.columns()
-            def _next():
-                while True:
-                    try:
-                        data = self.cmd.fetch_one()
-                        if data is None:
-                            continue
-                        #yield Row(columns, data)
-                        yield data
-                        #yield Row(self.cmd.columns(), data)
-                        #yield Row(*data)
-                    except StopIteration as error:
-                        break
-            return Result({'columns': columns, 'rows': _next()})
-            #return _next()
+            return Results(self.cmd.fetch_all())
         except _cli.error as error:
             raise TeradataError(error)
 
@@ -202,7 +188,7 @@ class TeradataCmd(Connection):
         :raises `giraffez.errors.TeradataError`: if the query is invalid
         :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
         """
-        return self.execute(command, sanitize, silent).one()
+        return Results(self.execute(command, sanitize, silent)).one()
 
     def execute_many(self, command, sanitize=True, parallel=False, silent=False):
         """

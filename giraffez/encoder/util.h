@@ -21,13 +21,11 @@
 extern "C" {
 #endif
 
-#include <Python.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
 #include <stdint.h>
 #endif
-#include "columns.h"
 
 
 static const unsigned char reverse_lookup[256] = {

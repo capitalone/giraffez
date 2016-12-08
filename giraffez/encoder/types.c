@@ -15,13 +15,12 @@
  */
 
 #include "types.h"
-#include <stddef.h>
+
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
 #include <stdint.h>
 #endif
-#include <stdlib.h>
 
 
 const uint16_t VARCHAR_NULL_LENGTH = 2;

@@ -29,6 +29,9 @@ extern "C" {
 #endif
 
 
+#define BUFFER_SIZE 8 * 1024
+
+
 enum DecimalTypes {
     DECIMAL8   =  1,
     DECIMAL16  =  2,
@@ -38,40 +41,23 @@ enum DecimalTypes {
 };
 
 PyObject* byte_to_pylong(unsigned char** data);
-
 PyObject* byte_to_pystring(unsigned char** data);
-
 PyObject* char_to_pystring(unsigned char** data, const uint64_t column_length);
-
 PyObject* char_to_time(unsigned char** data, const uint64_t column_length);
-
 PyObject* char_to_timestamp(unsigned char** data, const uint64_t column_length);
-
 PyObject* date_to_pydate(unsigned char** data);
-
 PyObject* date_to_pystring(unsigned char** data);
-
 PyObject* decimal_to_pystring(unsigned char** data, const uint64_t column_length,
     const uint16_t column_scale);
-
 PyObject* int_to_pylong(unsigned char** data);
-
 PyObject* int_to_pystring(unsigned char** data);
-
 PyObject* float_to_pyfloat(unsigned char** data);
-
 PyObject* float_to_pystring(unsigned char** data);
-
 PyObject* long_to_pylong(unsigned char** data);
-
 PyObject* long_to_pystring(unsigned char** data);
-
 PyObject* pystring_from_cformat(const char* fmt, ...);
-
 PyObject* short_to_pylong(unsigned char** data);
-
 PyObject* short_to_pystring(unsigned char** data);
-
 PyObject* vchar_to_pystring(unsigned char** data);
 
 #ifdef __cplusplus

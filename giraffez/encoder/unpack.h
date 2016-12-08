@@ -27,21 +27,22 @@ extern "C" {
 #else
 #include <stdint.h>
 #endif
-#include "columns.h"
-#include "encoder.h"
+
+#include "encoder/columns.h"
+#include "encoder/encoder.h"
 
 
 uint32_t count_rows(unsigned char* data, const uint32_t length);
 
-PyObject* unpack_rows(EncoderSettings* settings, unsigned char** data, const uint32_t length);
+PyObject* unpack_rows(const EncoderSettings* settings, unsigned char** data, const uint32_t length);
 
-PyObject* unpack_row_dict(EncoderSettings* settings, unsigned char** data, const uint16_t length);
-PyObject* unpack_row_str(EncoderSettings* settings, unsigned char** data, const uint16_t length);
-PyObject* unpack_row_list(EncoderSettings* settings, unsigned char** data, const uint16_t length);
+PyObject* unpack_row_dict(const EncoderSettings* settings, unsigned char** data, const uint16_t length);
+PyObject* unpack_row_str(const EncoderSettings* settings, unsigned char** data, const uint16_t length);
+PyObject* unpack_row_list(const EncoderSettings* settings, unsigned char** data, const uint16_t length);
 
-PyObject* unpack_row_item_as_str(unsigned char** data, GiraffeColumn* column);
-PyObject* unpack_row_item_with_builtin_types(unsigned char** data, GiraffeColumn* column);
-PyObject* unpack_row_item_with_giraffe_types(unsigned char** data, GiraffeColumn* column);
+PyObject* unpack_row_item_as_str(unsigned char** data, const GiraffeColumn* column);
+PyObject* unpack_row_item_with_builtin_types(unsigned char** data, const GiraffeColumn* column);
+PyObject* unpack_row_item_with_giraffe_types(unsigned char** data, const GiraffeColumn* column);
 
 GiraffeColumns* unpack_stmt_info_to_columns(unsigned char** data, const uint32_t length);
 void unpack_stmt_info(unsigned char** data, StatementInfo* s, const uint32_t length);

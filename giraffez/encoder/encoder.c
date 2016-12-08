@@ -14,32 +14,24 @@
  * limitations under the License.
  */
 
-#include "unpack.h"
+#include "encoder.h"
+
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
 #include <stdint.h>
 #endif
-#include <stdlib.h>
-#include <string.h>
+
 #include "_compat.h"
-#include "columns.h"
-#include "convert.h"
-#include "pytypes.h"
-#include "types.h"
-#include "util.h"
+#include "encoder/unpack.h"
 
-
-#define DEFAULT_DELIMITER PyUnicode_FromString("|");
-#define DEFAULT_NULLVALUE (Py_INCREF(Py_None), Py_None)
-#define DEFAULT_NULLVALUE_STR PyUnicode_FromString("NULL")
 
 EncoderSettings* encoder_new(GiraffeColumns* columns) {
     EncoderSettings* e;
     e = (EncoderSettings*)malloc(sizeof(EncoderSettings));
     e->Columns = columns;
     e->Delimiter = DEFAULT_DELIMITER;
-    e->NullValue = DEFAULT_NULLVALUE;
+    e->NullValue = DEFAULT_NULLVALUE_STR;
     e->UnpackRowsFunc = unpack_rows;
     e->UnpackRowFunc = unpack_row_str;
     e->UnpackItemFunc = unpack_row_item_as_str;
@@ -51,22 +43,28 @@ void encoder_set_encoding(EncoderSettings* e, EncodingType t) {
         case ENCODING_STRING:
             e->UnpackRowFunc = unpack_row_str;
             e->UnpackItemFunc = unpack_row_item_as_str;
+            encoder_set_delimiter(e, DEFAULT_DELIMITER);
+            encoder_set_null(e, DEFAULT_NULLVALUE_STR);
             break;
         case ENCODING_DICT:
             e->UnpackRowFunc = unpack_row_dict;
             e->UnpackItemFunc = unpack_row_item_with_builtin_types;
+            encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
         case ENCODING_GIRAFFE_TYPES:
             e->UnpackRowFunc = unpack_row_list;
             e->UnpackItemFunc = unpack_row_item_with_giraffe_types;
+            encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
     }
 }
 
-void encoder_set_delimiter(EncoderSettings* e, const char* delimiter) {
-    e->Delimiter = PyUnicode_FromString(delimiter);
+void encoder_set_delimiter(EncoderSettings* e, PyObject* obj) {
+    Py_XDECREF(e->Delimiter);
+    e->Delimiter = obj;
 }
 
-void encoder_set_null(EncoderSettings* e, const char* null) {
-    e->NullValue = PyUnicode_FromString(null);
+void encoder_set_null(EncoderSettings* e, PyObject* obj) {
+    Py_XDECREF(e->NullValue);
+    e->NullValue = obj;
 }

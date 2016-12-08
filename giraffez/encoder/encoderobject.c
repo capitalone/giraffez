@@ -15,10 +15,11 @@
  */
 
 #include "encoderobject.h"
+
 #include "_compat.h"
-#include "pytypes.h"
-#include "types.h"
-#include "unpack.h"
+#include "encoder/encoder.h"
+#include "encoder/pytypes.h"
+#include "encoder/unpack.h"
 
 
 static void Encoder_dealloc(Encoder* self) {
@@ -73,8 +74,10 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
         Py_DECREF(column_precision);
         Py_DECREF(column_scale);
         columns_append(self->columns, *column);
+        Py_DECREF(column_obj);
     }
     Py_DECREF(iterator);
+    Py_DECREF(columns_obj);
     self->encoder = encoder_new(self->columns);
     encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
     return 0;

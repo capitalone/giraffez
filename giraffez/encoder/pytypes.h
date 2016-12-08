@@ -17,19 +17,14 @@
 #ifndef __ENCODER_PYTYPES_H
 #define __ENCODER_PYTYPES_H
 
-#include <Python.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stddef.h>
-#if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
-#else
-#include <stdint.h>
-#endif
+#include <Python.h>
+
 #include "columns.h"
+
 
 int giraffez_columns_import();
 int giraffez_decimal_import();
@@ -42,6 +37,7 @@ PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, in
 PyObject* giraffez_time_from_time(int hour, int minute, int second, int microsecond);
 PyObject* giraffez_ts_from_datetime(int year, int month, int day, int hour, int minute, int second,
     int microsecond);
+PyObject* giraffez_result_from_rows(PyObject* columns, PyObject* row);
 PyObject* giraffez_row_from_list(PyObject* columns, PyObject* row);
 
 #ifdef __cplusplus

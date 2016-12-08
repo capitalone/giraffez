@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "convert.h"
+
 #include <Python.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
@@ -21,14 +23,11 @@
 #include <stdint.h>
 #endif
 #include <stdlib.h>
+
 #include "_compat.h"
-#include "encoder/convert.h"
-/*#include "encoder/unpack.h"*/
 #include "encoder/pytypes.h"
 #include "encoder/util.h"
-#include "types.h"
 
-#define BUFFER_SIZE 8 * 1024
 
 static char buffer[BUFFER_SIZE];
 
@@ -51,12 +50,16 @@ PyObject* char_to_pystring(unsigned char** data, const uint64_t column_length) {
     return str;
 }
 
+// TODO: add switch for handling different types of common time/timestamp
+// should they come up.
 PyObject* char_to_time(unsigned char** data, const uint64_t column_length) {
+    char* localbuffer;
+    localbuffer = buffer;
     struct tm tm;
     memset(&tm, '\0', sizeof(tm));
-    memcpy(buffer, (char*)*data, column_length);
+    memcpy(localbuffer, (char*)*data, column_length);
     buffer[column_length] = '\0';
-    if (strptime(buffer, "%H:%M:%S", &tm) != NULL) {
+    if (strptime(localbuffer, "%H:%M:%S", &tm) != NULL) {
         *data += column_length;
         return giraffez_time_from_time(tm.tm_hour, tm.tm_min, tm.tm_sec, 0);
     }
@@ -64,11 +67,13 @@ PyObject* char_to_time(unsigned char** data, const uint64_t column_length) {
 }
 
 PyObject* char_to_timestamp(unsigned char** data, const uint64_t column_length) {
+    char* localbuffer;
+    localbuffer = buffer;
     struct tm tm;
     memset(&tm, '\0', sizeof(tm));
-    memcpy(buffer, (char*)*data, column_length);
+    memcpy(localbuffer, (char*)*data, column_length);
     buffer[column_length] = '\0';
-    if (strptime(buffer, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
+    if (strptime(localbuffer, "%Y-%m-%d %H:%M:%S", &tm) != NULL) {
         *data += column_length;
         return giraffez_ts_from_datetime(tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour,
             tm.tm_min, tm.tm_sec, 0);
@@ -190,7 +195,7 @@ static PyObject* decimal128_to_pystring(unsigned char** data, const uint16_t col
         PyObject* fmt = PyUnicode_FromFormat("%%d.%%0%dd", column_scale);
         PyObject* tup = Py_BuildValue("(OO)", x, y);
         s = PyUnicode_Format(fmt, tup);
-        Py_DECREF(v);
+        Py_DECREF(pw);
         Py_DECREF(sd);
         Py_DECREF(scale);
         Py_DECREF(x);
@@ -200,6 +205,7 @@ static PyObject* decimal128_to_pystring(unsigned char** data, const uint16_t col
     } else {
         s = PyObject_Str(v);
     }
+    Py_DECREF(v);
     Py_XDECREF(shift);
     Py_XDECREF(upper);
     Py_XDECREF(lower);
@@ -239,7 +245,12 @@ PyObject* float_to_pyfloat(unsigned char** data) {
 }
 
 PyObject* float_to_pystring(unsigned char** data) {
-    return PyObject_Str(float_to_pyfloat(data));
+    PyObject* obj;
+    PyObject* s;
+    obj = float_to_pyfloat(data);
+    s = PyObject_Str(obj);
+    Py_DECREF(obj);
+    return s;
 }
 
 PyObject* int_to_pylong(unsigned char** data) {

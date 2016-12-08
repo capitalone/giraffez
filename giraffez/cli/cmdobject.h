@@ -32,26 +32,18 @@ extern "C" {
 #define PCL_FAIL     -2
 #define PCL_ERR      -3
 
-
 #include <Python.h>
-#include <dbcarea.h>
-#include <parcel.h>
+
+#include "cli/tdcli.h"
 #include "encoder/columns.h"
-#include "encoder/unpack.h"
-#include "tdcli.h"
+#include "encoder/encoder.h"
 
-
-//typedef struct DBCAREA dbcarea_t;
 
 typedef struct {
     PyObject_HEAD
-    //dbcarea_t *dbc;
     int connected;
-    //Int32 result;
     int status;
     GiraffeColumns *columns;
-    //char cnta[4];
-    //char session_charset[36];
     TeradataConnection* conn;
     EncoderSettings* encoder;
     PyObject* columns_obj;

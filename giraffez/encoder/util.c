@@ -15,6 +15,7 @@
  */
 
 #include "util.h"
+
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
@@ -22,9 +23,9 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
+
 #include "_compat.h"
-#include "convert.h"
-#include "types.h"
+#include "encoder/types.h"
 
 
 void unpack_int8_t(unsigned char **data, int8_t *dst) {

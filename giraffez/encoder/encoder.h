@@ -27,7 +27,13 @@ extern "C" {
 #else
 #include <stdint.h>
 #endif
+
 #include "columns.h"
+
+
+#define DEFAULT_DELIMITER PyUnicode_FromString("|")
+#define DEFAULT_NULLVALUE Py_None
+#define DEFAULT_NULLVALUE_STR PyUnicode_FromString("NULL")
 
 
 typedef enum EncodingType {
@@ -42,17 +48,17 @@ typedef struct EncoderSettings {
     PyObject* Delimiter;
     PyObject* NullValue;
 
-    PyObject* (*UnpackRowsFunc)(struct EncoderSettings*,unsigned char**,const uint32_t);
-    PyObject* (*UnpackRowFunc)(struct EncoderSettings*,unsigned char**,const uint16_t);
-    PyObject* (*UnpackItemFunc)(unsigned char**,GiraffeColumn*);
+    PyObject* (*UnpackRowsFunc)(const struct EncoderSettings*,unsigned char**,const uint32_t);
+    PyObject* (*UnpackRowFunc)(const struct EncoderSettings*,unsigned char**,const uint16_t);
+    PyObject* (*UnpackItemFunc)(unsigned char**,const GiraffeColumn*);
 } EncoderSettings;
 
-typedef PyObject* (*EncoderFunc)(EncoderSettings*,unsigned char**,const uint16_t);
+typedef PyObject* (*EncoderFunc)(const EncoderSettings*,unsigned char**,const uint16_t);
 
 EncoderSettings* encoder_new(GiraffeColumns* columns);
 void encoder_set_encoding(EncoderSettings* e, EncodingType t);
-void encoder_set_delimiter(EncoderSettings* e, const char* delimiter);
-void encoder_set_null(EncoderSettings* e, const char* null);
+void encoder_set_delimiter(EncoderSettings* e, PyObject* obj);
+void encoder_set_null(EncoderSettings* e, PyObject* obj);
 
 #ifdef __cplusplus
 }

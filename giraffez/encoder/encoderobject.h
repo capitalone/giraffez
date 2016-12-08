@@ -22,8 +22,9 @@ extern "C" {
 #endif
 
 #include <Python.h>
-#include "columns.h"
-#include "encoder.h"
+
+#include "encoder/columns.h"
+#include "encoder/encoder.h"
 
 
 typedef struct {

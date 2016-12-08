@@ -16,20 +16,28 @@
 
 
 #include "cmdobject.h"
-#include <string.h>
-#include <stdio.h>
-#include <coperr.h>
-#include <dbcarea.h>
-#include <parcel.h>
+
 #include "_compat.h"
+#include "cli/tdcli.h"
 #include "encoder/columns.h"
 #include "encoder/pytypes.h"
-#include "encoder/types.h"
 #include "encoder/unpack.h"
-#include "tdcli.h"
 
 PyObject* GiraffeError;
 
+static PyObject* check_tdcli_error(char* dataptr) {
+    TeradataError* err;
+    err = tdcli_read_error(dataptr);
+    PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
+    return NULL;
+}
+
+static PyObject* check_tdcli_failure(char* dataptr) {
+    TeradataFailure* err;
+    err = tdcli_read_failure(dataptr);
+    PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
+    return NULL;
+}
 
 static PyObject* Cmd_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     Cmd* self;
@@ -39,16 +47,13 @@ static PyObject* Cmd_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
 
 static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
     char *host=NULL, *username=NULL, *password=NULL;
-    char logonstr[1024] = "";
     if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
         return -1;
     }
-    sprintf(logonstr, "%s/%s,%s", host, username, password);
     self->connected = NOT_CONNECTED;
     self->status = OK;
     self->conn = tdcli_new();
     if (self->conn->result != OK) {
-        /*PyErr_SetString(GiraffeError, "CLIv2: init failed");*/
         PyErr_Format(GiraffeError, "CLIv2: init failed -- %s", self->conn->dbc->msg_text);
         return -1;
     }
@@ -77,6 +82,15 @@ static PyObject* Cmd_close(Cmd* self) {
     tdcli_close(self->conn, self->connected);
     self->connected = NOT_CONNECTED;
     return Py_BuildValue("i", self->connected);
+}
+
+static PyObject* Cmd_columns(Cmd* self) {
+    PyObject* columns;
+    if (self->columns == NULL) {
+        Py_RETURN_NONE;
+    }
+    columns = giraffez_columns_from_columns(self->columns);
+    return columns;
 }
 
 static void Cmd_dealloc(Cmd* self) {
@@ -119,11 +133,112 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
         columns_free(self->columns);
         self->columns = NULL;
     }
+    while ((self->status = tdcli_fetch_record(self->conn)) == OK) {
+        switch (self->conn->dbc->fet_parcel_flavor) {
+            case PclSTATEMENTINFO:
+                if (self->encoder != NULL) {
+                    free(self->encoder);
+                    self->encoder = NULL;
+                }
+                if (self->columns != NULL) {
+                    columns_free(self->columns);
+                    self->columns = NULL;
+                }
+                self->columns = unpack_stmt_info_to_columns((unsigned char**)&self->conn->dbc->fet_data_ptr,
+                    self->conn->dbc->fet_ret_data_len);
+                self->encoder = encoder_new(self->columns);
+                encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
+                self->columns_obj = giraffez_columns_from_columns(self->columns);
+                return giraffez_columns_from_columns(self->columns);
+            case PclFAILURE:
+                self->status = PCL_FAIL;
+                goto error;
+            case PclERROR:
+                self->status = PCL_ERR;
+                goto error;
+        }
+    }
+error:
+    if (self->status == PCL_FAIL) {
+        return check_tdcli_failure(self->conn->dbc->fet_data_ptr);
+    } else if (self->status == PCL_ERR) {
+        return check_tdcli_error(self->conn->dbc->fet_data_ptr);
+    }
     return Py_BuildValue("i", 0);
 }
 
-static PyObject* Cmd_fetch_one(Cmd* self) {
+static PyObject* Cmd_fetch_all(Cmd* self) {
+    PyObject* giraffez_row = NULL;
     PyObject* result = NULL;
+    PyObject* results = NULL;
+    PyObject* row = NULL;
+    PyObject* rows = NULL;
+    results = PyList_New(0);
+    rows = PyList_New(0);
+    while ((self->status = tdcli_fetch_record(self->conn)) == OK) {
+        switch (self->conn->dbc->fet_parcel_flavor) {
+            case PclRECORD:
+                row = self->encoder->UnpackRowFunc(self->encoder,
+                    (unsigned char**)&self->conn->dbc->fet_data_ptr, self->conn->dbc->fet_ret_data_len);
+                giraffez_row = giraffez_row_from_list(self->columns_obj, row);
+                PyList_Append(rows, giraffez_row);
+                Py_DECREF(giraffez_row);
+                break;
+            case PclSTATEMENTINFO:
+                if (self->encoder != NULL) {
+                    free(self->encoder);
+                    self->encoder = NULL;
+                }
+                if (self->columns != NULL) {
+                    columns_free(self->columns);
+                    self->columns = NULL;
+                }
+                self->columns = unpack_stmt_info_to_columns((unsigned char**)&self->conn->dbc->fet_data_ptr,
+                    self->conn->dbc->fet_ret_data_len);
+                self->encoder = encoder_new(self->columns);
+                encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
+                result = giraffez_result_from_rows(self->columns_obj, rows);
+                PyList_Append(results, result);
+                Py_DECREF(result);
+                Py_XDECREF(self->columns_obj);
+                self->columns_obj = giraffez_columns_from_columns(self->columns);
+                break;
+            case PclFAILURE:
+                self->status = PCL_FAIL;
+                goto error;
+            case PclERROR:
+                self->status = PCL_ERR;
+                goto error;
+            case PclENDSTATEMENT:
+                result = giraffez_result_from_rows(self->columns_obj, rows);
+                PyList_Append(results, result);
+                Py_DECREF(result);
+                break;
+            case PclENDREQUEST:
+                goto error;
+            default:
+                break;
+        }
+    }
+error:
+    if (self->conn->result == REQEXHAUST) {
+        if (tdcli_end_request(self->conn) != OK) {
+            PyErr_Format(GiraffeError, "%d: %s", self->conn->result, self->conn->dbc->msg_text);
+            return NULL;
+        }
+    } else if (self->conn->result != OK) {
+        PyErr_Format(GiraffeError, "%d: %s", self->conn->result, self->conn->dbc->msg_text);
+        return NULL;
+    }
+    if (self->status == PCL_FAIL) {
+        return check_tdcli_failure(self->conn->dbc->fet_data_ptr);
+    } else if (self->status == PCL_ERR) {
+        return check_tdcli_error(self->conn->dbc->fet_data_ptr);
+    }
+    return results;
+}
+
+static PyObject* Cmd_fetch_one(Cmd* self) {
     PyObject* row = NULL;
     while ((self->status = tdcli_fetch_record(self->conn)) == OK) {
         if (self->conn->result == REQEXHAUST) {
@@ -137,29 +252,11 @@ static PyObject* Cmd_fetch_one(Cmd* self) {
             PyErr_Format(GiraffeError, "%d: %s", self->conn->result, self->conn->dbc->msg_text);
             return NULL;
         }
-        if (self->status == PCL_FAIL) {
-            TeradataFailure* err = tdcli_read_failure(self->conn->dbc->fet_data_ptr);
-            PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
-            return NULL;
-        } else if (self->status == PCL_ERR) {
-            TeradataError* err = tdcli_read_error(self->conn->dbc->fet_data_ptr);
-            PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
-            return NULL;
-        }
         switch (self->conn->dbc->fet_parcel_flavor) {
             case PclRECORD:
-                /*row = PyList_New(0);*/
                 row = self->encoder->UnpackRowFunc(self->encoder,
                     (unsigned char**)&self->conn->dbc->fet_data_ptr, self->conn->dbc->fet_ret_data_len);
-                /*Py_INCREF(self->columns_obj);*/
                 return giraffez_row_from_list(self->columns_obj, row);
-                /*return row;*/
-                /*Py_DECREF(row);*/
-                /*result = PyList_New(0);*/
-                /*return result;*/
-                /*result = Py_BuildValue("(OO)", self->columns_obj, row);*/
-                /*Py_DECREF(row);*/
-                /*return result;*/
             case PclSTATEMENTINFO:
                 if (self->encoder != NULL) {
                     free(self->encoder);
@@ -177,10 +274,10 @@ static PyObject* Cmd_fetch_one(Cmd* self) {
                 break;
             case PclFAILURE:
                 self->status = PCL_FAIL;
-                break;
+                goto error;
             case PclERROR:
                 self->status = PCL_ERR;
-                break;
+                goto error;
             case PclENDSTATEMENT:
                 break;
             case PclENDREQUEST:
@@ -189,22 +286,20 @@ static PyObject* Cmd_fetch_one(Cmd* self) {
                 break;
         }
     }
-    Py_RETURN_NONE;
-}
-
-static PyObject* Cmd_columns(Cmd* self) {
-    PyObject* columns;
-    if (self->columns == NULL) {
-        Py_RETURN_NONE;
+error:
+    if (self->status == PCL_FAIL) {
+        return check_tdcli_failure(self->conn->dbc->fet_data_ptr);
+    } else if (self->status == PCL_ERR) {
+        return check_tdcli_error(self->conn->dbc->fet_data_ptr);
     }
-    columns = giraffez_columns_from_columns(self->columns);
-    return columns;
+    Py_RETURN_NONE;
 }
 
 static PyMethodDef Cmd_methods[] = {
     {"close", (PyCFunction)Cmd_close, METH_NOARGS, ""},
     {"columns", (PyCFunction)Cmd_columns, METH_NOARGS, ""},
     {"execute", (PyCFunction)Cmd_execute, METH_VARARGS, ""},
+    {"fetch_all", (PyCFunction)Cmd_fetch_all, METH_NOARGS, ""},
     {"fetch_one", (PyCFunction)Cmd_fetch_one, METH_NOARGS, ""},
     {NULL}  /* Sentinel */
 };

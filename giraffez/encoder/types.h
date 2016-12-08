@@ -17,18 +17,16 @@
 #ifndef __ENCODER_TYPES_H
 #define __ENCODER_TYPES_H
 
-#include <Python.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stddef.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
 #include <stdint.h>
 #endif
+
 
 extern const uint16_t VARCHAR_NULL_LENGTH;
 

@@ -17,8 +17,6 @@
 #ifndef __ENCODER_COLUMNS_H
 #define __ENCODER_COLUMNS_H
 
-#include <Python.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,6 +27,7 @@ extern "C" {
 #else
 #include <stdint.h>
 #endif
+
 
 typedef struct {
     char* Database;
@@ -56,13 +55,6 @@ typedef struct {
     unsigned char* buffer;
     GiraffeColumn* array;
 } GiraffeColumns;
-
-void columns_init(GiraffeColumns *c, size_t initial_size);
-void columns_append(GiraffeColumns *c, GiraffeColumn element);
-void columns_free(GiraffeColumns *c);
-
-void indicator_set(GiraffeColumns* columns, unsigned char** data);
-int indicator_read(unsigned char* ind, size_t pos);
 
 typedef struct {
     uint16_t ExtensionLayout;
@@ -110,6 +102,13 @@ typedef struct {
     size_t length;
     StatementInfoColumn* array;
 } StatementInfo;
+
+void columns_init(GiraffeColumns *c, size_t initial_size);
+void columns_append(GiraffeColumns *c, GiraffeColumn element);
+void columns_free(GiraffeColumns *c);
+
+void indicator_set(GiraffeColumns* columns, unsigned char** data);
+int indicator_read(unsigned char* ind, size_t pos);
 
 void stmt_info_init(StatementInfo *s, size_t initial_size);
 void stmt_info_append(StatementInfo *s, StatementInfoColumn element);

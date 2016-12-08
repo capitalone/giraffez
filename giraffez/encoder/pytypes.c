@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
+#include "pytypes.h"
+
 #include <Python.h>
-#include "types.h"
-#include <stddef.h>
-#if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
-#else
-#include <stdint.h>
-#endif
-#include <stdlib.h>
-#include "unpack.h"
+
+#include "encoder/columns.h"
 
 
 static PyObject* ColumnsType;
@@ -31,6 +26,8 @@ static PyObject* ColumnsType;
 static PyObject* DecimalType;
 
 static PyObject* DateType;
+
+static PyObject* ResultType;
 
 static PyObject* RowType;
 
@@ -47,6 +44,7 @@ int giraffez_columns_import() {
         return -1;
     }
     ColumnsType = PyObject_GetAttrString(mod, "Columns");
+    ResultType = PyObject_GetAttrString(mod, "Result");
     RowType = PyObject_GetAttrString(mod, "Row");
     Py_DECREF(mod);
     return 0;
@@ -82,28 +80,57 @@ int giraffez_decimal_import() {
     return 0;
 }
 
+// TODO: determine how best GiraffeColumn members should be initialized
+// to ensure that GiraffeColumns can be passed to this function with
+// only some of the members and not cause undefined behavior. Some things
+// like export only ever set name, type, length, precision and scale for 
+// example.
 PyObject* giraffez_columns_from_columns(GiraffeColumns* c) {
     size_t i;
     GiraffeColumn* column;
     PyObject* d;
+    PyObject* obj;
     PyObject* columns;
+    PyObject* item;
     columns = PyList_New(c->length);
     for (i=0; i<c->length; i++) {
         column = &c->array[i];
         d = PyDict_New();
-        PyDict_SetItemString(d, "name", PyUnicode_FromString(column->Name));
-        PyDict_SetItemString(d, "title", PyUnicode_FromString(column->Title));
-        PyDict_SetItemString(d, "alias", PyUnicode_FromString(column->Alias));
-        PyDict_SetItemString(d, "type", PyLong_FromLong((long)column->Type));
-        PyDict_SetItemString(d, "length", PyLong_FromLong((long)column->Length));
-        PyDict_SetItemString(d, "precision", PyLong_FromLong((long)column->Precision));
-        PyDict_SetItemString(d, "scale", PyLong_FromLong((long)column->Scale));
-        PyDict_SetItemString(d, "nullable", PyUnicode_FromString(column->Nullable));
-        PyDict_SetItemString(d, "default", PyUnicode_FromString(column->Default));
-        PyDict_SetItemString(d, "format", PyUnicode_FromString(column->Format));
+        item = PyUnicode_FromString(column->Name);
+        PyDict_SetItemString(d, "name", item);
+        Py_DECREF(item);
+        item = PyUnicode_FromString(column->Title);
+        PyDict_SetItemString(d, "title", item);
+        Py_DECREF(item);
+        item = PyUnicode_FromString(column->Alias);
+        PyDict_SetItemString(d, "alias", item);
+        Py_DECREF(item);
+        item = PyLong_FromLong((long)column->Type);
+        PyDict_SetItemString(d, "type", item);
+        Py_DECREF(item);
+        item = PyLong_FromLong((long)column->Length);
+        PyDict_SetItemString(d, "length", item);
+        Py_DECREF(item);
+        item = PyLong_FromLong((long)column->Precision);
+        PyDict_SetItemString(d, "precision", item);
+        Py_DECREF(item);
+        item = PyLong_FromLong((long)column->Scale);
+        PyDict_SetItemString(d, "scale", item);
+        Py_DECREF(item);
+        item = PyUnicode_FromString(column->Nullable);
+        PyDict_SetItemString(d, "nullable", item);
+        Py_DECREF(item);
+        item = PyUnicode_FromString(column->Default);
+        PyDict_SetItemString(d, "default", item);
+        Py_DECREF(item);
+        item = PyUnicode_FromString(column->Format);
+        PyDict_SetItemString(d, "format", item);
+        Py_DECREF(item);
         PyList_SetItem(columns, i, d);
     }
-    return PyObject_CallFunction(ColumnsType, "O", columns);
+    obj =  PyObject_CallFunction(ColumnsType, "O", columns);
+    Py_DECREF(columns);
+    return obj;
 }
 
 PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, int minute,
@@ -126,6 +153,18 @@ PyObject* giraffez_decimal_from_pystring(PyObject* s) {
     PyObject* obj;
     obj = PyObject_CallFunction(DecimalType, "O", s);
     Py_DECREF(s);
+    return obj;
+}
+
+PyObject* giraffez_result_from_rows(PyObject* columns, PyObject* rows) {
+    PyObject* d;
+    PyObject* obj;
+    d = PyDict_New();
+    PyDict_SetItemString(d, "columns", columns);
+    PyDict_SetItemString(d, "rows", rows);
+    obj = PyObject_CallFunction(ResultType, "O", d);
+    Py_DECREF(rows);
+    Py_DECREF(d);
     return obj;
 }
 

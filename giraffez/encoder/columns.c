@@ -15,6 +15,8 @@
  */
 
 #include "columns.h"
+
+#include <math.h>
 #include <stddef.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
@@ -23,8 +25,8 @@
 #endif
 #include <stdlib.h>
 
-#include "types.h"
-#include "util.h"
+#include "encoder/types.h"
+#include "encoder/util.h"
 
 
 void columns_init(GiraffeColumns *c, size_t initial_size) {
@@ -53,6 +55,7 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
 
 void columns_free(GiraffeColumns *c) {
     free(c->array);
+    free(c->buffer);
     c->array = NULL;
     c->length = c->size = 0;
 }

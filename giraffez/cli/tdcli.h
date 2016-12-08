@@ -32,10 +32,17 @@ extern "C" {
 #define PCL_FAIL     -2
 #define PCL_ERR      -3
 
-
+// This header file does not make use of the Python C API, however, the
+// Python C API is designed in such a way that in order to prevent
+// redefinition of macros set by the C standard library it must be
+// included before any C standard library.
 #include <Python.h>
+
+// Teradata CLIv2
+#include <coperr.h>
 #include <dbcarea.h>
 #include <parcel.h>
+
 #include "encoder/columns.h"
 #include "encoder/unpack.h"
 

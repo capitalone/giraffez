@@ -16,16 +16,18 @@
 
 
 #include "tdcli.h"
-#include <string.h>
+
+#include <Python.h>
 #include <stdio.h>
+#include <string.h>
+
+// Teradata CLIv2
 #include <coperr.h>
 #include <dbcarea.h>
 #include <parcel.h>
+
 #include "_compat.h"
-/*#include "encoder/columns.h"*/
-/*#include "encoder/pytypes.h"*/
-/*#include "encoder/types.h"*/
-/*#include "encoder/unpack.h"*/
+
 
 TeradataError* tdcli_read_error(char* dataptr) {
     TeradataError* err;
