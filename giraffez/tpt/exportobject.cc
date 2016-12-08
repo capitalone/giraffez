@@ -123,7 +123,7 @@ static PyObject* Export_get_buffer_dict(Export* self, PyObject* args, PyObject* 
         Py_RETURN_NONE;
     }
     EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ENCODING_DICT);
+    encoder_set_encoding(e, ROW_ENCODING_DICT, ITEM_ENCODING_BUILTIN_TYPES);
     return e->UnpackRowsFunc(e, &data, length);
 }
 
@@ -158,7 +158,7 @@ static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* k
         return NULL;
     }
     EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ENCODING_STRING);
+    encoder_set_encoding(e, ROW_ENCODING_STRING, ITEM_ENCODING_STRING);
     encoder_set_delimiter(e, delimiter);
     encoder_set_null(e, null);
     return e->UnpackRowsFunc(e, &data, length);

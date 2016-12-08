@@ -29,6 +29,7 @@ static void Encoder_dealloc(Encoder* self) {
     }
     if (self->columns != NULL) {
         columns_free(self->columns);
+        self->columns = NULL;
     }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
@@ -57,7 +58,6 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
         return 0;
     }
     while ((column_obj = PyIter_Next(iterator))) {
-        PyObject* column_name = PyObject_GetAttrString(column_obj, "name");
         PyObject* column_type = PyObject_GetAttrString(column_obj, "type");
         PyObject* column_length = PyObject_GetAttrString(column_obj, "length");
         PyObject* column_precision = PyObject_GetAttrString(column_obj, "precision");
@@ -77,9 +77,9 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
         Py_DECREF(column_obj);
     }
     Py_DECREF(iterator);
-    Py_DECREF(columns_obj);
+    /*Py_DECREF(columns_obj);*/
     self->encoder = encoder_new(self->columns);
-    encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
+    encoder_set_encoding(self->encoder, ROW_ENCODING_LIST, ITEM_ENCODING_BUILTIN_TYPES);
     return 0;
 }
 
@@ -95,11 +95,30 @@ static PyObject* Encoder_count_rows(PyObject* self, PyObject* args) {
 }
 
 static PyObject* Encoder_set_encoding(Encoder* self, PyObject* args) {
-    int encoding;
-    if (!PyArg_ParseTuple(args, "i", &encoding)) {
+    int row_encoding;
+    int item_encoding;
+    if (!PyArg_ParseTuple(args, "ii", &row_encoding, &item_encoding)) {
         return NULL;
     }
-    encoder_set_encoding(self->encoder, encoding);
+    encoder_set_encoding(self->encoder, row_encoding, item_encoding);
+    Py_RETURN_NONE;
+}
+
+static PyObject* Encoder_set_delimiter(Encoder* self, PyObject* args) {
+    PyObject *obj;
+    if (!PyArg_ParseTuple(args, "O", &obj)) {
+        return NULL;
+    }
+    encoder_set_delimiter(self->encoder, obj);
+    Py_RETURN_NONE;
+}
+
+static PyObject* Encoder_set_null(Encoder* self, PyObject* args) {
+    PyObject *obj;
+    if (!PyArg_ParseTuple(args, "O", &obj)) {
+        return NULL;
+    }
+    encoder_set_null(self->encoder, obj);
     Py_RETURN_NONE;
 }
 
@@ -110,6 +129,7 @@ static PyObject* Encoder_unpack_row(Encoder* self, PyObject* args) {
         return NULL;
     }
     row = self->encoder->UnpackRowFunc(self->encoder, (unsigned char**)&buffer.buf, buffer.len);
+    PyObject *repr = PyObject_Repr(row);
     PyBuffer_Release(&buffer);
     return row;
 }
@@ -139,6 +159,8 @@ static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
 static PyMethodDef Encoder_methods[] = {
     {"count_rows", (PyCFunction)Encoder_count_rows, METH_STATIC|METH_VARARGS, ""},
     {"set_encoding", (PyCFunction)Encoder_set_encoding, METH_VARARGS, ""},
+    {"set_delimiter", (PyCFunction)Encoder_set_delimiter, METH_VARARGS, ""},
+    {"set_null", (PyCFunction)Encoder_set_null, METH_VARARGS, ""},
     {"unpack_row", (PyCFunction)Encoder_unpack_row, METH_VARARGS, ""},
     {"unpack_rows", (PyCFunction)Encoder_unpack_rows, METH_VARARGS, ""},
     {"unpack_stmt_info", (PyCFunction)Encoder_unpack_stmt_info, METH_STATIC|METH_VARARGS, ""},

@@ -57,6 +57,7 @@ void columns_free(GiraffeColumns *c) {
     free(c->array);
     free(c->buffer);
     c->array = NULL;
+    c->buffer = NULL;
     c->length = c->size = 0;
 }
 

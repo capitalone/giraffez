@@ -147,7 +147,7 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
                 self->columns = unpack_stmt_info_to_columns((unsigned char**)&self->conn->dbc->fet_data_ptr,
                     self->conn->dbc->fet_ret_data_len);
                 self->encoder = encoder_new(self->columns);
-                encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
+                encoder_set_encoding(self->encoder, ROW_ENCODING_LIST, ITEM_ENCODING_GIRAFFE_TYPES);
                 self->columns_obj = giraffez_columns_from_columns(self->columns);
                 return giraffez_columns_from_columns(self->columns);
             case PclFAILURE:
@@ -196,7 +196,7 @@ static PyObject* Cmd_fetch_all(Cmd* self) {
                 self->columns = unpack_stmt_info_to_columns((unsigned char**)&self->conn->dbc->fet_data_ptr,
                     self->conn->dbc->fet_ret_data_len);
                 self->encoder = encoder_new(self->columns);
-                encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
+                encoder_set_encoding(self->encoder, ROW_ENCODING_LIST, ITEM_ENCODING_GIRAFFE_TYPES);
                 result = giraffez_result_from_rows(self->columns_obj, rows);
                 PyList_Append(results, result);
                 Py_DECREF(result);
@@ -269,7 +269,7 @@ static PyObject* Cmd_fetch_one(Cmd* self) {
                 self->columns = unpack_stmt_info_to_columns((unsigned char**)&self->conn->dbc->fet_data_ptr,
                     self->conn->dbc->fet_ret_data_len);
                 self->encoder = encoder_new(self->columns);
-                encoder_set_encoding(self->encoder, ENCODING_GIRAFFE_TYPES);
+                encoder_set_encoding(self->encoder, ROW_ENCODING_LIST, ITEM_ENCODING_GIRAFFE_TYPES);
                 self->columns_obj = giraffez_columns_from_columns(self->columns);
                 break;
             case PclFAILURE:

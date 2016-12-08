@@ -36,14 +36,19 @@ extern "C" {
 #define DEFAULT_NULLVALUE_STR PyUnicode_FromString("NULL")
 
 
-typedef enum EncodingType {
-    ENCODING_STRING = 0,
-    ENCODING_DICT,
-    ENCODING_GIRAFFE_TYPES,
-} EncodingType;
+typedef enum RowEncodingType {
+    ROW_ENCODING_STRING = 0,
+    ROW_ENCODING_DICT,
+    ROW_ENCODING_LIST,
+} RowEncodingType;
+
+typedef enum ItemEncodingType {
+    ITEM_ENCODING_STRING = 0,
+    ITEM_ENCODING_BUILTIN_TYPES,
+    ITEM_ENCODING_GIRAFFE_TYPES,
+} ItemEncodingType;
 
 typedef struct EncoderSettings {
-    EncodingType Encoding;
     GiraffeColumns* Columns;
     PyObject* Delimiter;
     PyObject* NullValue;
@@ -56,7 +61,7 @@ typedef struct EncoderSettings {
 typedef PyObject* (*EncoderFunc)(const EncoderSettings*,unsigned char**,const uint16_t);
 
 EncoderSettings* encoder_new(GiraffeColumns* columns);
-void encoder_set_encoding(EncoderSettings* e, EncodingType t);
+void encoder_set_encoding(EncoderSettings* e, RowEncodingType row_t, ItemEncodingType item_t);
 void encoder_set_delimiter(EncoderSettings* e, PyObject* obj);
 void encoder_set_null(EncoderSettings* e, PyObject* obj);
 

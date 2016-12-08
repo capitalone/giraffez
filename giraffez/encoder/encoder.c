@@ -38,23 +38,31 @@ EncoderSettings* encoder_new(GiraffeColumns* columns) {
     return e;
 }
 
-void encoder_set_encoding(EncoderSettings* e, EncodingType t) {
-    switch (t) {
-        case ENCODING_STRING:
+void encoder_set_encoding(EncoderSettings* e, RowEncodingType row_t, ItemEncodingType item_t) {
+    switch (row_t) {
+        case ROW_ENCODING_STRING:
             e->UnpackRowFunc = unpack_row_str;
-            e->UnpackItemFunc = unpack_row_item_as_str;
             encoder_set_delimiter(e, DEFAULT_DELIMITER);
             encoder_set_null(e, DEFAULT_NULLVALUE_STR);
             break;
-        case ENCODING_DICT:
+        case ROW_ENCODING_DICT:
             e->UnpackRowFunc = unpack_row_dict;
-            e->UnpackItemFunc = unpack_row_item_with_builtin_types;
             encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
-        case ENCODING_GIRAFFE_TYPES:
+        case ROW_ENCODING_LIST:
             e->UnpackRowFunc = unpack_row_list;
-            e->UnpackItemFunc = unpack_row_item_with_giraffe_types;
             encoder_set_null(e, DEFAULT_NULLVALUE);
+            break;
+    }
+    switch (item_t) {
+        case ITEM_ENCODING_STRING:
+            e->UnpackItemFunc = unpack_row_item_as_str;
+            break;
+        case ITEM_ENCODING_BUILTIN_TYPES:
+            e->UnpackItemFunc = unpack_row_item_with_builtin_types;
+            break;
+        case ITEM_ENCODING_GIRAFFE_TYPES:
+            e->UnpackItemFunc = unpack_row_item_with_giraffe_types;
             break;
     }
 }
