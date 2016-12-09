@@ -31,6 +31,7 @@ from .constants import *
 from .core import *
 from .encoders import *
 from .errors import *
+from .fmt import *
 from .io import *
 from .logging import *
 from .types import *
