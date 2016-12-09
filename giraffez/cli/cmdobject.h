@@ -21,16 +21,16 @@
 extern "C" {
 #endif
 
-#define NO_CLIV2_ERROR_T
-#define STRING_CLI
+//#define NO_CLIV2_ERROR_T
+//#define STRING_CLI
 
-#define CONNECTED     0
-#define NOT_CONNECTED 1
-#define OK            0
-#define STOP          1
-#define FAILED       -1
-#define PCL_FAIL     -2
-#define PCL_ERR      -3
+//#define CONNECTED     0
+//#define NOT_CONNECTED 1
+//#define OK            0
+//#define STOP          1
+//#define FAILED       -1
+//#define PCL_FAIL     -2
+//#define PCL_ERR      -3
 
 #include <Python.h>
 

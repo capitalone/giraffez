@@ -58,6 +58,7 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
         return 0;
     }
     while ((column_obj = PyIter_Next(iterator))) {
+        PyObject* column_name = PyObject_GetAttrString(column_obj, "name");
         PyObject* column_type = PyObject_GetAttrString(column_obj, "type");
         PyObject* column_length = PyObject_GetAttrString(column_obj, "length");
         PyObject* column_precision = PyObject_GetAttrString(column_obj, "precision");
@@ -77,7 +78,6 @@ static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
         Py_DECREF(column_obj);
     }
     Py_DECREF(iterator);
-    /*Py_DECREF(columns_obj);*/
     self->encoder = encoder_new(self->columns);
     encoder_set_encoding(self->encoder, ROW_ENCODING_LIST, ITEM_ENCODING_BUILTIN_TYPES);
     return 0;
@@ -122,6 +122,15 @@ static PyObject* Encoder_set_null(Encoder* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
+static PyObject* Encoder_set_decimal_return_type(Encoder* self, PyObject* args) {
+    int decimal_return_type;
+    if (!PyArg_ParseTuple(args, "i", &decimal_return_type)) {
+        return NULL;
+    }
+    encoder_set_decimal_type(self->encoder, decimal_return_type);
+    Py_RETURN_NONE;
+}
+
 static PyObject* Encoder_unpack_row(Encoder* self, PyObject* args) {
     Py_buffer buffer;
     PyObject* row;
@@ -129,7 +138,6 @@ static PyObject* Encoder_unpack_row(Encoder* self, PyObject* args) {
         return NULL;
     }
     row = self->encoder->UnpackRowFunc(self->encoder, (unsigned char**)&buffer.buf, buffer.len);
-    PyObject *repr = PyObject_Repr(row);
     PyBuffer_Release(&buffer);
     return row;
 }
@@ -159,6 +167,7 @@ static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
 static PyMethodDef Encoder_methods[] = {
     {"count_rows", (PyCFunction)Encoder_count_rows, METH_STATIC|METH_VARARGS, ""},
     {"set_encoding", (PyCFunction)Encoder_set_encoding, METH_VARARGS, ""},
+    {"set_decimal_return_type", (PyCFunction)Encoder_set_decimal_return_type, METH_VARARGS, ""},
     {"set_delimiter", (PyCFunction)Encoder_set_delimiter, METH_VARARGS, ""},
     {"set_null", (PyCFunction)Encoder_set_null, METH_VARARGS, ""},
     {"unpack_row", (PyCFunction)Encoder_unpack_row, METH_VARARGS, ""},

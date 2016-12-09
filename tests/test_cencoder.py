@@ -8,39 +8,39 @@ from giraffez.constants import *
 from giraffez.types import *
 
 class TestCEncoder(object):
-    #def test_decimal_128(self):
-        #"""
-        #Decode/encode Teradata decimal type values > 18 digits.
+    def test_decimal_128(self):
+        """
+        Decode/encode Teradata decimal type values > 18 digits.
 
-        #col1
-        #-------------------
-        #1234567890123457890
-        #"""
-        #columns = Columns([
-            #('col1', TD_DECIMAL, 16, 20, 0),
-        #])
-        #expected_bytes = b'\x00\x62\x85\xe9\x7d\xf4\x10\x22\x11\x00\x00\x00\x00\x00\x00\x00\x00'
-        #expected_text = ['1234567890123457890']
-        #encoder = _encoder.Encoder(columns)
-        #result_text = encoder.unpack_row(expected_bytes)
-        #assert result_text == expected_text
+        col1
+        -------------------
+        1234567890123457890
+        """
+        columns = Columns([
+            ('col1', TD_DECIMAL, 16, 20, 0),
+        ])
+        expected_bytes = b'\x00\x62\x85\xe9\x7d\xf4\x10\x22\x11\x00\x00\x00\x00\x00\x00\x00\x00'
+        expected_text = ['1234567890123457890']
+        encoder = _encoder.Encoder(columns)
+        result_text = encoder.unpack_row(expected_bytes)
+        assert result_text == expected_text
 
-    #def test_decimal_128_with_scale(self):
-        #"""
-        #Decode/encode Teradata decimal type values > 18 digits.
+    def test_decimal_128_with_scale(self):
+        """
+        Decode/encode Teradata decimal type values > 18 digits.
 
-        #col2
-        #----------------------
-        #1234567890123457890.82
-        #"""
-        #columns = Columns([
-            #('col1', TD_DECIMAL, 16, 20, 2),
-        #])
-        #expected_bytes = b'\x00\x9a\x1a\x38\x2f\x81\x9f\x4e\xb1\x06\x00\x00\x00\x00\x00\x00\x00'
-        #expected_text = ['1234567890123457890.82']
-        #encoder = _encoder.Encoder(columns)
-        #result_text = encoder.unpack_row(expected_bytes)
-        #assert result_text == expected_text
+        col2
+        ----------------------
+        1234567890123457890.82
+        """
+        columns = Columns([
+            ('col1', TD_DECIMAL, 16, 20, 2),
+        ])
+        expected_bytes = b'\x00\x9a\x1a\x38\x2f\x81\x9f\x4e\xb1\x06\x00\x00\x00\x00\x00\x00\x00'
+        expected_text = ['1234567890123457890.82']
+        encoder = _encoder.Encoder(columns)
+        result_text = encoder.unpack_row(expected_bytes)
+        assert result_text == expected_text
 
     def test_decimal_64_with_scale(self):
         """
@@ -56,7 +56,6 @@ class TestCEncoder(object):
         expected_bytes = b'\x00\x8b\x4b\x65\x91\x00\x00\x00\x00'
         expected_text = ['24393.34795']
         encoder = _encoder.Encoder(columns)
-        encoder.set_encoding(ENCODING_DICT)
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
@@ -97,14 +96,15 @@ class TestCEncoder(object):
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
-        encoder.set_encoding(ENCODING_STRING)
+        expected_text = '-0.20'
+        encoder.set_encoding(ROW_ENCODING_STRING, ITEM_ENCODING_STRING)
         encoder.set_delimiter("|")
         encoder.set_null("NULL")
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
         expected_text = {'col1': '-0.20'}
-        encoder.set_encoding(ENCODING_DICT)
+        encoder.set_encoding(ROW_ENCODING_DICT, ITEM_ENCODING_BUILTIN_TYPES)
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
@@ -141,7 +141,6 @@ class TestCEncoder(object):
         encoder = _encoder.Encoder(columns)
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
-        print("ASERRRUUUTTT")
 
 
         # Decimal 2
@@ -151,11 +150,9 @@ class TestCEncoder(object):
         expected_bytes = b'\x00\xb3\x04'
         expected_text = ["12.03"]
         encoder2 = _encoder.Encoder(columns)
-        print("ASERRRUUUTTT 2")
         result_text = encoder2.unpack_row(expected_bytes)
         assert result_text == expected_text
 
-        print("ASERRRUUUTTT 2")
         # Decimal 4
         columns = Columns([
             ('col1', TD_DECIMAL, 4, 9, 2),
@@ -166,7 +163,6 @@ class TestCEncoder(object):
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
-        print("ASERRRUUUTTT 3")
         # Decimal 8
         columns = Columns([
             ('col1', TD_DECIMAL, 8, 18, 2),
@@ -177,7 +173,6 @@ class TestCEncoder(object):
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
-        print("ASERRRUUUTTT 4")
         # Decimal 16
         columns = Columns([
             ('col1', TD_DECIMAL, 16, 38, 2),
@@ -307,38 +302,28 @@ class TestCEncoder(object):
             ('col1', TD_DATE, 4, 0, 0),
         ])
         expected_bytes = b'\x00\x8b\x90\x11\x00'
-        expected_text = [1151115]
-        encoder = _encoder.Encoder(columns)
-        result_text = encoder.unpack_row(expected_bytes)
-        assert result_text == expected_text
-
         expected_text = ['2015-11-15']
-        encoder.set_encoding(ENCODING_STRING)
-        encoder.set_delimiter("|")
+        encoder = _encoder.Encoder(columns)
+        encoder.set_encoding(ROW_ENCODING_LIST, ITEM_ENCODING_STRING)
         encoder.set_null("NULL")
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
         expected_text = {'col1': '2015-11-15'}
-        encoder.set_encoding(ENCODING_DICT)
+        encoder.set_encoding(ROW_ENCODING_DICT, ITEM_ENCODING_BUILTIN_TYPES)
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
         expected_bytes = b'\x00Na\xf8\xff'
-        expected_text = [-499378]
-        encoder = _encoder.Encoder(columns)
-        result_text = encoder.unpack_row(expected_bytes)
-        assert result_text == expected_text
-
         expected_text = ['1850-06-22']
-        encoder.set_encoding(ENCODING_STRING)
-        encoder.set_delimiter("|")
+        encoder = _encoder.Encoder(columns)
+        encoder.set_encoding(ROW_ENCODING_LIST, ITEM_ENCODING_STRING)
         encoder.set_null("NULL")
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
         expected_text = {'col1': '1850-06-22'}
-        encoder.set_encoding(ENCODING_DICT)
+        encoder.set_encoding(ROW_ENCODING_DICT, ITEM_ENCODING_BUILTIN_TYPES)
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
@@ -359,14 +344,20 @@ class TestCEncoder(object):
         assert result_text == expected_text
 
         expected_text = ["NULL", "value2", "value3"]
-        encoder.set_encoding(ENCODING_STRING)
+        encoder.set_encoding(ROW_ENCODING_LIST, ITEM_ENCODING_STRING)
+        encoder.set_null("NULL")
+        result_text = encoder.unpack_row(expected_bytes)
+        assert result_text == expected_text
+
+        expected_text = "NULL|value2|value3"
+        encoder.set_encoding(ROW_ENCODING_STRING, ITEM_ENCODING_STRING)
         encoder.set_delimiter("|")
         encoder.set_null("NULL")
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
         expected_text = {"col1": None, "col2": "value2", "col3": "value3"}
-        encoder.set_encoding(ENCODING_DICT)
+        encoder.set_encoding(ROW_ENCODING_DICT, ITEM_ENCODING_BUILTIN_TYPES)
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
@@ -383,13 +374,12 @@ class TestCEncoder(object):
         assert result_text == expected_text
 
         expected_text = ["1", "NULL", "NULL", "NULL"]
-        encoder.set_encoding(ENCODING_STRING)
-        encoder.set_delimiter("|")
+        encoder.set_encoding(ROW_ENCODING_LIST, ITEM_ENCODING_STRING)
         encoder.set_null("NULL")
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text
 
         expected_text = {"col1": 1, "col2": None, "col3": None, "col4": None}
-        encoder.set_encoding(ENCODING_DICT)
+        encoder.set_encoding(ROW_ENCODING_DICT, ITEM_ENCODING_BUILTIN_TYPES)
         result_text = encoder.unpack_row(expected_bytes)
         assert result_text == expected_text

@@ -516,7 +516,6 @@ class Result(object):
         :rtype: :class:`~giraffez.types.Row`
         """
         try:
-            #return self.result["rows"][0]
             return next(self.rows)
         except IndexError:
             return None
@@ -532,7 +531,6 @@ class Result(object):
         """
         for row in self.result["rows"]:
             yield row
-        #return self.result["rows"]
 
     def items(self):
         """

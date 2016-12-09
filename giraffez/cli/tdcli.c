@@ -72,6 +72,7 @@ uint16_t tdcli_connect(TeradataConnection* conn, const char* host, const char* u
     conn->dbc->maximum_parcel = 'H';
     conn->dbc->max_decimal_returned = 38;
     conn->dbc->charset_type = 'N';
+    conn->dbc->consider_APH_resps = 'Y';
     snprintf(conn->session_charset, 32, "%-30s", "UTF8");
     conn->dbc->inter_ptr = conn->session_charset;
     sprintf(conn->logonstr, "%s/%s,%s", host, username, password);

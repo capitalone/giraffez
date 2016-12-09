@@ -238,6 +238,22 @@ PyObject* decimal_to_pystring(unsigned char** data, const uint64_t column_length
     return s;
 }
 
+PyObject* decimal_to_pyfloat(unsigned char** data, const uint64_t column_length,
+        const uint16_t column_scale) {
+    PyObject* obj;
+    PyObject* s;
+    s = decimal_to_pystring(data, column_length, column_scale);
+    obj = PyFloat_FromString(s);
+    Py_DECREF(s);
+    return obj;
+}
+
+PyObject* decimal_to_giraffez_decimal(unsigned char** data, const uint64_t column_length,
+        const uint16_t column_scale) {
+    return giraffez_decimal_from_pystring(decimal_to_pystring(data,
+        column_length, column_scale));
+}
+
 PyObject* float_to_pyfloat(unsigned char** data) {
     double d;
     unpack_float(data, &d);

@@ -49,6 +49,10 @@ PyObject* date_to_pydate(unsigned char** data);
 PyObject* date_to_pystring(unsigned char** data);
 PyObject* decimal_to_pystring(unsigned char** data, const uint64_t column_length,
     const uint16_t column_scale);
+PyObject* decimal_to_pyfloat(unsigned char** data, const uint64_t column_length,
+        const uint16_t column_scale);
+PyObject* decimal_to_giraffez_decimal(unsigned char** data, const uint64_t column_length,
+        const uint16_t column_scale);
 PyObject* int_to_pylong(unsigned char** data);
 PyObject* int_to_pystring(unsigned char** data);
 PyObject* float_to_pyfloat(unsigned char** data);

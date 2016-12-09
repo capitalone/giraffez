@@ -25,6 +25,7 @@
 #endif
 #include <stdlib.h>
 
+#include "encoder/convert.h"
 #include "encoder/types.h"
 #include "encoder/util.h"
 
@@ -47,6 +48,9 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
         element.NullLength = VARCHAR_NULL_LENGTH;
     } else {
         element.NullLength = element.Length;
+    }
+    if (element.GDType == GD_DECIMAL) {
+        element.UnpackDecimalFunc = decimal_to_pystring;
     }
     c->array[c->length++] = element;
     c->header_length = (int)ceil(c->length/8.0);

@@ -11,7 +11,7 @@ from giraffez.types import *
 class TestLoad(object):
     def test_load_from_file(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd._execute")
+        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -37,7 +37,7 @@ class TestLoad(object):
 
     def test_load_from_file_quoted(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd._execute")
+        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -64,7 +64,7 @@ class TestLoad(object):
 
     def test_load_from_file_single_quoted(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd._execute")
+        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -92,7 +92,7 @@ class TestLoad(object):
 
     def test_load_from_file_nonstandard_quote(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd._execute")
+        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -120,7 +120,7 @@ class TestLoad(object):
         
     def test_load_from_file_error(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd._execute")
+        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -143,7 +143,7 @@ class TestLoad(object):
 
     def test_load_from_file_error_panic(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd._execute")
+        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -169,7 +169,7 @@ class TestLoad(object):
 
     def test_load_from_file_invalid_header(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd._execute")
+        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -222,7 +222,7 @@ class TestLoad(object):
 
     def test_load_insert_no_specify_fields(self, mocker):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd._execute")
+        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),

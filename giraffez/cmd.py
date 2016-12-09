@@ -172,11 +172,11 @@ class TeradataCmd(Connection):
         try:
             self.cmd.execute(command)
             columns = self.cmd.columns()
-            return Results(self.cmd.fetch_all())
+            return Results(self.cmd.fetchall())
         except _cli.error as error:
-            raise TeradataError(error)
+            raise suppress_context(TeradataError(error))
 
-    def execute_one(self, command, sanitize=True, silent=False):
+    def execute_one(self, command, sanitize=True, silent=False, streaming=False):
         """
         Execute a single command using CLIv2.
 
@@ -188,6 +188,19 @@ class TeradataCmd(Connection):
         :raises `giraffez.errors.TeradataError`: if the query is invalid
         :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
         """
+        if streaming:
+            self.cmd.execute(command)
+            columns = self.cmd.columns()
+            def _streaming():
+                while True:
+                    try:
+                        data = self.cmd.fetchone()
+                        if data is None:
+                            break
+                        yield data
+                    except StopIteration as error:
+                        break
+            return Result({'columns': columns, 'rows': _streaming()})
         return Results(self.execute(command, sanitize, silent)).one()
 
     def execute_many(self, command, sanitize=True, parallel=False, silent=False):

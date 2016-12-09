@@ -23,6 +23,8 @@
 #endif
 
 #include "_compat.h"
+#include "encoder/convert.h"
+#include "encoder/types.h"
 #include "encoder/unpack.h"
 
 
@@ -30,6 +32,7 @@ EncoderSettings* encoder_new(GiraffeColumns* columns) {
     EncoderSettings* e;
     e = (EncoderSettings*)malloc(sizeof(EncoderSettings));
     e->Columns = columns;
+    encoder_set_decimal_type(e, DECIMAL_AS_STRING);
     e->Delimiter = DEFAULT_DELIMITER;
     e->NullValue = DEFAULT_NULLVALUE_STR;
     e->UnpackRowsFunc = unpack_rows;
@@ -75,4 +78,26 @@ void encoder_set_delimiter(EncoderSettings* e, PyObject* obj) {
 void encoder_set_null(EncoderSettings* e, PyObject* obj) {
     Py_XDECREF(e->NullValue);
     e->NullValue = obj;
+}
+
+void encoder_set_decimal_type(EncoderSettings* e, DecimalReturnTypes decimal_t) {
+    GiraffeColumn *column;
+    size_t i;
+    for (i=0; i<e->Columns->length; i++) {
+        column = &e->Columns->array[i];
+        if (column->GDType != GD_DECIMAL) {
+            continue;
+        }
+        switch (decimal_t) {
+            case DECIMAL_AS_STRING:
+                column->UnpackDecimalFunc = decimal_to_pystring;
+                break;
+            case DECIMAL_AS_FLOAT:
+                column->UnpackDecimalFunc = decimal_to_pyfloat;
+                break;
+            case DECIMAL_AS_GIRAFFEZ_DECIMAL:
+                column->UnpackDecimalFunc = decimal_to_giraffez_decimal;
+                break;
+        }
+    }
 }

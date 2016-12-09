@@ -202,8 +202,7 @@ PyObject* unpack_row_item_with_giraffe_types(unsigned char** data, const Giraffe
         case GD_FLOAT:
             return float_to_pyfloat(data);
         case GD_DECIMAL:
-            return giraffez_decimal_from_pystring(decimal_to_pystring(data,
-                column->Length, column->Scale));
+            return column->UnpackDecimalFunc(data, column->Length, column->Scale);
         case GD_CHAR:
             return char_to_pystring(data, column->Length);
         case GD_VARCHAR:

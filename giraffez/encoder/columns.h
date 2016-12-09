@@ -21,6 +21,7 @@
 extern "C" {
 #endif
 
+#include <Python.h>
 #include <stddef.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
@@ -46,6 +47,8 @@ typedef struct {
     char* Nullable;
 
     uint16_t NullLength;
+
+    PyObject* (*UnpackDecimalFunc)(unsigned char**,const uint64_t, const uint16_t);
 } GiraffeColumn;
 
 typedef struct {
