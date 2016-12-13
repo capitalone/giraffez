@@ -21,6 +21,7 @@
 extern "C" {
 #endif
 
+#include <Python.h>
 #include <stddef.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>

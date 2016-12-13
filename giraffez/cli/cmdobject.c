@@ -33,10 +33,8 @@ static int fetch_request(dbcarea_t* dbc, char cnta[]) {
     int status = OK;
     Int32 result = EM_OK;
     Py_BEGIN_ALLOW_THREADS
-    dbc->i_sess_id = dbc->o_sess_id;
-    dbc->i_req_id = dbc->o_req_id;
-    dbc->func = DBFFET;
     DBCHCL(&result, cnta, dbc);
+    Py_END_ALLOW_THREADS
     if (result == REQEXHAUST) {
         status = STOP;
     } else if (result != EM_OK) {
@@ -55,7 +53,6 @@ static int fetch_request(dbcarea_t* dbc, char cnta[]) {
             break;
         }
     }
-    Py_END_ALLOW_THREADS
     return status;
 }
 
@@ -94,7 +91,7 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
     self->dbc->var_len_req = 'N';
     self->dbc->var_len_fetch = 'N';
     self->dbc->save_resp_buf = 'N';
-    self->dbc->two_resp_bufs = 'N';
+    self->dbc->two_resp_bufs = 'Y';
     self->dbc->ret_time = 'N';
     self->dbc->parcel_mode = 'Y';
     self->dbc->wait_for_resp = 'Y';
@@ -114,6 +111,9 @@ static int Cmd_init(Cmd* self, PyObject* args, PyObject* kwds) {
         PyErr_SetString(GiraffeError, "CLIv2: connect failed");
         return -1;
     }
+    self->dbc->i_sess_id = self->dbc->o_sess_id;
+    self->dbc->i_req_id = self->dbc->o_req_id;
+    self->dbc->func = DBFFET;
     self->status = fetch_request(self->dbc, cnta);
     self->dbc->i_sess_id = self->dbc->o_sess_id;
     self->dbc->i_req_id = self->dbc->o_req_id;
@@ -150,7 +150,6 @@ static PyObject* Cmd_close(Cmd* self) {
 }
 
 static void Cmd_dealloc(Cmd* self) {
-    Cmd_close(self);
     if (self->dbc != NULL) {
         free(self->dbc);
     }
@@ -183,6 +182,10 @@ static PyObject* Cmd_execute(Cmd* self, PyObject* args) {
         PyErr_SetString(GiraffeError, "CLIv2: initiate request failed");
         return NULL;
     }
+
+    self->dbc->i_sess_id = self->dbc->o_sess_id;
+    self->dbc->i_req_id = self->dbc->o_req_id;
+    self->dbc->func = DBFFET;
 
     while ((self->status = fetch_request(self->dbc, cnta)) == OK) {
         size_t length = self->dbc->fet_ret_data_len;
