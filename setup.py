@@ -330,7 +330,9 @@ class BuildExt(build_ext):
     cache = {}
 
     def run(self):
-        self.parallel = multiprocessing.cpu_count()
+        # Disabling parallel build for now. It causes issues on multiple
+        # platforms with concurrent file access causing odd build errors
+        #self.parallel = multiprocessing.cpu_count()
         build_ext.run(self)
 
     def get_inplace_path(self, ext_name):
