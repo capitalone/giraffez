@@ -23,26 +23,34 @@
 #endif
 
 #include "_compat.h"
+#include "encoder/columns.h"
 #include "encoder/convert.h"
 #include "encoder/types.h"
 #include "encoder/unpack.h"
 
 
-EncoderSettings* encoder_new(GiraffeColumns* columns) {
-    EncoderSettings* e;
-    e = (EncoderSettings*)malloc(sizeof(EncoderSettings));
+TeradataEncoder* encoder_new(GiraffeColumns *columns, EncoderSettings *settings) {
+    TeradataEncoder *e;
+    e = (TeradataEncoder*)malloc(sizeof(TeradataEncoder));
     e->Columns = columns;
-    encoder_set_decimal_type(e, DECIMAL_AS_STRING);
-    e->Delimiter = DEFAULT_DELIMITER;
-    e->NullValue = DEFAULT_NULLVALUE_STR;
+    e->Settings = *settings;
+    e->Delimiter = NULL;
+    e->NullValue = NULL;
+    e->UnpackStmtInfoFunc = unpack_stmt_info_to_columns;
     e->UnpackRowsFunc = unpack_rows;
-    e->UnpackRowFunc = unpack_row_str;
-    e->UnpackItemFunc = unpack_row_item_as_str;
+    e->UnpackRowFunc = NULL;
+    e->UnpackItemFunc = NULL;
+    e->UnpackDecimalFunc = NULL;
+    encoder_set_delimiter(e, DEFAULT_DELIMITER);
+    encoder_set_null(e, DEFAULT_NULLVALUE);
+    if (settings != NULL) {
+        encoder_set_encoding(e, settings);
+    }
     return e;
 }
 
-void encoder_set_encoding(EncoderSettings* e, RowEncodingType row_t, ItemEncodingType item_t) {
-    switch (row_t) {
+void encoder_set_encoding(TeradataEncoder *e, EncoderSettings *settings) {
+    switch (settings->row_encoding_type) {
         case ROW_ENCODING_STRING:
             e->UnpackRowFunc = unpack_row_str;
             encoder_set_delimiter(e, DEFAULT_DELIMITER);
@@ -57,7 +65,7 @@ void encoder_set_encoding(EncoderSettings* e, RowEncodingType row_t, ItemEncodin
             encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
     }
-    switch (item_t) {
+    switch (settings->item_encoding_type) {
         case ITEM_ENCODING_STRING:
             e->UnpackItemFunc = unpack_row_item_as_str;
             break;
@@ -68,36 +76,41 @@ void encoder_set_encoding(EncoderSettings* e, RowEncodingType row_t, ItemEncodin
             e->UnpackItemFunc = unpack_row_item_with_giraffe_types;
             break;
     }
+    switch (settings->decimal_return_type) {
+        case DECIMAL_AS_STRING:
+            e->UnpackDecimalFunc = decimal_to_pystring;
+            break;
+        case DECIMAL_AS_FLOAT:
+            e->UnpackDecimalFunc = decimal_to_pyfloat;
+            break;
+        case DECIMAL_AS_GIRAFFEZ_DECIMAL:
+            e->UnpackDecimalFunc = decimal_to_giraffez_decimal;
+            break;
+    }
 }
 
-void encoder_set_delimiter(EncoderSettings* e, PyObject* obj) {
+void encoder_set_delimiter(TeradataEncoder* e, PyObject *obj) {
     Py_XDECREF(e->Delimiter);
     e->Delimiter = obj;
 }
 
-void encoder_set_null(EncoderSettings* e, PyObject* obj) {
+void encoder_set_null(TeradataEncoder *e, PyObject *obj) {
     Py_XDECREF(e->NullValue);
     e->NullValue = obj;
 }
 
-void encoder_set_decimal_type(EncoderSettings* e, DecimalReturnTypes decimal_t) {
-    GiraffeColumn *column;
-    size_t i;
-    for (i=0; i<e->Columns->length; i++) {
-        column = &e->Columns->array[i];
-        if (column->GDType != GD_DECIMAL) {
-            continue;
-        }
-        switch (decimal_t) {
-            case DECIMAL_AS_STRING:
-                column->UnpackDecimalFunc = decimal_to_pystring;
-                break;
-            case DECIMAL_AS_FLOAT:
-                column->UnpackDecimalFunc = decimal_to_pyfloat;
-                break;
-            case DECIMAL_AS_GIRAFFEZ_DECIMAL:
-                column->UnpackDecimalFunc = decimal_to_giraffez_decimal;
-                break;
-        }
+void encoder_clear(TeradataEncoder *e) {
+    if (e->Columns != NULL) {
+        columns_free(e->Columns);
+        e->Columns = NULL;
+    }
+}
+
+void encoder_free(TeradataEncoder *e) {
+    Py_XDECREF(e->Delimiter);
+    Py_XDECREF(e->NullValue);
+    encoder_clear(e);
+    if (e != NULL) {
+        free(e);
     }
 }

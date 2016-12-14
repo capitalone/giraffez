@@ -68,6 +68,8 @@ typedef union {
     unsigned char b[sizeof(double)];
 } dsplit_t;
 
+char* safe_name(const char *name);
+
 void unpack_int8_t(unsigned char **data, int8_t *dst);
 void unpack_int16_t(unsigned char **data, int16_t *dst);
 void unpack_uint16_t(unsigned char **data, uint16_t *dst);

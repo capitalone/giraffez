@@ -542,7 +542,8 @@ class Result(object):
         :rtype: generator of :code:`dict`
         """
         for row in self.rows:
-            yield row.to_dict()
+            #yield row.to_dict()
+            yield row.items()
 
     def to_json(self):
         """

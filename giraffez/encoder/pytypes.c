@@ -18,6 +18,8 @@
 
 #include <Python.h>
 
+#include "_compat.h"
+
 #include "encoder/columns.h"
 
 
@@ -131,6 +133,78 @@ PyObject* giraffez_columns_from_columns(GiraffeColumns* c) {
     obj =  PyObject_CallFunction(ColumnsType, "O", columns);
     Py_DECREF(columns);
     return obj;
+}
+
+// TODO: Add PyUnicode_Check and other checks just in case
+GiraffeColumns* columns_to_giraffez_columns(PyObject* columns_obj) {
+    PyObject *item;
+    PyObject *column_obj;
+    PyObject *iterator;
+    GiraffeColumn* column;
+    GiraffeColumns *columns;
+    columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
+    columns_init(columns, 1);
+    iterator = PyObject_GetIter(columns_obj);
+    if (iterator == NULL) {
+        return NULL;
+    }
+    while ((column_obj = PyIter_Next(iterator))) {
+        column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
+        item = PyObject_GetAttrString(column_obj, "name");
+        if (item != NULL && item != Py_None) {
+            column->Name = strdup(PyUnicode_AsUTF8(item));
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "title");
+        if (item != NULL && item != Py_None) {
+            column->Title = strdup(PyUnicode_AsUTF8(item));
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "alias");
+        if (item != NULL && item != Py_None) {
+            column->Alias = strdup(PyUnicode_AsUTF8(item));
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "type");
+        if (item != NULL && item != Py_None) {
+            column->Type = (uint16_t)PyLong_AsLong(item);
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "length");
+        if (item != NULL && item != Py_None) {
+            column->Length = (uint16_t)PyLong_AsLong(item);
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "precision");
+        if (item != NULL && item != Py_None) {
+            column->Precision = (uint16_t)PyLong_AsLong(item);
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "scale");
+        if (item != NULL && item != Py_None) {
+            column->Scale = (uint16_t)PyLong_AsLong(item);
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "_nullable");
+        if (item != NULL && item != Py_None) {
+            column->Nullable = strdup(PyUnicode_AsUTF8(item));
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "_default");
+        if (item != NULL && item != Py_None) {
+            column->Default = strdup(PyUnicode_AsUTF8(item));
+            Py_DECREF(item);
+        }
+        item = PyObject_GetAttrString(column_obj, "_format");
+        if (item != NULL && item != Py_None) {
+            column->Format = strdup(PyUnicode_AsUTF8(item));
+            Py_DECREF(item);
+        }
+        columns_append(columns, *column);
+        Py_DECREF(column_obj);
+    }
+    Py_DECREF(iterator);
+    return columns;
 }
 
 PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, int minute,

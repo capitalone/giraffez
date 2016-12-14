@@ -48,29 +48,40 @@ typedef enum ItemEncodingType {
     ITEM_ENCODING_GIRAFFE_TYPES,
 } ItemEncodingType;
 
-typedef enum DecimalReturnTypes {
+typedef enum DecimalReturnType {
     DECIMAL_AS_STRING = 0,
     DECIMAL_AS_FLOAT,
     DECIMAL_AS_GIRAFFEZ_DECIMAL,
-} DecimalReturnTypes;
+} DecimalReturnType;
 
 typedef struct EncoderSettings {
-    GiraffeColumns* Columns;
-    PyObject* Delimiter;
-    PyObject* NullValue;
-
-    PyObject* (*UnpackRowsFunc)(const struct EncoderSettings*,unsigned char**,const uint32_t);
-    PyObject* (*UnpackRowFunc)(const struct EncoderSettings*,unsigned char**,const uint16_t);
-    PyObject* (*UnpackItemFunc)(unsigned char**,const GiraffeColumn*);
+    RowEncodingType row_encoding_type;
+    ItemEncodingType  item_encoding_type;
+    DecimalReturnType decimal_return_type;
 } EncoderSettings;
 
-typedef PyObject* (*EncoderFunc)(const EncoderSettings*,unsigned char**,const uint16_t);
+typedef struct TeradataEncoder {
+    EncoderSettings Settings;
 
-EncoderSettings* encoder_new(GiraffeColumns* columns);
-void encoder_set_encoding(EncoderSettings* e, RowEncodingType row_t, ItemEncodingType item_t);
-void encoder_set_delimiter(EncoderSettings* e, PyObject* obj);
-void encoder_set_null(EncoderSettings* e, PyObject* obj);
-void encoder_set_decimal_type(EncoderSettings* e, DecimalReturnTypes decimal_t);
+    GiraffeColumns *Columns;
+    PyObject *Delimiter;
+    PyObject *NullValue;
+
+    GiraffeColumns* (*UnpackStmtInfoFunc)(unsigned char**,const uint32_t);
+    PyObject* (*UnpackRowsFunc)(const struct TeradataEncoder*,unsigned char**,const uint32_t);
+    PyObject* (*UnpackRowFunc)(const struct TeradataEncoder*,unsigned char**,const uint16_t);
+    PyObject* (*UnpackItemFunc)(const struct TeradataEncoder*,unsigned char**,const GiraffeColumn*);
+    PyObject* (*UnpackDecimalFunc)(unsigned char**,const uint64_t,const uint16_t);
+} TeradataEncoder;
+
+typedef PyObject* (*EncoderFunc)(const TeradataEncoder*,unsigned char**,const uint16_t);
+
+TeradataEncoder* encoder_new(GiraffeColumns *columns, EncoderSettings *settings);
+void encoder_set_encoding(TeradataEncoder *e, EncoderSettings *settings);
+void encoder_set_delimiter(TeradataEncoder *e, PyObject *obj);
+void encoder_set_null(TeradataEncoder *e, PyObject *obj);
+void encoder_clear(TeradataEncoder *e);
+void encoder_free(TeradataEncoder *e);
 
 #ifdef __cplusplus
 }

@@ -31,6 +31,7 @@ int giraffez_decimal_import();
 int giraffez_datetime_import();
 
 PyObject* giraffez_columns_from_columns(GiraffeColumns* c);
+GiraffeColumns* columns_to_giraffez_columns(PyObject* obj);
 PyObject* giraffez_decimal_from_pystring(PyObject* obj);
 PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, int minute,
     int second, int microsecond);

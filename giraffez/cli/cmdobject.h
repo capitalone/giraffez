@@ -21,17 +21,6 @@
 extern "C" {
 #endif
 
-//#define NO_CLIV2_ERROR_T
-//#define STRING_CLI
-
-//#define CONNECTED     0
-//#define NOT_CONNECTED 1
-//#define OK            0
-//#define STOP          1
-//#define FAILED       -1
-//#define PCL_FAIL     -2
-//#define PCL_ERR      -3
-
 #include <Python.h>
 
 #include "cli/tdcli.h"
@@ -43,13 +32,12 @@ typedef struct {
     PyObject_HEAD
     int connected;
     int status;
-    GiraffeColumns *columns;
-    TeradataConnection* conn;
-    EncoderSettings* encoder;
-    PyObject* columns_obj;
+    TeradataConnection *conn;
+    TeradataEncoder *encoder;
+    PyObject *column_map;
+    PyObject *columns_obj;
 } Cmd;
 
-extern PyObject* GiraffeError;
 extern PyTypeObject CmdType;
 
 #ifdef __cplusplus

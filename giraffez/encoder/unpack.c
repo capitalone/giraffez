@@ -44,7 +44,7 @@ uint32_t count_rows(unsigned char* data, const uint32_t length) {
     return n;
 }
 
-PyObject* unpack_rows(const EncoderSettings* e, unsigned char** data, const uint32_t length) {
+PyObject* unpack_rows(const TeradataEncoder* e, unsigned char** data, const uint32_t length) {
     PyObject* row;
     PyObject* rows;
     unsigned char* start = *data;
@@ -52,14 +52,16 @@ PyObject* unpack_rows(const EncoderSettings* e, unsigned char** data, const uint
     while ((*data-start) < length) {
         uint16_t row_length = 0;
         unpack_uint16_t(data, &row_length);
-        row = e->UnpackRowFunc(e, data, row_length);
+        if ((row = e->UnpackRowFunc(e, data, row_length)) == NULL) {
+            return NULL;
+        }
         PyList_Append(rows, row);
         Py_DECREF(row);
     }
     return rows;
 }
 
-PyObject* unpack_row_dict(const EncoderSettings* e, unsigned char** data, const uint16_t length) {
+PyObject* unpack_row_dict(const TeradataEncoder* e, unsigned char** data, const uint16_t length) {
     PyObject* item;
     PyObject* row;
     GiraffeColumn* column;
@@ -76,68 +78,53 @@ PyObject* unpack_row_dict(const EncoderSettings* e, unsigned char** data, const 
             PyDict_SetItemString(row, column->Name, e->NullValue);
             continue;
         }
-        item = e->UnpackItemFunc(data, column);
+        item = e->UnpackItemFunc(e, data, column);
+        if (item == NULL) {
+            return NULL;
+        }
         PyDict_SetItemString(row, column->Name, item);
         Py_DECREF(item);
     }
     return row;
 }
 
-// TODO: op
-/*PyObject* unpack_row_list(EncoderSettings* e, unsigned char** data, const uint16_t length) {*/
-    /*PyObject* row;*/
-    /*GiraffeColumn* column;*/
-    /*size_t i;*/
-    /*int nullable;*/
-    /*row = PyList_New(e->Columns->length);*/
-    /*indicator_set(e->Columns, data);*/
-    /*for (i=0; i<e->Columns->length; i++) {*/
-        /*column = &e->Columns->array[i];*/
-        /*nullable = indicator_read(e->Columns->buffer, i);*/
-        /*if (nullable) {*/
-            /**data += column->NullLength;*/
-            /*Py_INCREF(e->NullValue);*/
-            /*PyList_SetItem(row, i, e->NullValue);*/
-            /*continue;*/
-        /*}*/
-        /*PyList_SetItem(row, i, e->UnpackItemFunc(data, column));*/
-    /*}*/
-    /*return row;*/
-/*}*/
-
-PyObject* unpack_row_list(const EncoderSettings* e, unsigned char** data, const uint16_t length) {
+PyObject* unpack_row_list(const TeradataEncoder* e, unsigned char** data, const uint16_t length) {
+    PyObject* item;
     PyObject* row;
     GiraffeColumn* column;
-    GiraffeColumns* columns;
     size_t i;
     int nullable;
-    columns = e->Columns;
-    row = PyList_New(columns->length);
-    indicator_set(columns, data);
-    for (i=0; i<columns->length; i++) {
-        column = &columns->array[i];
-        nullable = indicator_read(columns->buffer, i);
+    row = PyList_New(e->Columns->length);
+    indicator_set(e->Columns, data);
+    for (i=0; i<e->Columns->length; i++) {
+        column = &e->Columns->array[i];
+        nullable = indicator_read(e->Columns->buffer, i);
         if (nullable) {
             *data += column->NullLength;
             Py_INCREF(e->NullValue);
             PyList_SetItem(row, i, e->NullValue);
             continue;
         }
-        PyList_SetItem(row, i, e->UnpackItemFunc(data, column));
+        if ((item = e->UnpackItemFunc(e, data, column)) == NULL) {
+            return NULL;
+        }
+        PyList_SetItem(row, i, item);
     }
     return row;
 }
 
-PyObject* unpack_row_str(const EncoderSettings* e, unsigned char** data, const uint16_t length) {
+PyObject* unpack_row_str(const TeradataEncoder* e, unsigned char** data, const uint16_t length) {
     PyObject* row;
     PyObject* row_str;
-    row = unpack_row_list(e, data, length);
+    if ((row = unpack_row_list(e, data, length)) == NULL) {
+        return NULL;
+    }
     row_str = PyUnicode_Join(e->Delimiter, row);
     Py_DECREF(row);
     return row_str;
 }
 
-PyObject* unpack_row_item_as_str(unsigned char** data, const GiraffeColumn* column) {
+PyObject* unpack_row_item_as_str(const TeradataEncoder *e, unsigned char** data, const GiraffeColumn* column) {
     switch (column->GDType) {
         case GD_BYTEINT:
             return byte_to_pystring(data);
@@ -163,7 +150,7 @@ PyObject* unpack_row_item_as_str(unsigned char** data, const GiraffeColumn* colu
     return NULL;
 }
 
-PyObject* unpack_row_item_with_builtin_types(unsigned char** data, const GiraffeColumn* column) {
+PyObject* unpack_row_item_with_builtin_types(const TeradataEncoder *e, unsigned char** data, const GiraffeColumn* column) {
     switch (column->GDType) {
         case GD_BYTEINT:
             return byte_to_pylong(data);
@@ -176,7 +163,7 @@ PyObject* unpack_row_item_with_builtin_types(unsigned char** data, const Giraffe
         case GD_FLOAT:
             return float_to_pyfloat(data);
         case GD_DECIMAL:
-            return decimal_to_pystring(data, column->Length, column->Scale);
+            return e->UnpackDecimalFunc(data, column->Length, column->Scale);
         case GD_CHAR:
             return char_to_pystring(data, column->Length);
         case GD_VARCHAR:
@@ -189,7 +176,7 @@ PyObject* unpack_row_item_with_builtin_types(unsigned char** data, const Giraffe
     return NULL;
 }
 
-PyObject* unpack_row_item_with_giraffe_types(unsigned char** data, const GiraffeColumn* column) {
+PyObject* unpack_row_item_with_giraffe_types(const TeradataEncoder *e, unsigned char** data, const GiraffeColumn* column) {
     switch (column->GDType) {
         case GD_BYTEINT:
             return byte_to_pylong(data);
@@ -202,7 +189,7 @@ PyObject* unpack_row_item_with_giraffe_types(unsigned char** data, const Giraffe
         case GD_FLOAT:
             return float_to_pyfloat(data);
         case GD_DECIMAL:
-            return column->UnpackDecimalFunc(data, column->Length, column->Scale);
+            return e->UnpackDecimalFunc(data, column->Length, column->Scale);
         case GD_CHAR:
             return char_to_pystring(data, column->Length);
         case GD_VARCHAR:

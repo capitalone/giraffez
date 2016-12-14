@@ -97,7 +97,7 @@ class TeradataCmd(Connection):
 
     def _connect(self, host, username, password):
         try:
-            self.cmd = _cli.Cmd(host, username, password)
+            self.cmd = _cli.Cmd(host, username, password, decimal_return_type=self.decimal_return_type)
         except _cli.error as error:
             raise TeradataError(error)
 
@@ -171,8 +171,20 @@ class TeradataCmd(Connection):
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
         try:
             self.cmd.execute(command)
-            columns = self.cmd.columns()
-            return Results(self.cmd.fetchall())
+            results = []
+            rows = []
+            while True:
+                try:
+                    data = self.cmd.fetchone()
+                    if data is None:
+                        break
+                    rows.append(data)
+                except _cli.StatementEnded:
+                    results.append(Result({'columns': self.cmd.columns(), 'rows': rows}))
+                    rows = []
+                except _cli.RequestEnded:
+                    break
+            return Results(results)
         except _cli.error as error:
             raise suppress_context(TeradataError(error))
 

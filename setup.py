@@ -208,13 +208,19 @@ class CLIExtension(Extension):
     name = "giraffez._cli"
 
     sources = [
+        "giraffez/cli/columnsobject.c",
         "giraffez/cli/cmdobject.c",
+        "giraffez/cli/errors.c",
+        "giraffez/cli/rowobject.c",
         "giraffez/cli/tdcli.c",
         "giraffez/climodule.c",
     ]
 
     depends = [
+        "giraffez/cli/columnsobject.h",
         "giraffez/cli/cmdobject.h",
+        "giraffez/cli/errors.h",
+        "giraffez/cli/rowobject.h",
         "giraffez/cli/tdcli.h",
         "giraffez/climodule.c",
     ]

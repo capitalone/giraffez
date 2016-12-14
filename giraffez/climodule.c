@@ -16,10 +16,12 @@
 
 #include <Python.h>
 #include "_compat.h"
-#include "encoder/pytypes.h"
-
 
 #include "cli/cmdobject.h"
+#include "cli/columnsobject.h"
+#include "cli/rowobject.h"
+#include "cli/errors.h"
+#include "encoder/pytypes.h"
 
 
 #ifdef __cplusplus
@@ -45,6 +47,12 @@ MOD_INIT(_cli)
     if (PyType_Ready(&CmdType) < 0) {
         return MOD_ERROR_VAL;
     }
+    if (PyType_Ready(&ColumnsType) < 0) {
+        return MOD_ERROR_VAL;
+    }
+    if (PyType_Ready(&RowType) < 0) {
+        return MOD_ERROR_VAL;
+    }
 
 #if PY_MAJOR_VERSION >= 3
     m = PyModule_Create(&moduledef);
@@ -60,12 +68,14 @@ MOD_INIT(_cli)
         return MOD_ERROR_VAL;
     }
 
-    GiraffeError = PyErr_NewException((char*)"_cli.error", NULL, NULL);
-    Py_INCREF(GiraffeError);
-    PyModule_AddObject(m, "error", GiraffeError);
+    define_exceptions(m);
 
     Py_INCREF(&CmdType);
     PyModule_AddObject(m, "Cmd", (PyObject*)&CmdType);
+    Py_INCREF(&ColumnsType);
+    PyModule_AddObject(m, "Columns", (PyObject*)&ColumnsType);
+    Py_INCREF(&RowType);
+    PyModule_AddObject(m, "Row", (PyObject*)&RowType);
     return MOD_SUCCESS_VAL(m);
 }
 

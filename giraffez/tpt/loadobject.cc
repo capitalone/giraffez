@@ -15,14 +15,17 @@
  */
 
 #include "loadobject.h"
+
+// Teradata Parallel Transporter API
 #include <connection.h>
 #include <schema.h>
 #include <DMLGroup.h>
+
 #include "_compat.h"
 
 
 static PyObject* Load_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
-    char* host=NULL, *username=NULL, *password=NULL;
+    char *host=NULL, *username=NULL, *password=NULL;
     if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
         return NULL;
     }
@@ -93,6 +96,7 @@ static PyObject* Load_close(Load* self) {
     Py_RETURN_NONE;
 }
 
+// TODO: ensure this doesn't cause segfault
 static void Load_dealloc(Load* self) {
     Load_close(self);
     Py_TYPE(self)->tp_free((PyObject*)self);

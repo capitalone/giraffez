@@ -24,62 +24,62 @@
 
 static void Encoder_dealloc(Encoder* self) {
     if (self->encoder != NULL) {
-        free(self->encoder);
+        encoder_free(self->encoder);
         self->encoder = NULL;
-    }
-    if (self->columns != NULL) {
-        columns_free(self->columns);
-        self->columns = NULL;
     }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* Encoder_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
+static PyObject* Encoder_new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
     Encoder* self;
     self = (Encoder*)type->tp_alloc(type, 0);
     return (PyObject*)self;
 }
 
-static int Encoder_init(Encoder* self, PyObject* args, PyObject* kwds) {
-    PyObject* columns_obj;
-    PyObject* column_obj;
-    PyObject* iterator;
-    if (self->columns == NULL) {
-        self->columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
-        self->columns->array = NULL;
+static int Encoder_init(Encoder *self, PyObject *args, PyObject *kwargs) {
+    PyObject *columns_obj;
+    GiraffeColumns *columns;
+    static EncoderSettings settings = {
+        ROW_ENCODING_LIST,
+        ITEM_ENCODING_BUILTIN_TYPES,
+        DECIMAL_AS_STRING
+    };
+    char *row_encoding = "";
+    char *item_encoding = "";
+    char *decimal_return_type = "";
+    static char *kwlist[] = {"columns_obj", "row_encoding", "item_encoding", "decimal_return_type", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sss", kwlist, &columns_obj, &row_encoding,
+            &item_encoding, &decimal_return_type)) {
+        return -1;
     }
-    if (!PyArg_ParseTuple(args, "O", &columns_obj)) {
-        return 0;
+    if (strcmp(row_encoding, "str") == 0) {
+        settings.row_encoding_type = ROW_ENCODING_STRING;
+    } else if (strcmp(row_encoding, "dict") == 0) {
+        settings.row_encoding_type = ROW_ENCODING_DICT;
+    } else if (strcmp(row_encoding, "list") == 0) {
+        settings.row_encoding_type = ROW_ENCODING_LIST;
     }
-    columns_init(self->columns, 1);
-    iterator = PyObject_GetIter(columns_obj);
-    if (iterator == NULL) {
+    if (strcmp(item_encoding, "str") == 0) {
+        settings.item_encoding_type = ITEM_ENCODING_STRING;
+    } else if (strcmp(item_encoding, "builtin") == 0) {
+        settings.item_encoding_type = ITEM_ENCODING_BUILTIN_TYPES;
+    } else if (strcmp(item_encoding, "giraffez") == 0) {
+        settings.item_encoding_type = ITEM_ENCODING_GIRAFFE_TYPES;
+    }
+    if (strcmp(decimal_return_type, "str") == 0) {
+        settings.decimal_return_type = DECIMAL_AS_STRING;
+    } else if (strcmp(decimal_return_type, "float") == 0) {
+        settings.decimal_return_type = DECIMAL_AS_FLOAT;
+    } else if (strcmp(decimal_return_type, "decimal") == 0) {
+        settings.decimal_return_type = DECIMAL_AS_GIRAFFEZ_DECIMAL;
+    }
+    columns = columns_to_giraffez_columns(columns_obj);
+    if (columns == NULL) {
         PyErr_SetString(PyExc_ValueError, "No columns found.");
-        return 0;
+        return -1;
     }
-    while ((column_obj = PyIter_Next(iterator))) {
-        PyObject* column_name = PyObject_GetAttrString(column_obj, "name");
-        PyObject* column_type = PyObject_GetAttrString(column_obj, "type");
-        PyObject* column_length = PyObject_GetAttrString(column_obj, "length");
-        PyObject* column_precision = PyObject_GetAttrString(column_obj, "precision");
-        PyObject* column_scale = PyObject_GetAttrString(column_obj, "scale");
-        GiraffeColumn* column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
-        column->Name = strdup(PyUnicode_AsUTF8(column_name));
-        column->Type = (uint16_t)PyLong_AsLong(column_type);
-        column->Length = (uint16_t)PyLong_AsLong(column_length);
-        column->Precision = (uint16_t)PyLong_AsLong(column_precision);
-        column->Scale = (uint16_t)PyLong_AsLong(column_scale);
-        Py_DECREF(column_name);
-        Py_DECREF(column_type);
-        Py_DECREF(column_length);
-        Py_DECREF(column_precision);
-        Py_DECREF(column_scale);
-        columns_append(self->columns, *column);
-        Py_DECREF(column_obj);
-    }
-    Py_DECREF(iterator);
-    self->encoder = encoder_new(self->columns);
-    encoder_set_encoding(self->encoder, ROW_ENCODING_LIST, ITEM_ENCODING_BUILTIN_TYPES);
+    self->encoder = encoder_new(columns, &settings);
     return 0;
 }
 
@@ -97,10 +97,13 @@ static PyObject* Encoder_count_rows(PyObject* self, PyObject* args) {
 static PyObject* Encoder_set_encoding(Encoder* self, PyObject* args) {
     int row_encoding;
     int item_encoding;
-    if (!PyArg_ParseTuple(args, "ii", &row_encoding, &item_encoding)) {
+    int decimal_return_type;
+    EncoderSettings settings;
+    if (!PyArg_ParseTuple(args, "iii", &row_encoding, &item_encoding, &decimal_return_type)) {
         return NULL;
     }
-    encoder_set_encoding(self->encoder, row_encoding, item_encoding);
+    settings = (EncoderSettings){row_encoding, item_encoding, decimal_return_type};
+    encoder_set_encoding(self->encoder, &settings);
     Py_RETURN_NONE;
 }
 
@@ -119,15 +122,6 @@ static PyObject* Encoder_set_null(Encoder* self, PyObject* args) {
         return NULL;
     }
     encoder_set_null(self->encoder, obj);
-    Py_RETURN_NONE;
-}
-
-static PyObject* Encoder_set_decimal_return_type(Encoder* self, PyObject* args) {
-    int decimal_return_type;
-    if (!PyArg_ParseTuple(args, "i", &decimal_return_type)) {
-        return NULL;
-    }
-    encoder_set_decimal_type(self->encoder, decimal_return_type);
     Py_RETURN_NONE;
 }
 
@@ -167,7 +161,6 @@ static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
 static PyMethodDef Encoder_methods[] = {
     {"count_rows", (PyCFunction)Encoder_count_rows, METH_STATIC|METH_VARARGS, ""},
     {"set_encoding", (PyCFunction)Encoder_set_encoding, METH_VARARGS, ""},
-    {"set_decimal_return_type", (PyCFunction)Encoder_set_decimal_return_type, METH_VARARGS, ""},
     {"set_delimiter", (PyCFunction)Encoder_set_delimiter, METH_VARARGS, ""},
     {"set_null", (PyCFunction)Encoder_set_null, METH_VARARGS, ""},
     {"unpack_row", (PyCFunction)Encoder_unpack_row, METH_VARARGS, ""},

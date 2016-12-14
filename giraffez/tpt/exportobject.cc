@@ -18,8 +18,10 @@
 #include <connection.h>
 #include <schema.h>
 #include "_compat.h"
+#include "encoder/pytypes.h"
 #include "encoder/types.h"
 #include "encoder/unpack.h"
+
 
 static void Export_dealloc(Export* self) {
     if (self->connected) {
@@ -33,13 +35,13 @@ static void Export_dealloc(Export* self) {
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* Export_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
+// TODO: Should this be in __new__ or __init__?
+static PyObject* Export_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     char *host=NULL, *username=NULL, *password=NULL;
-
     if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
         return NULL;
     }
-    Export* self;
+    Export *self;
     self = (Export*)type->tp_alloc(type, 0);
     self->error_msg = NULL;
     self->dynamic_schema = NULL;
@@ -49,9 +51,16 @@ static PyObject* Export_new(PyTypeObject* type, PyObject* args, PyObject* kwds) 
     self->conn->AddAttribute(TD_TDP_ID, host);
     self->conn->AddAttribute(TD_USER_NAME, username);
     self->conn->AddAttribute(TD_USER_PASSWORD, password);
+
+    // The min and max for sessions has been hard set to reasonable
+    // values that *should* be one-size fits-all.
     self->conn->AddAttribute(TD_MIN_SESSIONS, 5);
     self->conn->AddAttribute(TD_MAX_SESSIONS, 32);
     self->conn->AddAttribute(TD_MAX_DECIMAL_DIGITS, 38);
+
+    // Charset is set to prefer UTF8.  There may need to be changes to
+    // the encoder if UTF8 is for whatever reason not supported, and
+    // may cause unexpected behavior.
     self->conn->AddAttribute(TD_CHARSET, strdup(string("UTF8").c_str()));
     self->conn->AddAttribute(TD_BUFFER_MODE, strdup(string("YES").c_str()));
     self->conn->AddAttribute(TD_BLOCK_SIZE, 64330);
@@ -59,17 +68,33 @@ static PyObject* Export_new(PyTypeObject* type, PyObject* args, PyObject* kwds) 
     self->conn->AddAttribute(TD_BUFFER_LENGTH_SIZE, 2);
     self->conn->AddAttribute(TD_BUFFER_MAX_SIZE, 64260);
     self->conn->AddAttribute(TD_BUFFER_TRAILER_SIZE, 0);
+
+    // NoSpool sets the preferred spoolmode to attempt pulling the data
+    // directly without spooling into temporary space.  In the event
+    // that can't happen the job is still allowed but performs the
+    // spooling of the query results as needed.
     self->conn->AddAttribute(TD_SPOOLMODE, strdup(string("NoSpool").c_str()));
+
+    // Tenacity hours is set to the lowest allowed value.  In cases like
+    // unexpected client disconnects without being shutdown properly,
+    // the connection will, at a minimum, get discarded by the server
+    // in 1 hour.  This should hopefully help prevent scenarios where
+    // lots of dead connections are sitting around on the server
+    // because of a malfunctioning client.
     self->conn->AddAttribute(TD_TENACITY_HOURS, 1);
+
+    // Tenacity sleep is set to the lowest allowed value.  This ensures
+    // that the connection will retry every second should the export
+    // job get queued.
     self->conn->AddAttribute(TD_TENACITY_SLEEP, 1);
     return (PyObject*)self;
 }
 
-static int Export_init(Export* self, PyObject* args, PyObject* kwds) {
+static int Export_init(Export* self, PyObject* args, PyObject *kwargs) {
     return 0;
 }
 
-static PyObject* Export_add_attribute(Export* self, PyObject* args, PyObject* kwds) {
+static PyObject* Export_add_attribute(Export *self, PyObject *args, PyObject *kwargs) {
     int key = -1;
     PyObject* value = NULL;
     if (!PyArg_ParseTuple(args, "iO", &key, &value)) {
@@ -83,7 +108,7 @@ static PyObject* Export_add_attribute(Export* self, PyObject* args, PyObject* kw
     Py_RETURN_NONE;
 }
 
-static PyObject* Export_close(Export* self, PyObject* args, PyObject * kwds) {
+static PyObject* Export_close(Export* self, PyObject* args, PyObject * kwargs) {
     if (self->connected) {
         self->connection_status = self->conn->Terminate();
         free(self->conn);
@@ -92,7 +117,9 @@ static PyObject* Export_close(Export* self, PyObject* args, PyObject * kwds) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Export_columns(Export* self, PyObject* args, PyObject* kwds) {
+// TODO: simplify column interface, no need to return tuple here
+// anymore, just set columns internally
+static PyObject* Export_columns(Export* self, PyObject* args, PyObject* kwargs) {
     PyObject* column_list = PyList_New(0);
     unsigned int count = self->dynamic_schema->GetColumnCount();
     for (std::vector<Column*>::size_type i=0; i < count; i++) {
@@ -107,27 +134,36 @@ static PyObject* Export_columns(Export* self, PyObject* args, PyObject* kwds) {
     return column_list;
 }
 
-static PyObject* Export_error_message(Export* self, PyObject* args, PyObject * kwds) {
+// TODO: handle errors in methods and return NULL to Python to raise
+// exceptions like in Cmd
+static PyObject* Export_error_message(Export* self, PyObject* args, PyObject * kwargs) {
     if (self->error_msg == NULL) {
         Py_RETURN_NONE;
     }
     return PyUnicode_FromString(self->error_msg);
 }
 
-static PyObject* Export_get_buffer_dict(Export* self, PyObject* args, PyObject* kwds) {
+// TODO: Consolidate these get_buffer methods into one
+static PyObject* Export_get_buffer_dict(Export* self, PyObject* args, PyObject* kwargs) {
     unsigned char* data = NULL;
     int length;
     int export_status;
+    TeradataEncoder *e;
+    static EncoderSettings settings;
     export_status = self->conn->GetBuffer((char**)&data, (TD_Length*)&length);
     if (export_status == TD_END_Method) {
         Py_RETURN_NONE;
     }
-    EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ROW_ENCODING_DICT, ITEM_ENCODING_BUILTIN_TYPES);
+    settings = (EncoderSettings){
+        ROW_ENCODING_DICT,
+        ITEM_ENCODING_BUILTIN_TYPES,
+        DECIMAL_AS_STRING
+    };
+    e = encoder_new(self->columns, &settings);
     return e->UnpackRowsFunc(e, &data, length);
 }
 
-static PyObject* Export_get_buffer_raw(Export* self, PyObject* args, PyObject* kwds) {
+static PyObject* Export_get_buffer_raw(Export* self, PyObject* args, PyObject* kwargs) {
     unsigned char* data = NULL;
     int length;
     int export_status;
@@ -140,12 +176,14 @@ static PyObject* Export_get_buffer_raw(Export* self, PyObject* args, PyObject* k
     return v;
 }
 
-static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* kwds) {
+static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* kwargs) {
     unsigned char* data = NULL;
     int length;
     int export_status;
     PyObject* null;
     PyObject* delimiter;
+    TeradataEncoder *e;
+    static EncoderSettings settings;
     if (!PyArg_ParseTuple(args, "OO", &null, &delimiter)) {
         return NULL;
     }
@@ -157,14 +195,18 @@ static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* k
         PyErr_SetString(PyExc_TypeError, "Delimiter must be string");
         return NULL;
     }
-    EncoderSettings* e = encoder_new(self->columns);
-    encoder_set_encoding(e, ROW_ENCODING_STRING, ITEM_ENCODING_STRING);
+    settings = (EncoderSettings){
+        ROW_ENCODING_STRING,
+        ITEM_ENCODING_STRING,
+        DECIMAL_AS_STRING
+    };
+    e = encoder_new(self->columns, &settings);
     encoder_set_delimiter(e, delimiter);
     encoder_set_null(e, null);
     return e->UnpackRowsFunc(e, &data, length);
 }
 
-static PyObject* Export_get_schema(Export* self, PyObject* args, PyObject* kwds) {
+static PyObject* Export_get_schema(Export* self, PyObject* args, PyObject* kwargs) {
     int schema_status = self->conn->GetSchema(&self->dynamic_schema);
     if (!(self->connection_status < TD_Error) || schema_status != 0) {
         self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
@@ -173,7 +215,7 @@ static PyObject* Export_get_schema(Export* self, PyObject* args, PyObject* kwds)
 }
 
 
-static PyObject* Export_initiate(Export* self, PyObject* args, PyObject* kwds) {
+static PyObject* Export_initiate(Export* self, PyObject* args, PyObject* kwargs) {
     self->connection_status = self->conn->Initiate();
     if (self->connection_status >= TD_Error) {
         self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
@@ -183,43 +225,16 @@ static PyObject* Export_initiate(Export* self, PyObject* args, PyObject* kwds) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Export_set_columns(Export* self, PyObject* args, PyObject* kwds) {
-    if (self->columns == NULL) {
-        self->columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
-        self->columns->array = NULL;
-    }
+static PyObject* Export_set_columns(Export* self, PyObject* args, PyObject* kwargs) {
     PyObject* columns_obj;
     if (!PyArg_ParseTuple(args, "O", &columns_obj)) {
         return NULL;
     }
-    // TODO: create function for going from giraffez.Columns to GiraffeColumns
-    columns_init(self->columns, 1);
-    PyObject* iterator = PyObject_GetIter(columns_obj);
-    PyObject* column_obj;
-    if (iterator == NULL) {
+    self->columns = columns_to_giraffez_columns(columns_obj);
+    if (self->columns == NULL) {
         PyErr_SetString(PyExc_ValueError, "No columns found.");
         return NULL;
     }
-    while ((column_obj = PyIter_Next(iterator))) {
-        PyObject* column_name = PyObject_GetAttrString(column_obj, "name");
-        PyObject* column_type = PyObject_GetAttrString(column_obj, "type");
-        PyObject* column_length = PyObject_GetAttrString(column_obj, "length");
-        PyObject* column_precision = PyObject_GetAttrString(column_obj, "precision");
-        PyObject* column_scale = PyObject_GetAttrString(column_obj, "scale");
-        GiraffeColumn* column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
-        column->Name = strdup(PyUnicode_AsUTF8(column_name));
-        column->Type = (uint16_t)PyLong_AsLong(column_type);
-        column->Length = (uint64_t)PyLong_AsLong(column_length);
-        column->Precision = (uint16_t)PyLong_AsLong(column_precision);
-        column->Scale = (uint16_t)PyLong_AsLong(column_scale);
-        Py_DECREF(column_name);
-        Py_DECREF(column_type);
-        Py_DECREF(column_length);
-        Py_DECREF(column_precision);
-        Py_DECREF(column_scale);
-        columns_append(self->columns, *column);
-    }
-    Py_DECREF(iterator);
     Py_RETURN_NONE;
 }
 

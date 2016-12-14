@@ -14,37 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_EXPORT_H
-#define __GIRAFFE_EXPORT_H
+#include "errors.h"
 
 #include <Python.h>
-#include <connection.h>
-#include <schema.h>
-#include "encoder/columns.h"
-#include "encoder/encoder.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
-using namespace teradata::client::API;
-
-typedef struct {
-    PyObject_HEAD
-    bool connected;
-    Schema* dynamic_schema;
-    Connection* conn;
-    int connection_status;
-    char* error_msg;
-    TD_ErrorType error_type;
-    GiraffeColumns* columns;
-    TeradataEncoder *encoder;
-} Export;
-
-extern PyTypeObject ExportType;
-
-#ifdef __cplusplus
+void define_exceptions(PyObject *module) {
+    GiraffeError = PyErr_NewException("_cli.error", NULL, NULL);
+    PyModule_AddObject(module, "error", GiraffeError);
+    EndStatementError = PyErr_NewException("_cli.StatementEnded", NULL, NULL);
+    PyModule_AddObject(module, "StatementEnded", EndStatementError);
+    EndRequestError = PyErr_NewException("_cli.RequestEnded", NULL, NULL);
+    PyModule_AddObject(module, "RequestEnded", EndRequestError);
 }
-#endif
-
-#endif

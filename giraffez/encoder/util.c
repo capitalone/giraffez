@@ -23,10 +23,28 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "_compat.h"
 #include "encoder/types.h"
 
+
+char* safe_name(const char *name) {
+    char *s;
+    size_t i;
+    size_t length;
+    length = strlen(name);
+    s = (char*)malloc(length+1);
+    for (i=0; i<length;i++) {
+        if (name[i] == ' ') {
+            s[i] = '_';
+        } else {
+            s[i] = tolower(name[i]);
+        }
+    }
+    s[length] = '\0';
+    return s;
+}
 
 void unpack_int8_t(unsigned char **data, int8_t *dst) {
     *dst = *((*data)++);

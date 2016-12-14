@@ -14,34 +14,29 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_EXPORT_H
-#define __GIRAFFE_EXPORT_H
-
-#include <Python.h>
-#include <connection.h>
-#include <schema.h>
-#include "encoder/columns.h"
-#include "encoder/encoder.h"
+#ifndef __CLI_ROW_H
+#define __CLI_ROW_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-using namespace teradata::client::API;
+#include <Python.h>
+
 
 typedef struct {
     PyObject_HEAD
-    bool connected;
-    Schema* dynamic_schema;
-    Connection* conn;
-    int connection_status;
-    char* error_msg;
-    TD_ErrorType error_type;
-    GiraffeColumns* columns;
-    TeradataEncoder *encoder;
-} Export;
+    PyObject *column_map;
+    Py_ssize_t *column_count;
+    PyObject *values;
+} Row;
 
-extern PyTypeObject ExportType;
+PyObject* Row_new(PyTypeObject *type, PyObject *column_map, PyObject *values);
+
+extern PyTypeObject RowType;
+
+#define GiraffezRow_FromList(column_map, values) \
+        Row_new(&RowType, column_map, values)
 
 #ifdef __cplusplus
 }

@@ -51,7 +51,7 @@ TeradataConnection* tdcli_new() {
     return conn;
 }
 
-uint16_t tdcli_connect(TeradataConnection* conn, const char* host, const char* username, const char* password) {
+uint16_t tdcli_connect(TeradataConnection* conn, const char *host, const char *username, const char *password) {
     conn->dbc->change_opts = 'Y';
     conn->dbc->resp_mode = 'I';
     conn->dbc->use_presence_bits = 'N';
@@ -83,14 +83,14 @@ uint16_t tdcli_connect(TeradataConnection* conn, const char* host, const char* u
     return conn->result;
 }
 
-uint16_t tdcli_fetch(TeradataConnection* conn) {
+uint16_t tdcli_fetch(TeradataConnection *conn) {
     conn->dbc->i_sess_id = conn->dbc->o_sess_id;
     conn->dbc->i_req_id = conn->dbc->o_req_id;
     conn->dbc->func = DBFFET;
     return tdcli_fetch_record(conn);
 }
 
-uint16_t tdcli_fetch_record(TeradataConnection* conn) {
+uint16_t tdcli_fetch_record(TeradataConnection *conn) {
     uint16_t status;
     status = 0;
     Py_BEGIN_ALLOW_THREADS
@@ -109,7 +109,7 @@ uint16_t tdcli_fetch_record(TeradataConnection* conn) {
     return status;
 }
 
-uint16_t tdcli_execute(TeradataConnection* conn, const char* command) {
+uint16_t tdcli_execute(TeradataConnection *conn, const char *command) {
     conn->dbc->req_ptr = (char*)command;
     conn->dbc->req_len = (UInt32)strlen(command);
     conn->dbc->func = DBFIRQ;
@@ -117,7 +117,7 @@ uint16_t tdcli_execute(TeradataConnection* conn, const char* command) {
     return conn->result;
 }
 
-uint16_t tdcli_end_request(TeradataConnection* conn) {
+uint16_t tdcli_end_request(TeradataConnection *conn) {
     conn->dbc->i_sess_id = conn->dbc->o_sess_id;
     conn->dbc->i_req_id = conn->dbc->o_req_id;
     conn->dbc->func = DBFERQ;
@@ -125,7 +125,7 @@ uint16_t tdcli_end_request(TeradataConnection* conn) {
     return conn->result;
 }
 
-void tdcli_close(TeradataConnection* conn, uint16_t connected) {
+void tdcli_close(TeradataConnection *conn, uint16_t connected) {
     if (connected == CONNECTED) {
         conn->dbc->func = DBFDSC;
         DBCHCL(&conn->result, conn->cnta, conn->dbc);
@@ -133,7 +133,7 @@ void tdcli_close(TeradataConnection* conn, uint16_t connected) {
     DBCHCLN(&conn->result, conn->cnta);
 }
 
-void tdcli_free(TeradataConnection* conn) {
+void tdcli_free(TeradataConnection *conn) {
     if (conn != NULL) {
         if (conn->dbc != NULL) {
             free(conn->dbc);

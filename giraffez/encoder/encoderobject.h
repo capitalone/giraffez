@@ -29,8 +29,7 @@ extern "C" {
 
 typedef struct {
     PyObject_HEAD
-    GiraffeColumns* columns;
-    EncoderSettings* encoder;
+    TeradataEncoder *encoder;
 } Encoder;
 
 extern PyTypeObject EncoderType;

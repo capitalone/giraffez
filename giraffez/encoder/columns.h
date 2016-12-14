@@ -47,8 +47,7 @@ typedef struct {
     char* Nullable;
 
     uint16_t NullLength;
-
-    PyObject* (*UnpackDecimalFunc)(unsigned char**,const uint64_t, const uint16_t);
+    char* SafeName;
 } GiraffeColumn;
 
 typedef struct {
