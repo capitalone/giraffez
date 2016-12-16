@@ -233,7 +233,7 @@ class CLIExtension(Extension):
         elif platform.system() == 'Darwin':
             if is_64bit():
                 tdcli_inc = os.path.join(TERADATA_HOME, "include")
-                tdcli_lib = os.path.join(TERADATA_HOME, "lib64")
+                tdcli_lib = os.path.join(TERADATA_HOME, "lib")
             else:
                 tdcli_inc = os.path.join(TERADATA_HOME, "include")
                 tdcli_lib = os.path.join(TERADATA_HOME, "lib")
@@ -255,6 +255,8 @@ class CLIExtension(Extension):
         if platform.system() == 'Windows':
             self.libraries.append("wincli32")
         elif platform.system() == 'Linux':
+            self.libraries.append("cliv2")
+        elif platform.system() == 'Darwin':
             self.libraries.append("cliv2")
 
 
@@ -322,6 +324,9 @@ class TPTExtension(Extension):
         if platform.system() == 'Windows':
             self.libraries.append("telapi")
         elif platform.system() == 'Linux':
+            self.libraries.append("telapi")
+            self.libraries.append("pxicu")
+        elif platform.system() == 'Darwin':
             self.libraries.append("telapi")
             self.libraries.append("pxicu")
 

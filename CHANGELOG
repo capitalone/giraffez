@@ -1,5 +1,12 @@
 giraffez Changelog
-======================
+==================
+
+Version 1.1.7
+-------------
+Dec 16 2016
+
+- Fix setup.py library paths for Darwin
+
 
 Version 1.1.2
 -------------
@@ -7,12 +14,14 @@ Nov 14 2016
 
 - Fix bug where GIRAFFE_NOT_FOUND global variable is overwritten by imports
 
+
 Version 1.1.1
 -------------
 Nov 14 2016
 
 - Fix `giraffez fmt` command
 - Add `--header` option to `giraffez fmt`
+
 
 Version 1.1.0
 -------------
@@ -24,6 +33,7 @@ Nov 14 2016
 - Fix reader modes in Python 3 when using gzip on non-archive output
 - Rename some internal types for consistency
 
+
 Version 1.0.5
 -------------
 Oct 5 2016
@@ -31,6 +41,7 @@ Oct 5 2016
 - Fix Python3 incompatible raw_input
 - Add new methods to Row/Result to replace to_json
 - Fix Export overwriting the same column names when using dict output
+
 
 Version 1.0.4
 -------------
