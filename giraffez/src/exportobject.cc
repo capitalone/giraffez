@@ -15,37 +15,54 @@
  */
 
 #include "exportobject.h"
+
+// Teradata Parallel Transporter API
 #include <connection.h>
 #include <schema.h>
+
+// Python 2/3 C API and Windows compatibility
 #include "_compat.h"
-#include "encoder/pytypes.h"
-#include "encoder/types.h"
-#include "encoder/unpack.h"
+
+#include "errors.h"
+#include "pytypes.h"
+#include "types.h"
+#include "unpack.h"
 
 
-static void Export_dealloc(Export* self) {
+static EncoderSettings settings = {
+    ROW_ENCODING_DICT,
+    ITEM_ENCODING_BUILTIN_TYPES,
+    DECIMAL_AS_STRING
+};
+
+static void Export_dealloc(Export *self) {
     if (self->connected) {
-        self->connection_status = self->conn->Terminate();
+        self->status = self->conn->Terminate();
         delete self->conn;
     }
     self->connected = false;
-    if (self->columns != NULL) {
-        columns_free(self->columns);
+    if (self->encoder != NULL) {
+        encoder_free(self->encoder);
+        self->encoder = NULL;
     }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-// TODO: Should this be in __new__ or __init__?
 static PyObject* Export_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
-    char *host=NULL, *username=NULL, *password=NULL;
-    if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
-        return NULL;
-    }
     Export *self;
     self = (Export*)type->tp_alloc(type, 0);
-    self->error_msg = NULL;
-    self->dynamic_schema = NULL;
-    self->connection_status = 0;
+    self->connected = false;
+    self->status = 0;
+    self->encoder = NULL;
+    return (PyObject*)self;
+}
+
+static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
+    char *host=NULL, *username=NULL, *password=NULL;
+    if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
+        return -1;
+    }
+    self->encoder = encoder_new(NULL, &settings);
     self->conn = new Connection();
     self->conn->AddAttribute(TD_SYSTEM_OPERATOR, TD_EXPORT);
     self->conn->AddAttribute(TD_TDP_ID, host);
@@ -87,16 +104,12 @@ static PyObject* Export_new(PyTypeObject *type, PyObject *args, PyObject *kwargs
     // that the connection will retry every second should the export
     // job get queued.
     self->conn->AddAttribute(TD_TENACITY_SLEEP, 1);
-    return (PyObject*)self;
-}
-
-static int Export_init(Export* self, PyObject* args, PyObject *kwargs) {
     return 0;
 }
 
 static PyObject* Export_add_attribute(Export *self, PyObject *args, PyObject *kwargs) {
     int key = -1;
-    PyObject* value = NULL;
+    PyObject *value = NULL;
     if (!PyArg_ParseTuple(args, "iO", &key, &value)) {
         return NULL;
     }
@@ -108,155 +121,105 @@ static PyObject* Export_add_attribute(Export *self, PyObject *args, PyObject *kw
     Py_RETURN_NONE;
 }
 
-static PyObject* Export_close(Export* self, PyObject* args, PyObject * kwargs) {
+static PyObject* Export_close(Export *self) {
     if (self->connected) {
-        self->connection_status = self->conn->Terminate();
+        self->status = self->conn->Terminate();
         free(self->conn);
     }
     self->connected = false;
     Py_RETURN_NONE;
 }
 
-// TODO: simplify column interface, no need to return tuple here
-// anymore, just set columns internally
-static PyObject* Export_columns(Export* self, PyObject* args, PyObject* kwargs) {
-    PyObject* column_list = PyList_New(0);
-    unsigned int count = self->dynamic_schema->GetColumnCount();
+static PyObject* Export_columns(Export *self) {
+    if (self->encoder == NULL || self->encoder->Columns == NULL) {
+        Py_RETURN_NONE;
+    }
+    return columns_to_pylist(self->encoder->Columns);
+}
+
+static PyObject* Export_get_buffer(Export *self) {
+    unsigned char *data = NULL;
+    int length;
+    PyObject *result = NULL;
+    if ((self->status = self->conn->GetBuffer((char**)&data, (TD_Length*)&length)) == TD_END_Method) {
+        Py_RETURN_NONE;
+    }
+    result = self->encoder->UnpackRowsFunc(self->encoder, &data, length);
+    return result;
+}
+
+// TODO: ensure that multiple export jobs can run consecutively within
+// the same context
+static PyObject* Export_initiate(Export *self, PyObject *args, PyObject *kwargs) {
+    char *error_msg;
+    TD_ErrorType error_type;
+    Schema* dynamic_schema;
+    size_t count;
+    GiraffeColumn *column;
+    GiraffeColumns *columns;
+    char *encoding;
+    PyObject *null, *delimiter;
+    if (!PyArg_ParseTuple(args, "sOO", &encoding, &null, &delimiter)) {
+        return NULL;
+    }
+    if ((self->status = self->conn->Initiate()) >= TD_Error) {
+        self->conn->GetErrorInfo(&error_msg, &error_type);
+        PyErr_Format(GiraffeError, "%d: %s", self->status, error_msg);
+        return NULL;
+    }
+    self->connected = true;
+    if (self->conn->GetSchema(&dynamic_schema) != 0) {
+        self->conn->GetErrorInfo(&error_msg, &error_type);
+        PyErr_Format(GiraffeError, "%d: %s", self->status, error_msg);
+        return NULL;
+    }
+    count = dynamic_schema->GetColumnCount();
+    columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
+    columns_init(columns, 1);
     for (std::vector<Column*>::size_type i=0; i < count; i++) {
-        Column* c = self->dynamic_schema->GetColumn(i);
-        PyObject* column_tuple = Py_BuildValue("(siiiiib)",
-                c->GetName(), c->GetDataType(), c->GetSize(),
-                c->GetPrecision(), c->GetScale(), c->GetOffset(),
-                true);
-        PyList_Append(column_list, column_tuple);
-        Py_DECREF(column_tuple);
+        Column* c = dynamic_schema->GetColumn(i);
+        column = column_new();
+        column->Name = strdup(c->GetName());
+        column->Type = c->GetDataType();
+        column->Length = c->GetSize();
+        column->Precision = c->GetPrecision();
+        column->Scale = c->GetScale();
+        columns_append(columns, *column);
     }
-    return column_list;
-}
-
-// TODO: handle errors in methods and return NULL to Python to raise
-// exceptions like in Cmd
-static PyObject* Export_error_message(Export* self, PyObject* args, PyObject * kwargs) {
-    if (self->error_msg == NULL) {
-        Py_RETURN_NONE;
-    }
-    return PyUnicode_FromString(self->error_msg);
-}
-
-// TODO: Consolidate these get_buffer methods into one
-static PyObject* Export_get_buffer_dict(Export* self, PyObject* args, PyObject* kwargs) {
-    unsigned char* data = NULL;
-    int length;
-    int export_status;
-    TeradataEncoder *e;
-    static EncoderSettings settings;
-    export_status = self->conn->GetBuffer((char**)&data, (TD_Length*)&length);
-    if (export_status == TD_END_Method) {
-        Py_RETURN_NONE;
-    }
-    settings = (EncoderSettings){
-        ROW_ENCODING_DICT,
-        ITEM_ENCODING_BUILTIN_TYPES,
-        DECIMAL_AS_STRING
-    };
-    e = encoder_new(self->columns, &settings);
-    return e->UnpackRowsFunc(e, &data, length);
-}
-
-static PyObject* Export_get_buffer_raw(Export* self, PyObject* args, PyObject* kwargs) {
-    unsigned char* data = NULL;
-    int length;
-    int export_status;
-    export_status = self->conn->GetBuffer((char**)&data, (TD_Length*)&length);
-    if (export_status == TD_END_Method) {
-        Py_RETURN_NONE;
-    }
-    PyObject* v = PyTuple_New(1);
-    PyTuple_SetItem(v, 0, PyBytes_FromStringAndSize((char*)data, length));
-    return v;
-}
-
-static PyObject* Export_get_buffer_str(Export* self, PyObject* args, PyObject* kwargs) {
-    unsigned char* data = NULL;
-    int length;
-    int export_status;
-    PyObject* null;
-    PyObject* delimiter;
-    TeradataEncoder *e;
-    static EncoderSettings settings;
-    if (!PyArg_ParseTuple(args, "OO", &null, &delimiter)) {
-        return NULL;
-    }
-    export_status = self->conn->GetBuffer((char**)&data, (TD_Length*)&length);
-    if (export_status == TD_END_Method) {
-        Py_RETURN_NONE;
-    }
-    if (!PyUnicode_Check(delimiter)) {
-        PyErr_SetString(PyExc_TypeError, "Delimiter must be string");
-        return NULL;
-    }
-    settings = (EncoderSettings){
-        ROW_ENCODING_STRING,
-        ITEM_ENCODING_STRING,
-        DECIMAL_AS_STRING
-    };
-    e = encoder_new(self->columns, &settings);
-    encoder_set_delimiter(e, delimiter);
-    encoder_set_null(e, null);
-    return e->UnpackRowsFunc(e, &data, length);
-}
-
-static PyObject* Export_get_schema(Export* self, PyObject* args, PyObject* kwargs) {
-    int schema_status = self->conn->GetSchema(&self->dynamic_schema);
-    if (!(self->connection_status < TD_Error) || schema_status != 0) {
-        self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
+    encoder_clear(self->encoder);
+    self->encoder->Columns = columns;
+    if (strcmp(encoding, "archive") == 0) {
+        settings.row_encoding_type = ROW_ENCODING_RAW;
+    } else if (strcmp(encoding, "dict") == 0 || strcmp(encoding, "json") == 0) {
+        settings.row_encoding_type = ROW_ENCODING_DICT;
+        settings.item_encoding_type = ITEM_ENCODING_BUILTIN_TYPES;
+        settings.decimal_return_type = DECIMAL_AS_STRING;
+        encoder_set_encoding(self->encoder, &settings);
+    } else if (strcmp(encoding, "str") == 0) {
+        if (!_PyUnicode_Check(delimiter)) {
+            PyErr_SetString(PyExc_TypeError, "Delimiter must be string");
+            return NULL;
+        }
+        if (!(_PyUnicode_Check(null) || null == Py_None)) {
+            PyErr_SetString(PyExc_TypeError, "Null must be string or NoneType");
+            return NULL;
+        }
+        settings.row_encoding_type = ROW_ENCODING_STRING;
+        settings.item_encoding_type = ITEM_ENCODING_STRING;
+        settings.decimal_return_type = DECIMAL_AS_STRING;
+        encoder_set_encoding(self->encoder, &settings);
+        encoder_set_delimiter(self->encoder, delimiter);
+        encoder_set_null(self->encoder, null);
     }
     Py_RETURN_NONE;
-}
-
-
-static PyObject* Export_initiate(Export* self, PyObject* args, PyObject* kwargs) {
-    self->connection_status = self->conn->Initiate();
-    if (self->connection_status >= TD_Error) {
-        self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
-    } else {
-        self->connected = true;
-    }
-    Py_RETURN_NONE;
-}
-
-static PyObject* Export_set_columns(Export* self, PyObject* args, PyObject* kwargs) {
-    PyObject* columns_obj;
-    if (!PyArg_ParseTuple(args, "O", &columns_obj)) {
-        return NULL;
-    }
-    self->columns = columns_to_giraffez_columns(columns_obj);
-    if (self->columns == NULL) {
-        PyErr_SetString(PyExc_ValueError, "No columns found.");
-        return NULL;
-    }
-    Py_RETURN_NONE;
-}
-
-static PyObject* Export_status(Export* self) {
-    PyObject* status = NULL;
-    status = Py_BuildValue("i", self->connection_status);
-    Py_INCREF(status);
-    return status;
 }
 
 static PyMethodDef Export_methods[] = {
     {"add_attribute", (PyCFunction)Export_add_attribute, METH_VARARGS, ""},
     {"close", (PyCFunction)Export_close, METH_NOARGS, ""},
     {"columns", (PyCFunction)Export_columns, METH_NOARGS, ""},
-    {"error_message", (PyCFunction)Export_error_message, METH_NOARGS, ""},
-    {"get_buffer_dict", (PyCFunction)Export_get_buffer_dict, METH_NOARGS, ""},
-    {"get_buffer_raw", (PyCFunction)Export_get_buffer_raw, METH_NOARGS, ""},
-    {"get_buffer_str", (PyCFunction)Export_get_buffer_str, METH_VARARGS, ""},
-    {"get_schema", (PyCFunction)Export_get_schema, METH_NOARGS, ""},
-    {"initiate", (PyCFunction)Export_initiate, METH_NOARGS, ""},
-    {"set_columns", (PyCFunction)Export_set_columns, METH_VARARGS, ""},
-    {"status", (PyCFunction)Export_status, METH_NOARGS, ""},
+    {"get_buffer", (PyCFunction)Export_get_buffer, METH_NOARGS, ""},
+    {"initiate", (PyCFunction)Export_initiate, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };
 

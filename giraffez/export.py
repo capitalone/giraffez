@@ -97,7 +97,6 @@ class TeradataExport(Connection):
             dsn, protect)
 
         #: Attributes used with property getter/setters
-        self._columns = None
         self._query = None
         self._encoding = None
 
@@ -110,57 +109,13 @@ class TeradataExport(Connection):
         self.query = query
 
     def _connect(self, host, username, password):
-        self.export = _tpt.Export(host, username, password)
-        self._handle_error()
-
-    def _get_columns(self):
-        if not self.initiated:
-            self._initiate()
-        columns = Columns(self.export.columns())
-        _columns = defaultdict(int)
-        for column in columns:
-            if column.original_name in _columns:
-                column.title = "{}_{}".format(column.original_name, _columns[column.original_name])
-            _columns[column.original_name] += 1
-        for column in columns:
-            log.verbose("Debug[1]", repr(column))
-        self.export.set_columns(columns)
-        return columns
-
-    def _handle_error(self):
-        if self.export.status() >= TD_ERROR:
-            if self.export.status() == CLI_ERR_INVALID_USER:
-                if self.protect:
-                    Config.lock_connection(self.config, self.dsn)
-                raise InvalidCredentialsError(self.export.error_message())
-            raise TeradataError(self.export.error_message())
-
-    def _initiate(self):
-        title, version = get_version_info()
-        query_band = "UTILITYNAME={};VERSION={};".format(title, version)
-        self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
-        log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
-        self.export.initiate()
-        self._handle_error()
-        log.info("Export", "Teradata PT request accepted.")
-        self.export.get_schema()
-        self._handle_error()
-        self.initiated = True
-        if self.encoding == "text":
-            self.processor = identity
-        elif self.encoding == "json":
-            self.processor = dict_to_json
-        elif self.encoding == "dict":
-            self.processor = identity
-        elif self.encoding == "archive":
-            self.processor = identity
-
-        self.options("encoding", self.encoding, 1)
-        if self.encoding == "text":
-            self.options("delimiter", self.delimiter, 2)
-            self.options("null", self.null, 3)
-        log.info("Export", "Executing ...")
-        log.info(self.options)
+        try:
+            self.export = _tpt.Export(host, username, password)
+            title, version = get_version_info()
+            query_band = "UTILITYNAME={};VERSION={};".format(title, version)
+            self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
+        except _tpt.errors as error:
+            raise suppress_context(TeradataError(error))
 
     def close(self):
         log.info("Export", "Closing Teradata PT connection ...")
@@ -174,9 +129,7 @@ class TeradataExport(Connection):
 
         :rtype: :class:`~giraffez.types.Columns`
         """
-        if self._columns is None:
-            self._columns = self._get_columns()
-        return self._columns
+        return self.export.columns()
 
     @property
     def encoding(self):
@@ -208,6 +161,25 @@ class TeradataExport(Connection):
         if self.encoding == "archive":
             return self.columns.serialize()
         return self.delimiter.join(self.columns.names)
+
+    def initiate(self):
+        try:
+            log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
+            self.export.initiate(self.encoding, self.null, self.delimiter)
+            self.initiated = True
+            log.info("Export", "Teradata PT request accepted.")
+            if self.encoding == "json":
+                self.processor = dict_to_json
+            else:
+                self.processor = identity
+            self.options("encoding", self.encoding, 1)
+            if self.encoding == "str":
+                self.options("delimiter", self.delimiter, 2)
+                self.options("null", self.null, 3)
+            log.info("Export", "Executing ...")
+            log.info(self.options)
+        except _tpt.error as error:
+            raise suppress_context(TeradataError(error))
 
     @property
     def query(self):
@@ -248,8 +220,6 @@ class TeradataExport(Connection):
             self._query = statement
         self.initiated = False
         self.export.add_attribute(TD_SELECT_STMT, statement)
-        # When new query is set refresh columns
-        self._columns = None
 
     def results(self):
         """
@@ -273,21 +243,11 @@ class TeradataExport(Connection):
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
         if not self.initiated:
-            self._initiate()
-            self._columns = self._get_columns()
-        if self.encoding == "archive":
-            def export_get_buffer():
-                return self.export.get_buffer_raw()
-        elif self.encoding in {"dict", "json"}:
-            def export_get_buffer():
-                return self.export.get_buffer_dict()
-        else:
-            def export_get_buffer():
-                return self.export.get_buffer_str(self.null, self.delimiter)
-
-        while True:
-            data = export_get_buffer()
-            if not data:
-                break
-            for row in data:
-                yield self.processor(row)
+            try:
+                self.initiate()
+            except InvalidCredentialsError as error:
+                if self.protect:
+                    Config.lock_connection(self.config, self.dsn)
+                raise suppress_context(error)
+        for row in self.export.get_buffer():
+            yield self.processor(row)

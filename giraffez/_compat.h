@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __GCOMPAT_H
-#define __GCOMPAT_H
+#ifndef __GIRAFFEZ_COMPAT_H
+#define __GIRAFFEZ_COMPAT_H
 
 #ifndef PyVarObject_HEAD_INIT
     #define PyVarObject_HEAD_INIT(type, size) \
@@ -44,6 +44,7 @@
   #define PyNumber_FloorDivide PyNumber_Divide
   #define PyBytes_FromStringAndSize PyString_FromStringAndSize
   #define PyFloat_FromString(str) PyFloat_FromString(str, NULL)
+  #define _PyUnicode_Check(ob) PyString_Check(ob) || PyUnicode_Check(ob)
 
   #define MOD_ERROR_VAL
   #define MOD_SUCCESS_VAL(val)

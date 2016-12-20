@@ -180,26 +180,26 @@ class EncoderExtension(Extension):
     name = "giraffez._encoder"
 
     sources = [
-        "giraffez/encoder/columns.c",
-        "giraffez/encoder/convert.c",
-        "giraffez/encoder/encoder.c",
-        "giraffez/encoder/pytypes.c",
-        "giraffez/encoder/types.c",
-        "giraffez/encoder/unpack.c",
-        "giraffez/encoder/util.c",
-        "giraffez/encoder/encoderobject.c",
+        "giraffez/src/columns.c",
+        "giraffez/src/convert.c",
+        "giraffez/src/encoder.c",
+        "giraffez/src/pytypes.c",
+        "giraffez/src/types.c",
+        "giraffez/src/unpack.c",
+        "giraffez/src/util.c",
+        "giraffez/src/encoderobject.c",
         "giraffez/encodermodule.c",
     ]
 
     depends = [
-        "giraffez/encoder/columns.h",
-        "giraffez/encoder/convert.h",
-        "giraffez/encoder/encoder.h",
-        "giraffez/encoder/types.h",
-        "giraffez/encoder/types.h",
-        "giraffez/encoder/unpack.h",
-        "giraffez/encoder/util.h",
-        "giraffez/encoder/encoderobject.h",
+        "giraffez/src/columns.h",
+        "giraffez/src/convert.h",
+        "giraffez/src/encoder.h",
+        "giraffez/src/types.h",
+        "giraffez/src/types.h",
+        "giraffez/src/unpack.h",
+        "giraffez/src/util.h",
+        "giraffez/src/encoderobject.h",
         "giraffez/encodermodule.c",
     ]
 
@@ -208,20 +208,16 @@ class CLIExtension(Extension):
     name = "giraffez._cli"
 
     sources = [
-        "giraffez/cli/columnsobject.c",
-        "giraffez/cli/cmdobject.c",
-        "giraffez/cli/errors.c",
-        "giraffez/cli/rowobject.c",
-        "giraffez/cli/tdcli.c",
+        "giraffez/src/cmdobject.c",
+        "giraffez/src/errors.c",
+        "giraffez/src/tdcli.c",
         "giraffez/climodule.c",
     ]
 
     depends = [
-        "giraffez/cli/columnsobject.h",
-        "giraffez/cli/cmdobject.h",
-        "giraffez/cli/errors.h",
-        "giraffez/cli/rowobject.h",
-        "giraffez/cli/tdcli.h",
+        "giraffez/src/cmdobject.h",
+        "giraffez/src/errors.h",
+        "giraffez/src/tdcli.h",
         "giraffez/climodule.c",
     ]
 
@@ -251,7 +247,7 @@ class CLIExtension(Extension):
         elif platform.system() == 'Darwin':
             if is_64bit():
                 tdcli_inc = os.path.join(TERADATA_HOME, "include")
-                tdcli_lib = os.path.join(TERADATA_HOME, "lib64")
+                tdcli_lib = os.path.join(TERADATA_HOME, "lib")
             else:
                 tdcli_inc = os.path.join(TERADATA_HOME, "include")
                 tdcli_lib = os.path.join(TERADATA_HOME, "lib")
@@ -274,20 +270,24 @@ class CLIExtension(Extension):
             self.libraries.append("wincli32")
         elif platform.system() == 'Linux':
             self.libraries.append("cliv2")
+        elif platform.system() == 'Darwin':
+            self.libraries.append("cliv2")
 
 
 class TPTExtension(Extension):
     name = "giraffez._tpt"
 
     sources = [
-        "giraffez/tpt/exportobject.cc",
-        "giraffez/tpt/loadobject.cc",
+        "giraffez/src/errors.c",
+        "giraffez/src/exportobject.cc",
+        "giraffez/src/loadobject.cc",
         "giraffez/tptmodule.cc",
     ]
 
     depends = [
-        "giraffez/tpt/exportobject.h",
-        "giraffez/tpt/loadobject.h",
+        "giraffez/src/errors.h",
+        "giraffez/src/exportobject.h",
+        "giraffez/src/loadobject.h",
         "giraffez/tptmodule.cc",
     ]
 
@@ -340,6 +340,9 @@ class TPTExtension(Extension):
         if platform.system() == 'Windows':
             self.libraries.append("telapi")
         elif platform.system() == 'Linux':
+            self.libraries.append("telapi")
+            self.libraries.append("pxicu")
+        elif platform.system() == 'Darwin':
             self.libraries.append("telapi")
             self.libraries.append("pxicu")
 

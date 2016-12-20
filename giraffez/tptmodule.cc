@@ -15,17 +15,21 @@
  */
 
 #include <Python.h>
+
 #include "_compat.h"
 
-
-#include "tpt/exportobject.h"
-#include "tpt/loadobject.h"
+#include "src/errors.h"
+#include "src/exportobject.h"
+#include "src/loadobject.h"
+#include "src/pytypes.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif 
 
+
+static const char *module_name = "_tpt";
 
 static PyMethodDef module_methods[] = {
     {NULL}  /* Sentinel */
@@ -43,11 +47,17 @@ MOD_INIT(_tpt)
         return MOD_ERROR_VAL;
     }
 
-    MOD_DEF(m, "_tpt", "", module_methods);
+    MOD_DEF(m, module_name, "", module_methods);
+
+    giraffez_columns_import();
+    giraffez_datetime_import();
+    giraffez_decimal_import();
 
     if (m == NULL) {
         return MOD_ERROR_VAL;
     }
+
+    define_exceptions(module_name, m);
 
     Py_INCREF(&ExportType);
     PyModule_AddObject(m, "Export", (PyObject*)&ExportType);

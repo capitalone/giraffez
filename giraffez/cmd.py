@@ -87,7 +87,7 @@ class TeradataCmd(Connection):
     """
 
     def __init__(self, host=None, username=None, password=None, log_level=INFO, panic=False,
-            config=None, key_file=None, dsn=None, protect=False, mload_session=False):
+            config=None, key_file=None, dsn=None, protect=False, mload_session=False, decimal_return_type="str"):
         if TDCLI_NOT_FOUND:
             raise TeradataCLIv2NotFound(TeradataCLIv2NotFound.__doc__.rstrip())
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
@@ -117,7 +117,7 @@ class TeradataCmd(Connection):
         :raises `giraffez.errors.TeradataError`: if statistic cannot be collected for :code:`table_name`
         :raises `giraffez.errors.ObjectDoesNotExist`: if the given :code:`table_name` does not exist
         """
-        self.execute_one("collect statistics on {} {}".format(table_name, predicate), silent=silent)
+        self.execute("collect statistics on {} {}".format(table_name, predicate), silent=silent)
 
     def count_table(self, table_name, silent=False):
         """
@@ -128,7 +128,7 @@ class TeradataCmd(Connection):
         :return: The number of rows in :code:`table_name`
         :rtype: int
         """
-        return self.execute_one("select count(*) from {}".format(table_name), silent=silent).first()[0]
+        return self.execute("select count(*) from {}".format(table_name), silent=silent).first()[0]
 
     def drop_table(self, table_name, silent=False):
         """
@@ -141,20 +141,24 @@ class TeradataCmd(Connection):
         :rtype: None or :class:`~giraffez.types.Result`
         """
         try:
-            result = self.execute_one("drop table {}".format(table_name), silent=silent)
+            result = self.execute("drop table {}".format(table_name), silent=silent)
         except ObjectDoesNotExist as error:
             return None
         return result
 
-    def execute(self, command, sanitize=True, silent=False):
+    def execute(self, command, sanitize=True, multi_statement=False, prepare_only=False,
+            silent=False):
+        # TODO: Improve/fix this docstring
         """
         Execute commands using CLIv2.
 
         :param str command: The SQL command to be executed
         :param bool sanitize: Whether or not to call :func:`~giraffez.sql.prepare_statement` on the command
+        :param bool multi_statement: Execute in multi-statement mode
+        :param bool prepare_only: Only prepare the command (no results)
         :param bool silent: Silence console logging (within this function only)
         :return: the results of each statement in the command
-        :rtype: :class:`~giraffez.types.Results`
+        :rtype: :class:`~giraffez.types.Rows`
         :raises `giraffez.errors.TeradataError`: if the query is invalid
         :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
         """
@@ -170,69 +174,31 @@ class TeradataCmd(Connection):
             command = prepare_statement(command) # accounts for comments and newlines
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
         try:
-            self.cmd.execute(command)
+            if multi_statement:
+                statements = [command]
+            statements = parse_statement(command)
             results = []
-            rows = []
-            while True:
-                try:
-                    data = self.cmd.fetchone()
-                    if data is None:
-                        break
-                    rows.append(data)
-                except _cli.StatementEnded:
-                    results.append(Result({'columns': self.cmd.columns(), 'rows': rows}))
-                    rows = []
-                except _cli.RequestEnded:
-                    break
-            return Results(results)
-        except _cli.error as error:
-            raise suppress_context(TeradataError(error))
-
-    def execute_one(self, command, sanitize=True, silent=False, streaming=False):
-        """
-        Execute a single command using CLIv2.
-
-        :param str command: The SQL command to be executed
-        :param bool sanitize: Whether or not to call :func:`~giraffez.utils.clean_query` on the command
-        :param bool silent: Silence console logging (within this function only)
-        :return: the result set of the first statement in the command (all are executed)
-        :rtype: :class:`~giraffez.types.Result`
-        :raises `giraffez.errors.TeradataError`: if the query is invalid
-        :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
-        """
-        if streaming:
-            self.cmd.execute(command)
-            columns = self.cmd.columns()
-            def _streaming():
+            for statement in statements:
+                self.cmd.execute(statement, prepare_only=prepare_only)
+                columns = Columns(self.cmd.columns())
+                for column in columns:
+                    log.verbose("Debug[1]", repr(column))
                 while True:
                     try:
                         data = self.cmd.fetchone()
                         if data is None:
                             break
-                        yield data
-                    except StopIteration as error:
+                        if columns is None:
+                            columns = Columns(self.cmd.columns())
+                            for column in columns:
+                                log.verbose("Debug[1]", repr(column))
+                        yield Row(columns, data)
+                    except _cli.StatementEnded:
+                        columns = None
+                    except _cli.RequestEnded:
                         break
-            return Result({'columns': columns, 'rows': _streaming()})
-        return Results(self.execute(command, sanitize, silent)).one()
-
-    def execute_many(self, command, sanitize=True, parallel=False, silent=False):
-        """
-        Execute multiple commands using CLIv2, splitting on statements and executing them individually. With :code:`parallel` set, the behavior becomes that of :meth:`~giraffez.Cmd.execute`.
-
-        :param str command: The SQL command(s) to be executed
-        :param bool sanitize: Whether or not to call :func:`~giraffez.utils.clean_query` on the statements
-        :param bool parallel: If :code:`True` call :meth:`~giraffez.Cmd.execute` instead
-        :param bool silent: Silence console logging (within this function only)
-        :return: the results of all executed commands
-        :rtype: :class:`~giraffez.types.Results`
-        """
-        if parallel:
-            return self.execute(command, sanitize, silent)
-        statements = parse_statement(command)
-        results = []
-        for statement in statements:
-            results.append(self.execute_one(statement, sanitize, silent))
-        return Results(results)
+        except _cli.error as error:
+            raise suppress_context(TeradataError(error))
 
     def exists(self, object_name, silent=False):
         """
@@ -262,7 +228,7 @@ class TeradataCmd(Connection):
         :return: the columns of the table
         :rtype: :class:`~giraffez.types.Columns`
         """
-        return self.execute_one("select top 1 * from {}".format(table_name), silent=silent).columns
+        return self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True).columns
 
     def release_mload(self, table_name, silent=False):
         """
@@ -276,6 +242,6 @@ class TeradataCmd(Connection):
         :rtype: None or :class:`~giraffez.types.Result`
         """
         try:
-            return self.execute_one("release mload {}".format(table_name), silent=silent)
+            return self.execute("release mload {}".format(table_name), silent=silent)
         except CannotReleaseMultiLoad as error:
-            return self.execute_one("release mload {} in apply".format(table_name), silent=silent)
+            return self.execute("release mload {} in apply".format(table_name), silent=silent)

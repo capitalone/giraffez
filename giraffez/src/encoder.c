@@ -22,11 +22,13 @@
 #include <stdint.h>
 #endif
 
+// Python 2/3 C API and Windows compatibility
 #include "_compat.h"
-#include "encoder/columns.h"
-#include "encoder/convert.h"
-#include "encoder/types.h"
-#include "encoder/unpack.h"
+
+#include "columns.h"
+#include "convert.h"
+#include "types.h"
+#include "unpack.h"
 
 
 TeradataEncoder* encoder_new(GiraffeColumns *columns, EncoderSettings *settings) {
@@ -63,6 +65,9 @@ void encoder_set_encoding(TeradataEncoder *e, EncoderSettings *settings) {
         case ROW_ENCODING_LIST:
             e->UnpackRowFunc = unpack_row_list;
             encoder_set_null(e, DEFAULT_NULLVALUE);
+            break;
+        case ROW_ENCODING_RAW:
+            e->UnpackRowsFunc = unpack_rows_raw;
             break;
     }
     switch (settings->item_encoding_type) {

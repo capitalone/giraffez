@@ -26,7 +26,102 @@
 const uint16_t VARCHAR_NULL_LENGTH = 2;
 
 
+uint16_t tpt_type_to_teradata_type(uint16_t t) {
+    switch (t) {
+        case TD_INTEGER:
+            return INTEGER_NN;
+        case TD_SMALLINT:
+            return SMALLINT_NN;
+        case TD_FLOAT:
+            return FLOAT_NN;
+        case TD_DECIMAL:
+            return DECIMAL_NN;
+        case TD_CHAR:
+            return CHAR_NN;
+        case TD_BYTEINT:
+            return BYTEINT_NN;
+        case TD_VARCHAR:
+            return VARCHAR_NN;
+        case TD_LONGVARCHAR:
+            return LONG_VARCHAR_NN;
+        case TD_BYTE:
+            return BYTE_NN;
+        case TD_VARBYTE:
+            return VARBYTE_NN;
+        case TD_DATE:
+            return DATE_NN;
+        case TD_GRAPHIC:
+            return GRAPHIC_NN;
+        case TD_VARGRAPHIC:
+            return VARGRAPHIC_NN;
+        case TD_LONGVARGRAPHIC:
+            return LONG_VARGRAPHIC_NN;
+        case TD_DATE_ANSI:
+            return DATE_NNA;
+        case TD_TIME:
+            return TIME_NN;
+        case TD_TIME_WITHTIMEZONE:
+            return TIME_NNZ;
+        case TD_BIGINT:
+            return BIGINT_NN;
+        case TD_BLOB:
+            return BLOB_NN;
+        case TD_CLOB:
+            return CLOB_NN;
+        case TD_BLOB_AS_DEFERRED_BY_NAME:
+            return BLOB_AS_DEFERRED_NAME_NN;
+        case TD_CLOB_AS_DEFERRED_BY_NAME:
+            return CLOB_AS_DEFERRED_NN;
+        case TD_TIMESTAMP:
+            return TIMESTAMP_NN;
+        case TD_TIMESTAMP_WITHTIMEZONE:
+            return TIMESTAMP_NNZ;
+        case TD_INTERVAL_YEAR:
+            return INTERVAL_YEAR_NN;
+        case TD_INTERVAL_YEARTOMONTH:
+            return INTERVAL_YEAR_TO_MONTH_NN;
+        case TD_INTERVAL_MONTH:
+            return INTERVAL_MONTH_NN;
+        case TD_INTERVAL_DAY:
+            return INTERVAL_DAY_NN;
+        case TD_INTERVAL_DAYTOHOUR:
+            return INTERVAL_DAY_TO_HOUR_NN;
+        case TD_INTERVAL_DAYTOMINUTE:
+            return INTERVAL_DAY_TO_MINUTE_NN;
+        case TD_INTERVAL_DAYTOSECOND:
+            return INTERVAL_DAY_TO_SECOND_NN;
+        case TD_INTERVAL_HOUR:
+            return INTERVAL_HOUR_NN;
+        case TD_INTERVAL_HOURTOMINUTE:
+            return INTERVAL_HOUR_TO_MINUTE_NN;
+        case TD_INTERVAL_HOURTOSECOND:
+            return INTERVAL_HOUR_TO_SECOND_NN;
+        case TD_INTERVAL_MINUTE:
+            return INTERVAL_MINUTE_NN;
+        case TD_INTERVAL_MINUTETOSECOND:
+            return INTERVAL_MINUTE_TO_SECOND_NN;
+        case TD_INTERVAL_SECOND:
+            return INTERVAL_SECOND_NN;
+        case TD_PERIOD_DATE:
+            return PERIOD_DATE_NN;
+        case TD_PERIOD_TIME:
+            return PERIOD_TIME_NN;
+        case TD_PERIOD_TIME_TZ:
+            return PERIOD_TIME_NNZ;
+        case TD_PERIOD_TS:
+            return PERIOD_TIMESTAMP_NN;
+        case TD_PERIOD_TS_TZ:
+            return PERIOD_TIMESTAMP_NNZ;
+        case TD_NUMBER:
+            return INTEGER_NN;
+    }
+    return CHAR_NN;
+}
+
 uint16_t teradata_type_to_giraffez_type(uint16_t t) {
+    if (t < BLOB_NN) {
+        t = tpt_type_to_teradata_type(t);
+    }
     switch (t) {
         case BLOB_NN:
         case BLOB_N:

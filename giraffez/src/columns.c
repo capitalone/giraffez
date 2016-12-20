@@ -25,9 +25,24 @@
 #endif
 #include <stdlib.h>
 
-#include "encoder/types.h"
-#include "encoder/util.h"
+#include "types.h"
+#include "util.h"
 
+GiraffeColumn* column_new() {
+    GiraffeColumn *column;
+    column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
+    column->Name = NULL;
+    column->Title = NULL;
+    column->Alias = NULL;
+    column->Type = 0;
+    column->Length = 0;
+    column->Precision = 0;
+    column->Scale = 0;
+    column->Nullable = NULL;
+    column->Default = NULL;
+    column->Format = NULL;
+    return column;
+}
 
 void columns_init(GiraffeColumns *c, size_t initial_size) {
     c->array = (GiraffeColumn*)malloc(initial_size * sizeof(GiraffeColumn));

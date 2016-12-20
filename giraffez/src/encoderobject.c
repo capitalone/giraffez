@@ -16,13 +16,15 @@
 
 #include "encoderobject.h"
 
+// Python 2/3 C API and Windows compatibility
 #include "_compat.h"
-#include "encoder/encoder.h"
-#include "encoder/pytypes.h"
-#include "encoder/unpack.h"
+
+#include "encoder.h"
+#include "pytypes.h"
+#include "unpack.h"
 
 
-static void Encoder_dealloc(Encoder* self) {
+static void Encoder_dealloc(Encoder *self) {
     if (self->encoder != NULL) {
         encoder_free(self->encoder);
         self->encoder = NULL;
@@ -30,8 +32,8 @@ static void Encoder_dealloc(Encoder* self) {
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* Encoder_new(PyTypeObject* type, PyObject* args, PyObject* kwargs) {
-    Encoder* self;
+static PyObject* Encoder_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
+    Encoder *self;
     self = (Encoder*)type->tp_alloc(type, 0);
     return (PyObject*)self;
 }
@@ -48,7 +50,6 @@ static int Encoder_init(Encoder *self, PyObject *args, PyObject *kwargs) {
     char *item_encoding = "";
     char *decimal_return_type = "";
     static char *kwlist[] = {"columns_obj", "row_encoding", "item_encoding", "decimal_return_type", NULL};
-
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sss", kwlist, &columns_obj, &row_encoding,
             &item_encoding, &decimal_return_type)) {
         return -1;
@@ -83,7 +84,7 @@ static int Encoder_init(Encoder *self, PyObject *args, PyObject *kwargs) {
     return 0;
 }
 
-static PyObject* Encoder_count_rows(PyObject* self, PyObject* args) {
+static PyObject* Encoder_count_rows(PyObject *self, PyObject *args) {
     Py_buffer buffer;
     uint32_t n;
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
@@ -94,7 +95,7 @@ static PyObject* Encoder_count_rows(PyObject* self, PyObject* args) {
     return PyLong_FromLong(n);
 }
 
-static PyObject* Encoder_set_encoding(Encoder* self, PyObject* args) {
+static PyObject* Encoder_set_encoding(Encoder *self, PyObject *args) {
     int row_encoding;
     int item_encoding;
     int decimal_return_type;
@@ -107,7 +108,7 @@ static PyObject* Encoder_set_encoding(Encoder* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Encoder_set_delimiter(Encoder* self, PyObject* args) {
+static PyObject* Encoder_set_delimiter(Encoder *self, PyObject *args) {
     PyObject *obj;
     if (!PyArg_ParseTuple(args, "O", &obj)) {
         return NULL;
@@ -116,7 +117,7 @@ static PyObject* Encoder_set_delimiter(Encoder* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Encoder_set_null(Encoder* self, PyObject* args) {
+static PyObject* Encoder_set_null(Encoder *self, PyObject *args) {
     PyObject *obj;
     if (!PyArg_ParseTuple(args, "O", &obj)) {
         return NULL;
@@ -125,9 +126,9 @@ static PyObject* Encoder_set_null(Encoder* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Encoder_unpack_row(Encoder* self, PyObject* args) {
+static PyObject* Encoder_unpack_row(Encoder *self, PyObject *args) {
     Py_buffer buffer;
-    PyObject* row;
+    PyObject *row;
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
@@ -136,9 +137,9 @@ static PyObject* Encoder_unpack_row(Encoder* self, PyObject* args) {
     return row;
 }
 
-static PyObject* Encoder_unpack_rows(Encoder* self, PyObject* args) {
+static PyObject* Encoder_unpack_rows(Encoder *self, PyObject *args) {
     Py_buffer buffer;
-    PyObject* rows;
+    PyObject *rows;
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
@@ -147,9 +148,9 @@ static PyObject* Encoder_unpack_rows(Encoder* self, PyObject* args) {
     return rows;
 }
 
-static PyObject* Encoder_unpack_stmt_info(PyObject* self, PyObject* args) {
+static PyObject* Encoder_unpack_stmt_info(PyObject *self, PyObject *args) {
     Py_buffer buffer;
-    GiraffeColumns* columns;
+    GiraffeColumns *columns;
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }

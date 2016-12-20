@@ -417,7 +417,6 @@ class Date(datetime.datetime):
             month = (d % 10000) // 100
             day = d % 100
             return cls(year=year, month=month, day=day)
-            #return cls.strptime(str(d + 19000000), "%Y%m%d")
         except ValueError as error:
             log.debug(error)
             return None
@@ -542,8 +541,8 @@ class Result(object):
         :rtype: generator of :code:`dict`
         """
         for row in self.rows:
-            #yield row.to_dict()
-            yield row.items()
+            yield row.to_dict()
+            #yield row.items()
 
     def to_json(self):
         """

@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef __ENCODER_COLUMNS_H
-#define __ENCODER_COLUMNS_H
+#ifndef __GIRAFFEZ_COLUMNS_H
+#define __GIRAFFEZ_COLUMNS_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <Python.h>
 #include <stddef.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
@@ -105,6 +104,7 @@ typedef struct {
     StatementInfoColumn* array;
 } StatementInfo;
 
+GiraffeColumn* column_new();
 void columns_init(GiraffeColumns *c, size_t initial_size);
 void columns_append(GiraffeColumns *c, GiraffeColumn element);
 void columns_free(GiraffeColumns *c);

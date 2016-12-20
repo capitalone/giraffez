@@ -18,28 +18,77 @@
 
 #include <Python.h>
 
+// Python 2/3 C API and Windows compatibility
 #include "_compat.h"
 
-#include "encoder/columns.h"
+#include "columns.h"
 
 
-static PyObject* ColumnsType;
+// TODO: remove columns, result and row types
 
-static PyObject* DecimalType;
+static PyObject *ColumnsType;
+static PyObject *DecimalType;
+static PyObject *DateType;
+static PyObject *ResultType;
+static PyObject *RowType;
+static PyObject *TimeType;
+static PyObject *TimestampType;
 
-static PyObject* DateType;
+static PyObject* column_to_pydict(GiraffeColumn *column) {
+    PyObject *column_dict, *item;
+    column_dict = PyDict_New();
+    if ((item = PyUnicode_FromString(column->Name)) == NULL) {
+        return NULL;
+    }
+    PyDict_SetItemString(column_dict, "name", item);
+    Py_DECREF(item);
+    item = PyUnicode_FromString(column->Title);
+    PyDict_SetItemString(column_dict, "title", item);
+    Py_DECREF(item);
+    item = PyUnicode_FromString(column->Alias);
+    PyDict_SetItemString(column_dict, "alias", item);
+    Py_DECREF(item);
+    item = PyLong_FromLong((long)column->Type);
+    PyDict_SetItemString(column_dict, "type", item);
+    Py_DECREF(item);
+    item = PyLong_FromUnsignedLongLong(column->Length);
+    PyDict_SetItemString(column_dict, "length", item);
+    Py_DECREF(item);
+    item = PyLong_FromLong((long)column->Precision);
+    PyDict_SetItemString(column_dict, "precision", item);
+    Py_DECREF(item);
+    item = PyLong_FromLong((long)column->Scale);
+    PyDict_SetItemString(column_dict, "scale", item);
+    Py_DECREF(item);
+    item = PyUnicode_FromString(column->Nullable);
+    PyDict_SetItemString(column_dict, "nullable", item);
+    Py_DECREF(item);
+    item = PyUnicode_FromString(column->Default);
+    PyDict_SetItemString(column_dict, "default", item);
+    Py_DECREF(item);
+    item = PyUnicode_FromString(column->Format);
+    PyDict_SetItemString(column_dict, "format", item);
+    Py_DECREF(item);
+    return column_dict;
+}
 
-static PyObject* ResultType;
-
-static PyObject* RowType;
-
-static PyObject* TimeType;
-
-static PyObject* TimestampType;
-
+PyObject* columns_to_pylist(GiraffeColumns *columns) {
+    size_t i;
+    GiraffeColumn *column;
+    PyObject *column_dict, *columns_list;
+    columns_list = PyList_New(columns->length);
+    for (i=0; i<columns->length; i++) {
+        column = &columns->array[i];
+        if ((column_dict = column_to_pydict(column)) == NULL) {
+            return NULL;
+        }
+        PyList_SetItem(columns_list, i, column_dict);
+    }
+    return columns_list;
+}
 
 int giraffez_columns_import() {
-    PyObject* mod;
+    PyObject *mod;
     mod = PyImport_ImportModule("giraffez.types");
     if (!mod) {
         PyErr_SetString(PyExc_ImportError, "Unable to import module giraffez.types");
@@ -53,7 +102,7 @@ int giraffez_columns_import() {
 }
 
 int giraffez_datetime_import() {
-    PyObject* mod;
+    PyObject *mod;
     mod = PyImport_ImportModule("giraffez.types");
     if (!mod) {
         PyErr_SetString(PyExc_ImportError, "Unable to import module giraffez.types");
@@ -67,7 +116,7 @@ int giraffez_datetime_import() {
 }
 
 int giraffez_decimal_import() {
-    PyObject* decimalmod;
+    PyObject *decimalmod;
     decimalmod = PyImport_ImportModule("giraffez.types");
     if (!decimalmod) {
         PyErr_SetString(PyExc_ImportError, "Unable to import decimal");
@@ -87,13 +136,13 @@ int giraffez_decimal_import() {
 // only some of the members and not cause undefined behavior. Some things
 // like export only ever set name, type, length, precision and scale for 
 // example.
-PyObject* giraffez_columns_from_columns(GiraffeColumns* c) {
+PyObject* giraffez_columns_from_columns(GiraffeColumns *c) {
     size_t i;
-    GiraffeColumn* column;
-    PyObject* d;
-    PyObject* obj;
-    PyObject* columns;
-    PyObject* item;
+    GiraffeColumn *column;
+    PyObject *d;
+    PyObject *obj;
+    PyObject *columns;
+    PyObject *item;
     columns = PyList_New(c->length);
     for (i=0; i<c->length; i++) {
         column = &c->array[i];
@@ -136,11 +185,11 @@ PyObject* giraffez_columns_from_columns(GiraffeColumns* c) {
 }
 
 // TODO: Add PyUnicode_Check and other checks just in case
-GiraffeColumns* columns_to_giraffez_columns(PyObject* columns_obj) {
+GiraffeColumns* columns_to_giraffez_columns(PyObject *columns_obj) {
     PyObject *item;
     PyObject *column_obj;
     PyObject *iterator;
-    GiraffeColumn* column;
+    GiraffeColumn *column;
     GiraffeColumns *columns;
     columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
     columns_init(columns, 1);
@@ -223,8 +272,8 @@ PyObject* giraffez_ts_from_datetime(int year, int month, int day, int hour, int 
         microsecond);
 }
 
-PyObject* giraffez_decimal_from_pystring(PyObject* s) {
-    PyObject* obj;
+PyObject* giraffez_decimal_from_pystring(PyObject *s) {
+    PyObject *obj;
     obj = PyObject_CallFunction(DecimalType, "O", s);
     Py_DECREF(s);
     return obj;

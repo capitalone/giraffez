@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_LOAD_H
-#define __GIRAFFE_LOAD_H
+#ifndef __GIRAFFEZ_LOAD_OBJECT_H
+#define __GIRAFFEZ_LOAD_OBJECT_H
 
 #include <Python.h>
+
+// Teradata Parallel Transporter API
 #include <connection.h>
 #include <schema.h>
 #include <DMLGroup.h>
@@ -30,11 +32,10 @@ using namespace teradata::client::API;
 
 typedef struct {
     PyObject_HEAD
-    char* select_stmt;
-    Schema* table_schema;
-    DMLGroup* dml_group;
-    Connection* conn;
-    char* error_msg;
+    Schema *table_schema;
+    DMLGroup *dml_group;
+    Connection *conn;
+    char *error_msg;
     TD_ErrorType error_type;
     bool table_set;
     bool connected;

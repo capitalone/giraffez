@@ -16,6 +16,7 @@
 
 #include <Python.h>
 #include <signal.h>
+
 #include "_compat.h"
 
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __CLI_COLUMN_H
-#define __CLI_COLUMN_H
+#ifndef __GIRAFFEZ_ERRORS_H
+#define __GIRAFFEZ_ERRORS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,22 +23,13 @@ extern "C" {
 
 #include <Python.h>
 
-#include "encoder/columns.h"
+
+extern PyObject *GiraffeError;
+extern PyObject *EndStatementError;
+extern PyObject *EndRequestError;
 
 
-typedef struct {
-    PyObject_HEAD
-
-    GiraffeColumns *columns;
-} Columns;
-
-PyObject* Columns_new(PyTypeObject *type, PyObject *columns_list, PyObject *whatever);
-PyObject* Columns_FromC(PyTypeObject *type, GiraffeColumns *columns);
-
-extern PyTypeObject ColumnsType;
-
-#define GiraffezColumns_FromList(column_map, values) \
-        Columns_new(&ColumnsType, column_map, values)
+void define_exceptions(const char *name, PyObject *module);
 
 #ifdef __cplusplus
 }

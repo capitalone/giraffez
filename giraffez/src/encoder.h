@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __ENCODER_ENCODER_H
-#define __ENCODER_ENCODER_H
+#ifndef __GIRAFFEZ_ENCODER_H
+#define __GIRAFFEZ_ENCODER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,6 +40,7 @@ typedef enum RowEncodingType {
     ROW_ENCODING_STRING = 0,
     ROW_ENCODING_DICT,
     ROW_ENCODING_LIST,
+    ROW_ENCODING_RAW,
 } RowEncodingType;
 
 typedef enum ItemEncodingType {

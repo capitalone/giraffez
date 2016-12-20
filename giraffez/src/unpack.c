@@ -16,6 +16,7 @@
 
 #include "unpack.h"
 
+#include <Python.h>
 #if defined(WIN32) || defined(WIN64)
 #include <pstdint.h>
 #else
@@ -23,16 +24,18 @@
 #endif
 #include <stdlib.h>
 
+// Python 2/3 C API and Windows compatibility
 #include "_compat.h"
-#include "encoder/columns.h"
-#include "encoder/convert.h"
-#include "encoder/encoder.h"
-#include "encoder/pytypes.h"
-#include "encoder/types.h"
-#include "encoder/util.h"
+
+#include "columns.h"
+#include "convert.h"
+#include "encoder.h"
+#include "pytypes.h"
+#include "types.h"
+#include "util.h"
 
 
-uint32_t count_rows(unsigned char* data, const uint32_t length) {
+uint32_t count_rows(unsigned char *data, const uint32_t length) {
     unsigned char *start = data;
     uint32_t n = 0;
     while ((data-start) < length) {
@@ -44,10 +47,10 @@ uint32_t count_rows(unsigned char* data, const uint32_t length) {
     return n;
 }
 
-PyObject* unpack_rows(const TeradataEncoder* e, unsigned char** data, const uint32_t length) {
-    PyObject* row;
-    PyObject* rows;
-    unsigned char* start = *data;
+PyObject* unpack_rows(const TeradataEncoder *e, unsigned char **data, const uint32_t length) {
+    PyObject *row;
+    PyObject *rows;
+    unsigned char *start = *data;
     rows = PyList_New(0);
     while ((*data-start) < length) {
         uint16_t row_length = 0;
@@ -61,10 +64,17 @@ PyObject* unpack_rows(const TeradataEncoder* e, unsigned char** data, const uint
     return rows;
 }
 
-PyObject* unpack_row_dict(const TeradataEncoder* e, unsigned char** data, const uint16_t length) {
-    PyObject* item;
-    PyObject* row;
-    GiraffeColumn* column;
+PyObject* unpack_rows_raw(const TeradataEncoder *e, unsigned char **data, const uint32_t length) {
+    PyObject *result;
+    result = PyTuple_New(1);
+    PyTuple_SetItem(result, 0, PyBytes_FromStringAndSize((char*)*data, length));
+    return result;
+}
+
+PyObject* unpack_row_dict(const TeradataEncoder *e, unsigned char **data, const uint16_t length) {
+    PyObject *item;
+    PyObject *row;
+    GiraffeColumn *column;
     size_t i;
     int nullable;
     row = PyDict_New();
@@ -88,10 +98,10 @@ PyObject* unpack_row_dict(const TeradataEncoder* e, unsigned char** data, const 
     return row;
 }
 
-PyObject* unpack_row_list(const TeradataEncoder* e, unsigned char** data, const uint16_t length) {
-    PyObject* item;
-    PyObject* row;
-    GiraffeColumn* column;
+PyObject* unpack_row_list(const TeradataEncoder *e, unsigned char **data, const uint16_t length) {
+    PyObject *item;
+    PyObject *row;
+    GiraffeColumn *column;
     size_t i;
     int nullable;
     row = PyList_New(e->Columns->length);
@@ -113,9 +123,9 @@ PyObject* unpack_row_list(const TeradataEncoder* e, unsigned char** data, const 
     return row;
 }
 
-PyObject* unpack_row_str(const TeradataEncoder* e, unsigned char** data, const uint16_t length) {
-    PyObject* row;
-    PyObject* row_str;
+PyObject* unpack_row_str(const TeradataEncoder *e, unsigned char **data, const uint16_t length) {
+    PyObject *row;
+    PyObject *row_str;
     if ((row = unpack_row_list(e, data, length)) == NULL) {
         return NULL;
     }
@@ -124,7 +134,8 @@ PyObject* unpack_row_str(const TeradataEncoder* e, unsigned char** data, const u
     return row_str;
 }
 
-PyObject* unpack_row_item_as_str(const TeradataEncoder *e, unsigned char** data, const GiraffeColumn* column) {
+PyObject* unpack_row_item_as_str(const TeradataEncoder *e, unsigned char **data,
+        const GiraffeColumn *column) {
     switch (column->GDType) {
         case GD_BYTEINT:
             return byte_to_pystring(data);
@@ -150,7 +161,8 @@ PyObject* unpack_row_item_as_str(const TeradataEncoder *e, unsigned char** data,
     return NULL;
 }
 
-PyObject* unpack_row_item_with_builtin_types(const TeradataEncoder *e, unsigned char** data, const GiraffeColumn* column) {
+PyObject* unpack_row_item_with_builtin_types(const TeradataEncoder *e, unsigned char **data,
+        const GiraffeColumn *column) {
     switch (column->GDType) {
         case GD_BYTEINT:
             return byte_to_pylong(data);
@@ -176,7 +188,7 @@ PyObject* unpack_row_item_with_builtin_types(const TeradataEncoder *e, unsigned 
     return NULL;
 }
 
-PyObject* unpack_row_item_with_giraffe_types(const TeradataEncoder *e, unsigned char** data, const GiraffeColumn* column) {
+PyObject* unpack_row_item_with_giraffe_types(const TeradataEncoder *e, unsigned char **data, const GiraffeColumn *column) {
     switch (column->GDType) {
         case GD_BYTEINT:
             return byte_to_pylong(data);
@@ -206,7 +218,7 @@ PyObject* unpack_row_item_with_giraffe_types(const TeradataEncoder *e, unsigned 
     return NULL;
 }
 
-GiraffeColumns* unpack_stmt_info_to_columns(unsigned char** data, const uint32_t length) {
+GiraffeColumns* unpack_stmt_info_to_columns(unsigned char **data, const uint32_t length) {
     StatementInfoColumn *scolumn;
     StatementInfo *s;
     GiraffeColumn *column;
@@ -237,8 +249,8 @@ GiraffeColumns* unpack_stmt_info_to_columns(unsigned char** data, const uint32_t
 }
 
 void unpack_stmt_info(unsigned char** data, StatementInfo* s, const uint32_t length) {
-    unsigned char* start = *data;
-    StatementInfoColumn* column;
+    unsigned char *start = *data;
+    StatementInfoColumn *column;
     while ((*data - start) < length) {
         column = (StatementInfoColumn*)malloc(sizeof(StatementInfoColumn));
         unpack_uint16_t(data, &column->ExtensionLayout);
@@ -253,8 +265,9 @@ void unpack_stmt_info(unsigned char** data, StatementInfo* s, const uint32_t len
     }
 }
 
-void unpack_stmt_info_ext(unsigned char** data, StatementInfoColumn* column, const uint16_t length) {
-    unsigned char* start = *data;
+void unpack_stmt_info_ext(unsigned char **data, StatementInfoColumn *column,
+        const uint16_t length) {
+    unsigned char *start = *data;
     unpack_string(data, &column->Database);
     unpack_string(data, &column->Table);
     unpack_string(data, &column->Name);

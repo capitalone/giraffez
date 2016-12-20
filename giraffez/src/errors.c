@@ -17,13 +17,27 @@
 #include "errors.h"
 
 #include <Python.h>
+#include <string.h>
 
 
-void define_exceptions(PyObject *module) {
-    GiraffeError = PyErr_NewException("_cli.error", NULL, NULL);
+PyObject *GiraffeError;
+PyObject *EndStatementError;
+PyObject *EndRequestError;
+
+char* concat(const char *s1, const char *s2) {
+    const char *sep = ".";
+    char *result = (char*)malloc(sizeof(char)*(strlen(s1)+strlen(s2)+strlen(sep)+1));
+    strcpy(result, s1);
+    strcat(result, sep);
+    strcat(result, s2);
+    return result;
+}
+
+void define_exceptions(const char *name, PyObject *module) {
+    GiraffeError = PyErr_NewException(concat(name, "error"), NULL, NULL);
     PyModule_AddObject(module, "error", GiraffeError);
-    EndStatementError = PyErr_NewException("_cli.StatementEnded", NULL, NULL);
+    EndStatementError = PyErr_NewException(concat(name, "StatementEnded"), NULL, NULL);
     PyModule_AddObject(module, "StatementEnded", EndStatementError);
-    EndRequestError = PyErr_NewException("_cli.RequestEnded", NULL, NULL);
+    EndRequestError = PyErr_NewException(concat(name, "RequestEnded"), NULL, NULL);
     PyModule_AddObject(module, "RequestEnded", EndRequestError);
 }

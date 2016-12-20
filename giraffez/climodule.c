@@ -15,13 +15,12 @@
  */
 
 #include <Python.h>
+
 #include "_compat.h"
 
-#include "cli/cmdobject.h"
-#include "cli/columnsobject.h"
-#include "cli/rowobject.h"
-#include "cli/errors.h"
-#include "encoder/pytypes.h"
+#include "src/cmdobject.h"
+#include "src/errors.h"
+#include "src/pytypes.h"
 
 
 #ifdef __cplusplus
@@ -29,13 +28,15 @@ extern "C" {
 #endif 
 
 
+static const char *module_name = "_cli";
+
 static PyMethodDef module_methods[] = {
     {NULL}  /* Sentinel */
 };
 
 #if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef moduledef = {
-    PyModuleDef_HEAD_INIT, "_cli", "", -1, module_methods
+    PyModuleDef_HEAD_INIT, module_name, "", -1, module_methods
 };
 #endif
 
@@ -47,17 +48,11 @@ MOD_INIT(_cli)
     if (PyType_Ready(&CmdType) < 0) {
         return MOD_ERROR_VAL;
     }
-    if (PyType_Ready(&ColumnsType) < 0) {
-        return MOD_ERROR_VAL;
-    }
-    if (PyType_Ready(&RowType) < 0) {
-        return MOD_ERROR_VAL;
-    }
 
 #if PY_MAJOR_VERSION >= 3
     m = PyModule_Create(&moduledef);
 #else
-    m = Py_InitModule("_cli", module_methods);
+    m = Py_InitModule(module_name, module_methods);
 #endif
 
     giraffez_columns_import();
@@ -68,14 +63,10 @@ MOD_INIT(_cli)
         return MOD_ERROR_VAL;
     }
 
-    define_exceptions(m);
+    define_exceptions(module_name, m);
 
     Py_INCREF(&CmdType);
     PyModule_AddObject(m, "Cmd", (PyObject*)&CmdType);
-    Py_INCREF(&ColumnsType);
-    PyModule_AddObject(m, "Columns", (PyObject*)&ColumnsType);
-    Py_INCREF(&RowType);
-    PyModule_AddObject(m, "Row", (PyObject*)&RowType);
     return MOD_SUCCESS_VAL(m);
 }
 

@@ -21,44 +21,46 @@
 #include <schema.h>
 #include <DMLGroup.h>
 
+// Python 2/3 C API and Windows compatibility
 #include "_compat.h"
 
 
-static PyObject* Load_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
-    char *host=NULL, *username=NULL, *password=NULL;
-    if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
-        return NULL;
-    }
+// TODO: switch to init
+static PyObject* Load_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     Load* self;
     self = (Load*)type->tp_alloc(type, 0);
     self->error_msg = strdup(string("").c_str());
     self->connection_status = 0;
     self->connected = false;
     self->table_set = false;
+    return (PyObject*)self;
+}
+
+static int Load_init(Load *self, PyObject *args, PyObject *kwargs) {
+    char *host=NULL, *username=NULL, *password=NULL;
+    if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
+        return -1;
+    }
     self->table_schema = new Schema(strdup(string("input").c_str()));
     self->conn = new Connection();
     self->conn->AddAttribute(TD_SYSTEM_OPERATOR, TD_UPDATE);
     self->conn->AddAttribute(TD_DROPLOGTABLE, strdup(string("Y").c_str()));
     self->conn->AddAttribute(TD_DROPWORKTABLE, strdup(string("Y").c_str()));
     self->conn->AddAttribute(TD_DROPERRORTABLE, strdup(string("Y").c_str()));
+    self->conn->AddAttribute(TD_TDP_ID, host);
     self->conn->AddAttribute(TD_USER_NAME, username);
     self->conn->AddAttribute(TD_USER_PASSWORD, password);
-    self->conn->AddAttribute(TD_TDP_ID, host);
+    self->conn->AddAttribute(TD_MAX_SESSIONS, 20);
+    self->conn->AddAttribute(TD_MAX_DECIMAL_DIGITS, 38);
     self->conn->AddAttribute(TD_TENACITY_HOURS, 1);
     self->conn->AddAttribute(TD_TENACITY_SLEEP, 1);
     self->conn->AddAttribute(TD_ERROR_LIMIT, 1);
-    self->conn->AddAttribute(TD_MAX_DECIMAL_DIGITS, 38);
-    self->conn->AddAttribute(TD_MAX_SESSIONS, 20);
-    return (PyObject*)self;
-}
-
-static int Load_init(Load* self, PyObject* args, PyObject* kwds) {
     return 0;
 }
 
-static PyObject* Load_add_attribute(Load* self, PyObject* args, PyObject* kwds) {
+static PyObject* Load_add_attribute(Load *self, PyObject *args, PyObject *kwargs) {
     int key = -1;
-    PyObject* value = NULL;
+    PyObject *value = NULL;
     if (!PyArg_ParseTuple(args, "iO", &key, &value)) {
         return NULL;
     }
@@ -70,82 +72,82 @@ static PyObject* Load_add_attribute(Load* self, PyObject* args, PyObject* kwds) 
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_apply_rows(Load* self) {
+static PyObject* Load_apply_rows(Load *self) {
     self->conn->ApplyRows();
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_checkpoint(Load* self) {
+static PyObject* Load_checkpoint(Load *self) {
     int r;
-    char* data;
+    char *data;
     TD_Length length = 0;
-    PyObject* result = NULL;
+    PyObject *result = NULL;
     r = self->conn->Checkpoint(&data, &length);
     result = Py_BuildValue("i", r);
     Py_INCREF(result);
     return result;
 }
 
-static PyObject* Load_close(Load* self) {
+static PyObject* Load_close(Load *self) {
     if (self->connected) {
         self->connection_status = self->conn->Terminate();
-        delete self->conn;
-        delete self->table_schema;
     }
     self->connected = false;
     Py_RETURN_NONE;
 }
 
 // TODO: ensure this doesn't cause segfault
-static void Load_dealloc(Load* self) {
-    Load_close(self);
+static void Load_dealloc(Load *self) {
+    delete self->conn;
+    delete self->table_schema;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* Load_end_acquisition(Load* self) {
+static PyObject* Load_end_acquisition(Load *self) {
     self->conn->EndAcquisition();
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_error_message(Load* self) {
+static PyObject* Load_error_message(Load *self) {
     if (self->error_msg == NULL) {
         Py_RETURN_NONE;
     }
     return PyUnicode_FromString(self->error_msg);
 }
 
-static PyObject* Load_get_error_info(Load* self) {
+static PyObject* Load_get_error_info(Load *self) {
     self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_get_event(Load* self, PyObject* args, PyObject* kwds) {
+static PyObject* Load_get_event(Load *self, PyObject *args, PyObject *kwargs) {
     TD_EventType event_type;
     TD_Index event_index = 0;
+    char *data = NULL;
+    TD_Length length = 0;
+    int status;
     if (!PyArg_ParseTuple(args, "i|i", &event_type, &event_index)) {
         return NULL;
     }
-    char* data = NULL;
-    TD_Length length = 0;
-    int status = self->conn->GetEvent(event_type, &data, &length, event_index);
+    status = self->conn->GetEvent(event_type, &data, &length, event_index);
     if (status == TD_Error || status == TD_Unavailable) {
         Py_RETURN_NONE;
     }
     return PyBytes_FromStringAndSize(data, length);
 }
 
-static PyObject* Load_initiate(Load* self, PyObject* args, PyObject* kwds) {
-    PyObject* tuple_list;
-    char* dml = NULL;
-    int dml_option;
+static PyObject* Load_initiate(Load *self, PyObject *args, PyObject *kwargs) {
+    char *dml = NULL;
     TD_Index dmlGroupIndex;
+    int dml_option, data_type, size, precision, scale;
+    Py_ssize_t len, i;
+    PyObject *tuple_list;
+    char *name = NULL;
     if (!PyArg_ParseTuple(args, "Osi", &tuple_list, &dml, &dml_option)) {
         return NULL;
     }
-    Py_ssize_t len = PyList_Size(tuple_list);
-    for (Py_ssize_t i = 0; i < len; i++) {
-        char* name = NULL;
-        int data_type, size, precision, scale;
+    len = PyList_Size(tuple_list);
+    for (i = 0; i < len; i++) {
         if (!PyArg_ParseTuple(PyList_GetItem(tuple_list, i), "siiii",
                     &name, &data_type, &size, &precision, &scale)) {
             Py_RETURN_NONE;
@@ -176,8 +178,9 @@ static PyObject* Load_initiate(Load* self, PyObject* args, PyObject* kwds) {
     return Py_BuildValue("i", self->connection_status);
 }
 
-static PyObject* Load_put_buffer(Load* self, PyObject* args, PyObject* kwds) {
-    char* buffer;
+// TODO: is archive using buffer? it should
+static PyObject* Load_put_buffer(Load *self, PyObject *args, PyObject *kwargs) {
+    char *buffer;
     int length;
     if (!PyArg_ParseTuple(args, "s#", &buffer, &length)) {
         return NULL;
@@ -186,8 +189,8 @@ static PyObject* Load_put_buffer(Load* self, PyObject* args, PyObject* kwds) {
     return Py_BuildValue("i", self->row_status);
 }
 
-static PyObject* Load_put_row(Load* self, PyObject* args, PyObject* kwds) {
-    char* row;
+static PyObject* Load_put_row(Load *self, PyObject *args, PyObject *kwargs) {
+    char *row;
     int length;
     if (!PyArg_ParseTuple(args, "s#", &row, &length)) {
         return NULL;
@@ -196,8 +199,8 @@ static PyObject* Load_put_row(Load* self, PyObject* args, PyObject* kwds) {
     return Py_BuildValue("i", self->row_status);
 }
 
-static PyObject* Load_set_table(Load* self, PyObject* args, PyObject* kwds) {
-    char* _table_name = NULL;
+static PyObject* Load_set_table(Load *self, PyObject *args, PyObject *kwargs) {
+    char *_table_name = NULL;
     if (!PyArg_ParseTuple(args, "s", &_table_name)) {
         return NULL;
     }
@@ -215,11 +218,8 @@ static PyObject* Load_set_table(Load* self, PyObject* args, PyObject* kwds) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_status(Load* self) {
-    PyObject* status = NULL;
-    status = Py_BuildValue("i", self->connection_status);
-    Py_INCREF(status);
-    return status;
+static PyObject* Load_status(Load *self) {
+    return Py_BuildValue("i", self->connection_status);
 }
 
 static PyMethodDef Load_methods[] = {

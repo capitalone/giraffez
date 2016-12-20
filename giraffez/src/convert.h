@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __ENCODER_CONVERT_H
-#define __ENCODER_CONVERT_H
+#ifndef __GIRAFFEZ_CONVERT_H
+#define __GIRAFFEZ_CONVERT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,9 +27,6 @@ extern "C" {
 #else
 #include <stdint.h>
 #endif
-
-
-#define BUFFER_SIZE 8 * 1024
 
 
 enum DecimalTypes {

@@ -25,8 +25,10 @@
 #include <string.h>
 #include <ctype.h>
 
+// Python 2/3 C API and Windows compatibility
 #include "_compat.h"
-#include "encoder/types.h"
+
+#include "types.h"
 
 
 char* safe_name(const char *name) {
@@ -103,15 +105,15 @@ void unpack_float(unsigned char **data, double *dst) {
     *dst = u.d;
 }
 
-void unpack_char(unsigned char** data, char **str) {
-    char* dest = (char*)malloc(sizeof(char)+1);
+void unpack_char(unsigned char **data, char **str) {
+    char *dest = (char*)malloc(sizeof(char)+1);
     memcpy(dest, (char*)*data, 1);
     dest[1] = '\0';
     *str = dest;
     *data += 1;
 }
 
-void unpack_uchar(unsigned char** data, unsigned char **str) {
+void unpack_uchar(unsigned char **data, unsigned char **str) {
     unsigned char* dest = (unsigned char*)malloc(sizeof(unsigned char)+1);
     memcpy(dest, (unsigned char*)*data, 1);
     dest[1] = '\0';
@@ -119,11 +121,11 @@ void unpack_uchar(unsigned char** data, unsigned char **str) {
     *data += 1;
 }
 
-uint16_t unpack_string(unsigned char** data, char **str) {
+uint16_t unpack_string(unsigned char **data, char **str) {
     uint16_t len = 0;
     unpack_uint16_t(data, &len);
     if (len > 0) {
-        char* dst = (char*)malloc(len+1);
+        char *dst = (char*)malloc(len+1);
         memcpy(dst, (char*)*data, len);
         dst[len] = '\0';
         *str = dst;

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __ENCODER_UTIL_H
-#define __ENCODER_UTIL_H
+#ifndef __GIRAFFEZ_UTIL_H
+#define __GIRAFFEZ_UTIL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,9 +77,9 @@ void unpack_int32_t(unsigned char **data, int32_t *dst);
 void unpack_int64_t(unsigned char **data, int64_t *dst);
 void unpack_uint64_t(unsigned char **data, uint64_t *dst);
 void unpack_float(unsigned char **data, double *dst);
-void unpack_char(unsigned char** data, char **str);
-void unpack_uchar(unsigned char** data, unsigned char **str);
-uint16_t unpack_string(unsigned char** data, char **str);
+void unpack_char(unsigned char **data, char **str);
+void unpack_uchar(unsigned char **data, unsigned char **str);
+uint16_t unpack_string(unsigned char **data, char **str);
 
 #ifdef __cplusplus
 }

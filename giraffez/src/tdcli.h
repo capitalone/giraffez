@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_TDCLI_H
-#define __GIRAFFE_TDCLI_H
+#ifndef __GIRAFFEZ_TDCLI_H
+#define __GIRAFFEZ_TDCLI_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,9 +43,6 @@ extern "C" {
 #include <dbcarea.h>
 #include <parcel.h>
 
-#include "encoder/columns.h"
-#include "encoder/unpack.h"
-
 
 typedef struct DBCAREA dbcarea_t;
 
@@ -60,16 +57,16 @@ typedef struct TeradataConnection {
 typedef struct CliFailureType TeradataFailure;
 typedef struct CliErrorType TeradataError;
 
-TeradataError* tdcli_read_error(char* dataptr);
-TeradataFailure* tdcli_read_failure(char* dataptr);
+TeradataError* tdcli_read_error(char *dataptr);
+TeradataFailure* tdcli_read_failure(char *dataptr);
 TeradataConnection* tdcli_new();
-uint16_t tdcli_connect(TeradataConnection* conn, const char* host, const char* username, const char* password);
-uint16_t tdcli_fetch(TeradataConnection* conn);
-uint16_t tdcli_fetch_record(TeradataConnection* conn);
-uint16_t tdcli_execute(TeradataConnection* conn, const char* command);
-uint16_t tdcli_end_request(TeradataConnection* conn);
-void tdcli_close(TeradataConnection* conn, uint16_t connected);
-void tdcli_free(TeradataConnection* conn);
+uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *username, const char *password);
+uint16_t tdcli_fetch(TeradataConnection *conn);
+uint16_t tdcli_fetch_record(TeradataConnection *conn);
+uint16_t tdcli_execute(TeradataConnection *conn, const char *command);
+uint16_t tdcli_end_request(TeradataConnection *conn);
+void tdcli_close(TeradataConnection *conn, uint16_t connected);
+void tdcli_free(TeradataConnection *conn);
 
 #ifdef __cplusplus
 }

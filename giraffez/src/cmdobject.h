@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFE_CMD_H
-#define __GIRAFFE_CMD_H
+#ifndef __GIRAFFEZ_CMD_H
+#define __GIRAFFEZ_CMD_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,9 +23,9 @@ extern "C" {
 
 #include <Python.h>
 
-#include "cli/tdcli.h"
-#include "encoder/columns.h"
-#include "encoder/encoder.h"
+#include "columns.h"
+#include "encoder.h"
+#include "tdcli.h"
 
 
 typedef struct {
@@ -34,11 +34,19 @@ typedef struct {
     int status;
     TeradataConnection *conn;
     TeradataEncoder *encoder;
-    PyObject *column_map;
-    PyObject *columns_obj;
 } Cmd;
 
 extern PyTypeObject CmdType;
+
+PyObject* check_tdcli_error(unsigned char *dataptr);
+PyObject* check_tdcli_failure(unsigned char *dataptr);
+PyObject* check_parcel_error(TeradataConnection *conn);
+PyObject* check_error(TeradataConnection *conn);
+PyObject* teradata_connect(TeradataConnection *conn, const char *host, const char *username,
+    const char *password);
+PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const char *command);
+PyObject* handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data,
+    const uint32_t length);
 
 #ifdef __cplusplus
 }

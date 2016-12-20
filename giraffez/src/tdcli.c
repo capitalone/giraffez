@@ -17,32 +17,28 @@
 
 #include "tdcli.h"
 
-#include <Python.h>
 #include <stdio.h>
-#include <string.h>
 
 // Teradata CLIv2
 #include <coperr.h>
 #include <dbcarea.h>
 #include <parcel.h>
 
-#include "_compat.h"
 
-
-TeradataError* tdcli_read_error(char* dataptr) {
-    TeradataError* err;
+TeradataError* tdcli_read_error(char *dataptr) {
+    TeradataError *err;
     err = (struct CliErrorType*)dataptr;
     return err;
 }
 
-TeradataFailure* tdcli_read_failure(char* dataptr) {
-    TeradataFailure* err;
+TeradataFailure* tdcli_read_failure(char *dataptr) {
+    TeradataFailure *err;
     err = (struct CliFailureType*)dataptr;
     return err;
 }
 
 TeradataConnection* tdcli_new() {
-    TeradataConnection* conn;
+    TeradataConnection *conn;
     conn = (TeradataConnection*)malloc(sizeof(TeradataConnection));
     conn->result = 0;
     conn->dbc = (dbcarea_t*)malloc(sizeof(dbcarea_t));
@@ -51,7 +47,7 @@ TeradataConnection* tdcli_new() {
     return conn;
 }
 
-uint16_t tdcli_connect(TeradataConnection* conn, const char *host, const char *username, const char *password) {
+uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *username, const char *password) {
     conn->dbc->change_opts = 'Y';
     conn->dbc->resp_mode = 'I';
     conn->dbc->use_presence_bits = 'N';
@@ -67,6 +63,7 @@ uint16_t tdcli_connect(TeradataConnection* conn, const char *host, const char *u
     conn->dbc->parcel_mode = 'Y';
     conn->dbc->wait_for_resp = 'Y';
     conn->dbc->req_proc_opt = 'B';
+    /*conn->dbc->req_proc_opt = 'P';*/
     conn->dbc->return_statement_info = 'Y';
     conn->dbc->req_buf_len = 65535;
     conn->dbc->maximum_parcel = 'H';
@@ -91,22 +88,10 @@ uint16_t tdcli_fetch(TeradataConnection *conn) {
 }
 
 uint16_t tdcli_fetch_record(TeradataConnection *conn) {
-    uint16_t status;
-    status = 0;
     Py_BEGIN_ALLOW_THREADS
     DBCHCL(&conn->result, conn->cnta, conn->dbc);
     Py_END_ALLOW_THREADS
-    if (conn->result == EM_OK) {
-        switch (conn->dbc->fet_parcel_flavor) {
-        case PclFAILURE:
-            status = PCL_FAIL;
-            break;
-        case PclERROR:
-            status = PCL_ERR;
-            break;
-        }
-    }
-    return status;
+    return conn->result;
 }
 
 uint16_t tdcli_execute(TeradataConnection *conn, const char *command) {

@@ -14,22 +14,32 @@
  * limitations under the License.
  */
 
-#ifndef __CLI_ERRORS_H
-#define __CLI_ERRORS_H
+#ifndef __GIRAFFEZ_EXPORT_OBJECT_H
+#define __GIRAFFEZ_EXPORT_OBJECT_H
+
+#include <Python.h>
+
+// Teradata Parallel Transporter API
+#include <connection.h>
+#include <schema.h>
+
+#include "encoder.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <Python.h>
+using namespace teradata::client::API;
 
+typedef struct {
+    PyObject_HEAD
+    bool connected;
+    int status;
+    Connection *conn;
+    TeradataEncoder *encoder;
+} Export;
 
-PyObject *GiraffeError;
-PyObject *EndStatementError;
-PyObject *EndRequestError;
-
-
-void define_exceptions(PyObject *module);
+extern PyTypeObject ExportType;
 
 #ifdef __cplusplus
 }

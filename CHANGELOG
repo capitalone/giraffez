@@ -1,6 +1,35 @@
 giraffez Changelog
 ======================
 
+Version 1.1.7
+-------------
+Dec 16 2016
+
+- Fix setup.py library paths for Darwin
+
+Version 1.1.6
+-------------
+Dec 13 2016
+
+- Fixes #23, related to a major bug in how giraffez.Cmd established a
+  session causing significant performance problems and exceptions
+- Disable parallel builds in setup.py causing intermittent build
+  failures
+- Fix missing import in mload.py
+
+Version 1.1.4
+-------------
+Nov 29 2016
+
+- Fix missing/incorrect keyword arguments being passed to giraffez.Config
+- Initial macosx build support
+
+Version 1.1.3
+-------------
+Nov 18 2016
+
+- Fixes #18
+
 Version 1.1.2
 -------------
 Nov 14 2016
@@ -36,11 +65,11 @@ Version 1.0.4
 -------------
 Sep 5 2016
 
-- Improve build tools and add graceful shutdown (no longer registered by default)
+- Improve build tools and add graceful shutdown (no longer registered by
+  default)
 - Fix MOD_DEF macros not working in MSVC 10 compiler
 - Add missing import in giraffez/parser.py
 - Fix decimal64 overflow on MSVC
-
 
 Version 1.0.3
 -------------
@@ -48,20 +77,17 @@ Sep 1 2016
 
 - All C extensions now required for successful build
 
-
 Version 1.0.2
 -------------
 Sep 1 2016
 
 - Fixes #3
 
-
 Version 1.0.1
 -------------
 Aug 31 2016
 
 - Fixes #1
-
 
 Version 1.0
 -----------
