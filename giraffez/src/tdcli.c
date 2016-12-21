@@ -41,10 +41,15 @@ TeradataConnection* tdcli_new() {
     TeradataConnection *conn;
     conn = (TeradataConnection*)malloc(sizeof(TeradataConnection));
     conn->result = 0;
+    conn->connected = NOT_CONNECTED;
     conn->dbc = (dbcarea_t*)malloc(sizeof(dbcarea_t));
     conn->dbc->total_len = sizeof(*conn->dbc);
-    DBCHINI(&conn->result, conn->cnta, conn->dbc);
     return conn;
+}
+
+uint16_t tdcli_init(TeradataConnection *conn) {
+    DBCHINI(&conn->result, conn->cnta, conn->dbc);
+    return conn->result;
 }
 
 uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *username, const char *password) {
@@ -63,7 +68,6 @@ uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *u
     conn->dbc->parcel_mode = 'Y';
     conn->dbc->wait_for_resp = 'Y';
     conn->dbc->req_proc_opt = 'B';
-    /*conn->dbc->req_proc_opt = 'P';*/
     conn->dbc->return_statement_info = 'Y';
     conn->dbc->req_buf_len = 65535;
     conn->dbc->maximum_parcel = 'H';
@@ -110,8 +114,8 @@ uint16_t tdcli_end_request(TeradataConnection *conn) {
     return conn->result;
 }
 
-void tdcli_close(TeradataConnection *conn, uint16_t connected) {
-    if (connected == CONNECTED) {
+void tdcli_close(TeradataConnection *conn) {
+    if (conn->connected == CONNECTED) {
         conn->dbc->func = DBFDSC;
         DBCHCL(&conn->result, conn->cnta, conn->dbc);
     }

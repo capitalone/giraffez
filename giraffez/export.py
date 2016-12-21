@@ -163,23 +163,23 @@ class TeradataExport(Connection):
         return self.delimiter.join(self.columns.names)
 
     def initiate(self):
+        log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
         try:
-            log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
             self.export.initiate(self.encoding, self.null, self.delimiter)
-            self.initiated = True
-            log.info("Export", "Teradata PT request accepted.")
-            if self.encoding == "json":
-                self.processor = dict_to_json
-            else:
-                self.processor = identity
-            self.options("encoding", self.encoding, 1)
-            if self.encoding == "str":
-                self.options("delimiter", self.delimiter, 2)
-                self.options("null", self.null, 3)
-            log.info("Export", "Executing ...")
-            log.info(self.options)
         except _tpt.error as error:
             raise suppress_context(TeradataError(error))
+        self.initiated = True
+        log.info("Export", "Teradata PT request accepted.")
+        if self.encoding == "json":
+            self.processor = dict_to_json
+        else:
+            self.processor = identity
+        self.options("encoding", self.encoding, 1)
+        if self.encoding == "str":
+            self.options("delimiter", self.delimiter, 2)
+            self.options("null", self.null, 3)
+        log.info("Export", "Executing ...")
+        log.info(self.options)
 
     @property
     def query(self):

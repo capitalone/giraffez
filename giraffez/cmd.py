@@ -91,7 +91,7 @@ class TeradataCmd(Connection):
         if TDCLI_NOT_FOUND:
             raise TeradataCLIv2NotFound(TeradataCLIv2NotFound.__doc__.rstrip())
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
-            dsn, protect, mload_session)
+            dsn, protect, mload_session, decimal_return_type)
 
         self.panic = panic
 

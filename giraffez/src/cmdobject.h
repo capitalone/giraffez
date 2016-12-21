@@ -30,8 +30,6 @@ extern "C" {
 
 typedef struct {
     PyObject_HEAD
-    int connected;
-    int status;
     TeradataConnection *conn;
     TeradataEncoder *encoder;
 } Cmd;

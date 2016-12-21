@@ -53,12 +53,14 @@ PyObject* check_tdcli_failure(unsigned char *dataptr) {
 
 PyObject* check_parcel_error(TeradataConnection *conn) {
     switch (conn->dbc->fet_parcel_flavor) {
+    case PclSUCCESS:
+        Py_RETURN_NONE;
     case PclFAILURE:
         return check_tdcli_failure((unsigned char*)conn->dbc->fet_data_ptr);
     case PclERROR:
         return check_tdcli_error((unsigned char*)&conn->dbc->fet_data_ptr);
     }
-    Py_RETURN_NONE;
+    return NULL;
 }
 
 PyObject* check_error(TeradataConnection *conn) {
@@ -77,34 +79,24 @@ PyObject* check_error(TeradataConnection *conn) {
 PyObject* teradata_connect(TeradataConnection *conn, const char *host, const char *username,
         const char *password) {
     int status;
-    if (conn->result != OK) {
-        PyErr_Format(GiraffeError, "CLIv2: init failed -- %s", conn->dbc->msg_text);
+    if ((status = tdcli_init(conn)) != OK) {
+        PyErr_Format(GiraffeError, "CLIv2[init]: %s", conn->dbc->msg_text);
         return NULL;
     }
     if ((status = tdcli_connect(conn, host, username, password)) != OK) {
-        PyErr_Format(GiraffeError, "CLIv2: connect failed -- %s", conn->dbc->msg_text);
+        PyErr_Format(GiraffeError, "CLIv2[connect]: %s", conn->dbc->msg_text);
         return NULL;
     }
-    // TODO: Not sure if we are even able to receive a failure parcel
-    // if the connection wasn't successful. Might be ok to remove this.
-    // I'm also not sure if this fetch is even necessary. It appears
-    // to work either way despite being in the CLIv2 documentation
-    // as a required part of connecting. Also not sure if need to 
-    // check both ->result and ->status at this step also.
     if ((status = tdcli_fetch(conn)) != OK) {
-        PyErr_Format(GiraffeError, "CLIv2: fetch failed -- %s", conn->dbc->msg_text);
+        PyErr_Format(GiraffeError, "CLIv2[fetch]: %s", conn->dbc->msg_text);
         return NULL;
     } else {
         if (check_parcel_error(conn) == NULL) {
             return NULL;
         }
     }
-    if (conn->dbc->fet_ret_data_len < 1) {
-        PyErr_Format(GiraffeError, "%d: Connection to host '%s' failed.", -1, (char*)host);
-        return NULL;
-    }
     if (tdcli_end_request(conn) != OK) {
-        PyErr_Format(GiraffeError, "CLIv2: end request failed -- %s", conn->dbc->msg_text);
+        PyErr_Format(GiraffeError, "CLIv2[end_request]: %s", conn->dbc->msg_text);
         return NULL;
     }
     Py_RETURN_NONE;
@@ -114,7 +106,7 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
     PyObject *row = NULL;
     size_t count;
     if (tdcli_execute(conn, command) != OK) {
-        PyErr_Format(GiraffeError, "CLIv2: initiate request failed -- %s", conn->dbc->msg_text);
+        PyErr_Format(GiraffeError, "CLIv2[execute_init]: %s", conn->dbc->msg_text);
         return NULL;
     }
     conn->dbc->i_sess_id = conn->dbc->o_sess_id;
@@ -182,39 +174,33 @@ static void Cmd_dealloc(Cmd *self) {
 static PyObject* Cmd_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     Cmd *self;
     self = (Cmd*)type->tp_alloc(type, 0);
+    self->conn = NULL;
+    self->encoder = NULL;
     return (PyObject*)self;
 }
 
 static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
     char *host=NULL, *username=NULL, *password=NULL;
-    char *decimal_return_type = "";
+    int decimal_return_type = 0;
     static char *kwlist[] = {"host", "username", "password", "decimal_return_type", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sss|s", kwlist, &host, &username, &password,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sss|i", kwlist, &host, &username, &password,
             &decimal_return_type)) {
         return -1;
     }
-    if (strcmp(decimal_return_type, "str") == 0) {
-        settings.decimal_return_type = DECIMAL_AS_STRING;
-    } else if (strcmp(decimal_return_type, "float") == 0) {
-        settings.decimal_return_type = DECIMAL_AS_FLOAT;
-    } else if (strcmp(decimal_return_type, "decimal") == 0) {
-        settings.decimal_return_type = DECIMAL_AS_GIRAFFEZ_DECIMAL;
-    }
-    self->encoder = encoder_new(NULL, &settings);
-    self->connected = NOT_CONNECTED;
-    self->status = OK;
     self->conn = tdcli_new();
     if (teradata_connect(self->conn, host, username, password) == NULL) {
         return -1;
     }
-    self->connected = CONNECTED;
+    self->conn->connected = CONNECTED;
+    settings.decimal_return_type = decimal_return_type;
+    self->encoder = encoder_new(NULL, &settings);
     return 0;
 }
 
 static PyObject* Cmd_close(Cmd *self) {
-    tdcli_close(self->conn, self->connected);
-    self->connected = NOT_CONNECTED;
-    return Py_BuildValue("i", self->connected);
+    tdcli_close(self->conn);
+    self->conn->connected = NOT_CONNECTED;
+    return Py_BuildValue("i", self->conn->connected);
 }
 
 static PyObject* Cmd_columns(Cmd *self) {
@@ -231,7 +217,7 @@ static PyObject* Cmd_execute(Cmd *self, PyObject *args, PyObject *kwargs) {
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|i", kwlist, &command, &prepare_only)) {
         return NULL;
     }
-    if (self->connected == NOT_CONNECTED) {
+    if (self->conn->connected == NOT_CONNECTED) {
         PyErr_SetString(GiraffeError, "1: Connection not established.");
         return NULL;
     }

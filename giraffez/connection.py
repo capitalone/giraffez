@@ -32,6 +32,13 @@ from .utils import *
 __all__ = ['Connection']
 
 
+decimal_return_type_map = {
+    "str": DECIMAL_AS_STRING,
+    "float": DECIMAL_AS_FLOAT,
+    "decimal": DECIMAL_AS_GIRAFFEZ_DECIMAL,
+}
+
+
 class Connection(object):
     def __init__(self, host=None, username=None, password=None, log_level=INFO, config=None,
             key_file=None, dsn=None, protect=False, mload_session=False, decimal_return_type="str"):
@@ -54,8 +61,9 @@ class Connection(object):
         #: output since mload requires two Connection objects
         self.mload_session = mload_session
 
-        self.decimal_return_type = decimal_return_type
         # TODO: Add check for possible decimal_return_type values and raise if not
+        self.decimal_return_type = decimal_return_type_map.get(decimal_return_type,
+            DECIMAL_AS_STRING)
 
         if host is None or username is None or password is None:
             if host or username or password:

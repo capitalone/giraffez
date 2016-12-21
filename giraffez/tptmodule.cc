@@ -20,7 +20,7 @@
 
 #include "src/errors.h"
 #include "src/exportobject.h"
-#include "src/loadobject.h"
+#include "src/mloadobject.h"
 #include "src/pytypes.h"
 
 
@@ -43,7 +43,7 @@ MOD_INIT(_tpt)
         return MOD_ERROR_VAL;
     }
 
-    if (PyType_Ready(&LoadType) < 0) {
+    if (PyType_Ready(&MLoadType) < 0) {
         return MOD_ERROR_VAL;
     }
 
@@ -62,8 +62,8 @@ MOD_INIT(_tpt)
     Py_INCREF(&ExportType);
     PyModule_AddObject(m, "Export", (PyObject*)&ExportType);
 
-    Py_INCREF(&LoadType);
-    PyModule_AddObject(m, "Load", (PyObject*)&LoadType);
+    Py_INCREF(&MLoadType);
+    PyModule_AddObject(m, "MLoad", (PyObject*)&MLoadType);
     return MOD_SUCCESS_VAL(m);
 }
 

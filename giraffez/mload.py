@@ -106,13 +106,13 @@ class TeradataMLoad(Connection):
 
     def _apply_rows(self):
         log.info("MLoad", "Beginning apply phase ...")
-        self.load.apply_rows()
+        self.mload.apply_rows()
         self._update_apply_count()
         self._update_error_count()
         log.info("MLoad", "Apply phase ended.")
 
     def _update_apply_count(self):
-        data = self.load.get_event(TD_Evt_RowCounts64)
+        data = self.mload.get_event(TD_Evt_RowCounts64)
         if data is None:
             log.info("MLoad", "Update apply row count failed.")
             return
@@ -121,7 +121,7 @@ class TeradataMLoad(Connection):
         self.applied_count = applied
 
     def _update_error_count(self):
-        data = self.load.get_event(TD_Evt_ErrorTable2, 1)
+        data = self.mload.get_event(TD_Evt_ErrorTable2, 1)
         if data is None:
             log.info("MLoad", "Update error row count failed.")
             return
@@ -131,21 +131,21 @@ class TeradataMLoad(Connection):
 
     def _end_acquisition(self):
         log.info("MLoad", "Ending acquisition phase ...")
-        self.load.end_acquisition()
+        self.mload.end_acquisition()
         self.end_acquisition = True
         log.info("MLoad", "Acquisition phase ended.")
 
     def _connect(self, host, username, password):
         self.cmd = TeradataCmd(host, username, password, log_level=log.level, mload_session=True)
-        self.load = _tpt.Load(host, username, password)
+        self.mload = _tpt.MLoad(host, username, password)
         self._handle_error()
 
     def _handle_error(self, status=None):
         if status is None:
             status = self.status
         if status >= TD_ERROR:
-            self.load.get_error_info()
-            raise MultiLoadError("{}: {}".format(status, self.load.error_message()))
+            self.mload.get_error_info()
+            raise MultiLoadError("{}: {}".format(status, self.mload.error_message()))
         return False
 
     def _initiate(self):
@@ -157,14 +157,14 @@ class TeradataMLoad(Connection):
             raise GiraffeError("Already initiated connection.")
         title, version = get_version_info()
         query_band = "UTILITYNAME={};VERSION={};".format(title, version)
-        self.load.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
+        self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
         dml = "insert into {} ({}) values ({});".format(self.table,
             ",".join(['"{}"'.format(f) for f in self.columns.names]),
             ",".join(":{}".format(f) for f in self.columns.safe_names))
         log.verbose("MLoad", "DML: {}".format(dml))
         def _initiate():
             log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
-            self.load.initiate(self.columns.tuples(), dml, MARK_DUPLICATE_ROWS)
+            self.mload.initiate(self.columns.tuples(), dml, MARK_DUPLICATE_ROWS)
             self._handle_error()
             log.info("MLoad", "Teradata PT request accepted.")
         try:
@@ -185,7 +185,7 @@ class TeradataMLoad(Connection):
         when loading from a file. Updates the exit code of the driver to
         reflect errors.
         """
-        checkpoint_status = self.load.checkpoint()
+        checkpoint_status = self.mload.checkpoint()
         if checkpoint_status >= TD_ERROR:
             status_message = MESSAGES.get(int(checkpoint_status), None)
             error_table = [("Error Code", "Error Description")]
@@ -209,7 +209,7 @@ class TeradataMLoad(Connection):
         if not self.end_acquisition and self.initiated:
             log.info("MLoad", "Acquisition phase was not called before closing.")
             self._end_acquisition()
-        self.load.close()
+        self.mload.close()
         self.cmd.close()
         log.info("MLoad", "Teradata PT request complete.")
 
@@ -266,7 +266,7 @@ class TeradataMLoad(Connection):
 
     @property
     def exit_code(self):
-        data = self.load.get_event(TD_Evt_ExitCode)
+        data = self.mload.get_event(TD_Evt_ExitCode)
         if data is None:
             log.info("MLoad", "Update exit code failed.")
             return
@@ -343,7 +343,7 @@ class TeradataMLoad(Connection):
             self._initiate()
             i = 0
             for i, line in enumerate(f, 1):
-                self.load_row(line, panic=panic)
+                self.mload_row(line, panic=panic)
                 if i % self.checkpoint_interval == 1:
                     log.info("\rMLoad", "Processed {} rows".format(i), console=True)
                     checkpoint_status = self.checkpoint()
@@ -372,7 +372,7 @@ class TeradataMLoad(Connection):
             self._initiate()
         try:
             data = self.processor(items)
-            row_status = self.load.put_row(data)
+            row_status = self.mload.put_row(data)
             if not self._handle_error(row_status):
                 self.applied_count += 1
         except GiraffeEncodeError as error:
@@ -396,7 +396,7 @@ class TeradataMLoad(Connection):
 
     @property
     def status(self):
-        return self.load.status()
+        return self.mload.status()
 
     @property
     def tables(self):
@@ -446,7 +446,7 @@ class TeradataMLoad(Connection):
         if self.initiated:
             raise GiraffeError("Cannot reuse MLoad context for more than one table")
         self._table_name = table_name
-        self.load.set_table(table_name)
+        self.mload.set_table(table_name)
         try:
             log.info("MLoad", "Requesting column info for table '{}' ...".format(self.table))
             self._columns = self.cmd.get_columns(self.table, silent=True)

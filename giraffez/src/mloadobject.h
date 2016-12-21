@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFEZ_LOAD_OBJECT_H
-#define __GIRAFFEZ_LOAD_OBJECT_H
+#ifndef __GIRAFFEZ_MLOAD_OBJECT_H
+#define __GIRAFFEZ_MLOAD_OBJECT_H
 
 #include <Python.h>
 
@@ -41,9 +41,9 @@ typedef struct {
     bool connected;
     int connection_status;
     int row_status;
-} Load;
+} MLoad;
 
-extern PyTypeObject LoadType;
+extern PyTypeObject MLoadType;
 
 #ifdef __cplusplus
 }

@@ -280,14 +280,14 @@ class TPTExtension(Extension):
     sources = [
         "giraffez/src/errors.c",
         "giraffez/src/exportobject.cc",
-        "giraffez/src/loadobject.cc",
+        "giraffez/src/mloadobject.cc",
         "giraffez/tptmodule.cc",
     ]
 
     depends = [
         "giraffez/src/errors.h",
         "giraffez/src/exportobject.h",
-        "giraffez/src/loadobject.h",
+        "giraffez/src/mloadobject.h",
         "giraffez/tptmodule.cc",
     ]
 

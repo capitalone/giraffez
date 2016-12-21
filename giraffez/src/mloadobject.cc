@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "loadobject.h"
+#include "mloadobject.h"
 
 // Teradata Parallel Transporter API
 #include <connection.h>
@@ -26,9 +26,9 @@
 
 
 // TODO: switch to init
-static PyObject* Load_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
-    Load* self;
-    self = (Load*)type->tp_alloc(type, 0);
+static PyObject* MLoad_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
+    MLoad *self;
+    self = (MLoad*)type->tp_alloc(type, 0);
     self->error_msg = strdup(string("").c_str());
     self->connection_status = 0;
     self->connected = false;
@@ -36,7 +36,7 @@ static PyObject* Load_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) 
     return (PyObject*)self;
 }
 
-static int Load_init(Load *self, PyObject *args, PyObject *kwargs) {
+static int MLoad_init(MLoad *self, PyObject *args, PyObject *kwargs) {
     char *host=NULL, *username=NULL, *password=NULL;
     if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
         return -1;
@@ -58,7 +58,7 @@ static int Load_init(Load *self, PyObject *args, PyObject *kwargs) {
     return 0;
 }
 
-static PyObject* Load_add_attribute(Load *self, PyObject *args, PyObject *kwargs) {
+static PyObject* MLoad_add_attribute(MLoad *self, PyObject *args, PyObject *kwargs) {
     int key = -1;
     PyObject *value = NULL;
     if (!PyArg_ParseTuple(args, "iO", &key, &value)) {
@@ -72,12 +72,12 @@ static PyObject* Load_add_attribute(Load *self, PyObject *args, PyObject *kwargs
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_apply_rows(Load *self) {
+static PyObject* MLoad_apply_rows(MLoad *self) {
     self->conn->ApplyRows();
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_checkpoint(Load *self) {
+static PyObject* MLoad_checkpoint(MLoad *self) {
     int r;
     char *data;
     TD_Length length = 0;
@@ -88,7 +88,7 @@ static PyObject* Load_checkpoint(Load *self) {
     return result;
 }
 
-static PyObject* Load_close(Load *self) {
+static PyObject* MLoad_close(MLoad *self) {
     if (self->connected) {
         self->connection_status = self->conn->Terminate();
     }
@@ -97,30 +97,30 @@ static PyObject* Load_close(Load *self) {
 }
 
 // TODO: ensure this doesn't cause segfault
-static void Load_dealloc(Load *self) {
+static void MLoad_dealloc(MLoad *self) {
     delete self->conn;
     delete self->table_schema;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* Load_end_acquisition(Load *self) {
+static PyObject* MLoad_end_acquisition(MLoad *self) {
     self->conn->EndAcquisition();
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_error_message(Load *self) {
+static PyObject* MLoad_error_message(MLoad *self) {
     if (self->error_msg == NULL) {
         Py_RETURN_NONE;
     }
     return PyUnicode_FromString(self->error_msg);
 }
 
-static PyObject* Load_get_error_info(Load *self) {
+static PyObject* MLoad_get_error_info(MLoad *self) {
     self->conn->GetErrorInfo(&self->error_msg, &self->error_type);
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_get_event(Load *self, PyObject *args, PyObject *kwargs) {
+static PyObject* MLoad_get_event(MLoad *self, PyObject *args, PyObject *kwargs) {
     TD_EventType event_type;
     TD_Index event_index = 0;
     char *data = NULL;
@@ -136,7 +136,7 @@ static PyObject* Load_get_event(Load *self, PyObject *args, PyObject *kwargs) {
     return PyBytes_FromStringAndSize(data, length);
 }
 
-static PyObject* Load_initiate(Load *self, PyObject *args, PyObject *kwargs) {
+static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
     char *dml = NULL;
     TD_Index dmlGroupIndex;
     int dml_option, data_type, size, precision, scale;
@@ -179,7 +179,7 @@ static PyObject* Load_initiate(Load *self, PyObject *args, PyObject *kwargs) {
 }
 
 // TODO: is archive using buffer? it should
-static PyObject* Load_put_buffer(Load *self, PyObject *args, PyObject *kwargs) {
+static PyObject* MLoad_put_buffer(MLoad *self, PyObject *args, PyObject *kwargs) {
     char *buffer;
     int length;
     if (!PyArg_ParseTuple(args, "s#", &buffer, &length)) {
@@ -189,7 +189,7 @@ static PyObject* Load_put_buffer(Load *self, PyObject *args, PyObject *kwargs) {
     return Py_BuildValue("i", self->row_status);
 }
 
-static PyObject* Load_put_row(Load *self, PyObject *args, PyObject *kwargs) {
+static PyObject* MLoad_put_row(MLoad *self, PyObject *args, PyObject *kwargs) {
     char *row;
     int length;
     if (!PyArg_ParseTuple(args, "s#", &row, &length)) {
@@ -199,7 +199,7 @@ static PyObject* Load_put_row(Load *self, PyObject *args, PyObject *kwargs) {
     return Py_BuildValue("i", self->row_status);
 }
 
-static PyObject* Load_set_table(Load *self, PyObject *args, PyObject *kwargs) {
+static PyObject* MLoad_set_table(MLoad *self, PyObject *args, PyObject *kwargs) {
     char *_table_name = NULL;
     if (!PyArg_ParseTuple(args, "s", &_table_name)) {
         return NULL;
@@ -218,33 +218,33 @@ static PyObject* Load_set_table(Load *self, PyObject *args, PyObject *kwargs) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Load_status(Load *self) {
+static PyObject* MLoad_status(MLoad *self) {
     return Py_BuildValue("i", self->connection_status);
 }
 
-static PyMethodDef Load_methods[] = {
-    {"add_attribute", (PyCFunction)Load_add_attribute, METH_VARARGS, ""},
-    {"apply_rows", (PyCFunction)Load_apply_rows, METH_NOARGS, ""},
-    {"checkpoint", (PyCFunction)Load_checkpoint, METH_NOARGS, ""},
-    {"close", (PyCFunction)Load_close, METH_NOARGS, ""},
-    {"end_acquisition", (PyCFunction)Load_end_acquisition, METH_NOARGS, ""},
-    {"error_message", (PyCFunction)Load_error_message, METH_NOARGS, ""},
-    {"get_error_info", (PyCFunction)Load_get_error_info, METH_NOARGS, ""},
-    {"get_event", (PyCFunction)Load_get_event, METH_VARARGS, ""},
-    {"initiate", (PyCFunction)Load_initiate, METH_VARARGS, "" },
-    {"put_buffer", (PyCFunction)Load_put_buffer, METH_VARARGS, ""},
-    {"put_row", (PyCFunction)Load_put_row, METH_VARARGS, ""},
-    {"set_table", (PyCFunction)Load_set_table, METH_VARARGS, ""},
-    {"status", (PyCFunction)Load_status, METH_NOARGS, ""},
+static PyMethodDef MLoad_methods[] = {
+    {"add_attribute", (PyCFunction)MLoad_add_attribute, METH_VARARGS, ""},
+    {"apply_rows", (PyCFunction)MLoad_apply_rows, METH_NOARGS, ""},
+    {"checkpoint", (PyCFunction)MLoad_checkpoint, METH_NOARGS, ""},
+    {"close", (PyCFunction)MLoad_close, METH_NOARGS, ""},
+    {"end_acquisition", (PyCFunction)MLoad_end_acquisition, METH_NOARGS, ""},
+    {"error_message", (PyCFunction)MLoad_error_message, METH_NOARGS, ""},
+    {"get_error_info", (PyCFunction)MLoad_get_error_info, METH_NOARGS, ""},
+    {"get_event", (PyCFunction)MLoad_get_event, METH_VARARGS, ""},
+    {"initiate", (PyCFunction)MLoad_initiate, METH_VARARGS, "" },
+    {"put_buffer", (PyCFunction)MLoad_put_buffer, METH_VARARGS, ""},
+    {"put_row", (PyCFunction)MLoad_put_row, METH_VARARGS, ""},
+    {"set_table", (PyCFunction)MLoad_set_table, METH_VARARGS, ""},
+    {"status", (PyCFunction)MLoad_status, METH_NOARGS, ""},
     {NULL}  /* Sentinel */
 };
 
 PyTypeObject LoadType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "_tpt.Load",                                    /* tp_name */
-    sizeof(Load),                                   /* tp_basicsize */
+    "_tpt.MLoad",                                   /* tp_name */
+    sizeof(MLoad),                                  /* tp_basicsize */
     0,                                              /* tp_itemsize */
-    (destructor)Load_dealloc,                       /* tp_dealloc */
+    (destructor)MLoad_dealloc,                      /* tp_dealloc */
     0,                                              /* tp_print */
     0,                                              /* tp_getattr */
     0,                                              /* tp_setattr */
@@ -260,14 +260,14 @@ PyTypeObject LoadType = {
     0,                                              /* tp_setattro */
     0,                                              /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,       /* tp_flags */
-    "Load objects",                                 /* tp_doc */
+    "MLoad objects",                                /* tp_doc */
     0,                                              /* tp_traverse */
     0,                                              /* tp_clear */
     0,                                              /* tp_richcompare */
     0,                                              /* tp_weaklistoffset */
     0,                                              /* tp_iter */
     0,                                              /* tp_iternext */
-    Load_methods,                                   /* tp_methods */
+    MLoad_methods,                                  /* tp_methods */
     0,                                              /* tp_members */
     0,                                              /* tp_getset */
     0,                                              /* tp_base */
@@ -275,7 +275,7 @@ PyTypeObject LoadType = {
     0,                                              /* tp_descr_get */
     0,                                              /* tp_descr_set */
     0,                                              /* tp_dictoffset */
-    (initproc)Load_init,                            /* tp_init */
+    (initproc)MLoad_init,                           /* tp_init */
     0,                                              /* tp_alloc */
-    Load_new,                                       /* tp_new */
+    MLoad_new,                                      /* tp_new */
 };
