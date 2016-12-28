@@ -318,3 +318,48 @@ PyObject* vchar_to_pystring(unsigned char **data) {
     *data += H;
     return str;
 }
+
+PyObject* pystring_to_vchar(unsigned char **data, PyObject *s) {
+    Py_ssize_t length;
+    PyObject *temp = NULL;
+    char *str;
+    if (_PyUnicode_Check(s)) {
+        temp = PyUnicode_AsASCIIString(s);
+        Py_DECREF(s);
+    } else if (PyBytes_Check(s)) {
+        temp = s;
+        Py_INCREF(temp);
+    }
+    length = PyBytes_Size(temp);
+    if ((str = PyBytes_AsString(temp)) == NULL) {
+        return NULL;
+    }
+    pack_string(data, str, length);
+    Py_DECREF(temp);
+    Py_RETURN_NONE;
+}
+
+PyObject* pystring_to_char(unsigned char **data, PyObject *s, const uint16_t column_length) {
+    Py_ssize_t length;
+    PyObject *temp = NULL;
+    int fill, i;
+    char *str;
+    if (_PyUnicode_Check(s)) {
+        temp = PyUnicode_AsASCIIString(s);
+        Py_DECREF(s);
+    } else if (PyBytes_Check(s)) {
+        temp = s;
+        Py_INCREF(temp);
+    }
+    length = PyBytes_Size(temp);
+    if ((str = PyBytes_AsString(temp)) == NULL) {
+        return NULL;
+    }
+    memcpy(*data, str, length);
+    fill = column_length - length;
+    for (i = 0; i < fill; i++) {
+        *((*data)++) = (unsigned char)0x20;
+    }
+    Py_DECREF(temp);
+    Py_RETURN_NONE;
+}

@@ -23,37 +23,15 @@
 // Python 2/3 C API and Windows compatibility
 #include "_compat.h"
 
-#include "errors.h"
-#include "pytypes.h"
-#include "types.h"
-#include "unpack.h"
-
-
-static EncoderSettings settings = {
-    ROW_ENCODING_DICT,
-    ITEM_ENCODING_BUILTIN_TYPES,
-    DECIMAL_AS_STRING
-};
 
 static void Export_dealloc(Export *self) {
-    if (self->connected) {
-        self->status = self->conn->Terminate();
-        delete self->conn;
-    }
-    self->connected = false;
-    if (self->encoder != NULL) {
-        encoder_free(self->encoder);
-        self->encoder = NULL;
-    }
+    delete self->conn;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject* Export_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     Export *self;
     self = (Export*)type->tp_alloc(type, 0);
-    self->connected = false;
-    self->status = 0;
-    self->encoder = NULL;
     return (PyObject*)self;
 }
 
@@ -62,8 +40,8 @@ static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
     if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
         return -1;
     }
-    self->encoder = encoder_new(NULL, &settings);
-    self->conn = new Connection();
+
+    self->conn = new Giraffez::Connection(host, username, password);
     self->conn->AddAttribute(TD_SYSTEM_OPERATOR, TD_EXPORT);
     self->conn->AddAttribute(TD_TDP_ID, host);
     self->conn->AddAttribute(TD_USER_NAME, username);
@@ -78,8 +56,8 @@ static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
     // Charset is set to prefer UTF8.  There may need to be changes to
     // the encoder if UTF8 is for whatever reason not supported, and
     // may cause unexpected behavior.
-    self->conn->AddAttribute(TD_CHARSET, strdup(string("UTF8").c_str()));
-    self->conn->AddAttribute(TD_BUFFER_MODE, strdup(string("YES").c_str()));
+    self->conn->AddAttribute(TD_CHARSET, "UTF8");
+    self->conn->AddAttribute(TD_BUFFER_MODE, "YES");
     self->conn->AddAttribute(TD_BLOCK_SIZE, 64330);
     self->conn->AddAttribute(TD_BUFFER_HEADER_SIZE, 2);
     self->conn->AddAttribute(TD_BUFFER_LENGTH_SIZE, 2);
@@ -90,7 +68,7 @@ static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
     // directly without spooling into temporary space.  In the event
     // that can't happen the job is still allowed but performs the
     // spooling of the query results as needed.
-    self->conn->AddAttribute(TD_SPOOLMODE, strdup(string("NoSpool").c_str()));
+    self->conn->AddAttribute(TD_SPOOLMODE, "NoSpool");
 
     // Tenacity hours is set to the lowest allowed value.  In cases like
     // unexpected client disconnects without being shutdown properly,
@@ -108,110 +86,83 @@ static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
 }
 
 static PyObject* Export_add_attribute(Export *self, PyObject *args, PyObject *kwargs) {
-    int key = -1;
+    TD_Attribute key;
     PyObject *value = NULL;
     if (!PyArg_ParseTuple(args, "iO", &key, &value)) {
         return NULL;
     }
-    if PyLong_Check(value) {
-        self->conn->AddAttribute((TD_Attribute)key, (int)PyLong_AsLong(value));
-    } else {
-        self->conn->AddAttribute((TD_Attribute)key, PyUnicode_AsUTF8(value));
-    }
-    Py_RETURN_NONE;
+    return self->conn->AddAttribute(key, value);
 }
 
 static PyObject* Export_close(Export *self) {
-    if (self->connected) {
-        self->status = self->conn->Terminate();
-        free(self->conn);
-    }
-    self->connected = false;
-    Py_RETURN_NONE;
+    return self->conn->Terminate();
 }
 
 static PyObject* Export_columns(Export *self) {
-    if (self->encoder == NULL || self->encoder->Columns == NULL) {
-        Py_RETURN_NONE;
-    }
-    return columns_to_pylist(self->encoder->Columns);
+    return self->conn->Columns();
 }
 
 static PyObject* Export_get_buffer(Export *self) {
-    unsigned char *data = NULL;
-    int length;
-    PyObject *result = NULL;
-    if ((self->status = self->conn->GetBuffer((char**)&data, (TD_Length*)&length)) == TD_END_Method) {
-        Py_RETURN_NONE;
-    }
-    result = self->encoder->UnpackRowsFunc(self->encoder, &data, length);
-    return result;
+    return self->conn->GetBuffer();
 }
 
 // TODO: ensure that multiple export jobs can run consecutively within
 // the same context
 static PyObject* Export_initiate(Export *self, PyObject *args, PyObject *kwargs) {
-    char *error_msg;
-    TD_ErrorType error_type;
-    Schema* dynamic_schema;
-    size_t count;
-    GiraffeColumn *column;
-    GiraffeColumns *columns;
     char *encoding;
     PyObject *null, *delimiter;
+    // TODO: better default handling here for null/delimiter. ensure there
+    // isn't a way to set this that will create undefined behavior
     if (!PyArg_ParseTuple(args, "sOO", &encoding, &null, &delimiter)) {
         return NULL;
     }
-    if ((self->status = self->conn->Initiate()) >= TD_Error) {
-        self->conn->GetErrorInfo(&error_msg, &error_type);
-        PyErr_Format(GiraffeError, "%d: %s", self->status, error_msg);
+    if ((self->conn->Initiate()) == NULL) {
         return NULL;
     }
-    self->connected = true;
-    if (self->conn->GetSchema(&dynamic_schema) != 0) {
-        self->conn->GetErrorInfo(&error_msg, &error_type);
-        PyErr_Format(GiraffeError, "%d: %s", self->status, error_msg);
-        return NULL;
-    }
-    count = dynamic_schema->GetColumnCount();
-    columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
-    columns_init(columns, 1);
-    for (std::vector<Column*>::size_type i=0; i < count; i++) {
-        Column* c = dynamic_schema->GetColumn(i);
-        column = column_new();
-        column->Name = strdup(c->GetName());
-        column->Type = c->GetDataType();
-        column->Length = c->GetSize();
-        column->Precision = c->GetPrecision();
-        column->Scale = c->GetScale();
-        columns_append(columns, *column);
-    }
-    encoder_clear(self->encoder);
-    self->encoder->Columns = columns;
+    // TODO: create presets
+    EncoderSettings settings;
     if (strcmp(encoding, "archive") == 0) {
-        settings.row_encoding_type = ROW_ENCODING_RAW;
+        // TODO: idk
+        settings = (EncoderSettings){
+            ROW_ENCODING_RAW,
+            ITEM_ENCODING_BUILTIN_TYPES,
+            DECIMAL_AS_STRING
+        };
+        if (self->conn->SetEncoding(&settings) == NULL) {
+            return NULL;
+        }
     } else if (strcmp(encoding, "dict") == 0 || strcmp(encoding, "json") == 0) {
-        settings.row_encoding_type = ROW_ENCODING_DICT;
-        settings.item_encoding_type = ITEM_ENCODING_BUILTIN_TYPES;
-        settings.decimal_return_type = DECIMAL_AS_STRING;
-        encoder_set_encoding(self->encoder, &settings);
+        settings = (EncoderSettings){
+            ROW_ENCODING_DICT,
+            ITEM_ENCODING_BUILTIN_TYPES,
+            DECIMAL_AS_STRING
+        };
+        if (self->conn->SetEncoding(&settings) == NULL) {
+            return NULL;
+        }
     } else if (strcmp(encoding, "str") == 0) {
-        if (!_PyUnicode_Check(delimiter)) {
-            PyErr_SetString(PyExc_TypeError, "Delimiter must be string");
+        settings = (EncoderSettings){
+            ROW_ENCODING_STRING,
+            ITEM_ENCODING_STRING,
+            DECIMAL_AS_STRING
+        };
+        if (self->conn->SetEncoding(&settings, null, delimiter) == NULL) {
             return NULL;
         }
-        if (!(_PyUnicode_Check(null) || null == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "Null must be string or NoneType");
+    } else {
+        if (self->conn->SetEncoding(&settings) == NULL) {
             return NULL;
         }
-        settings.row_encoding_type = ROW_ENCODING_STRING;
-        settings.item_encoding_type = ITEM_ENCODING_STRING;
-        settings.decimal_return_type = DECIMAL_AS_STRING;
-        encoder_set_encoding(self->encoder, &settings);
-        encoder_set_delimiter(self->encoder, delimiter);
-        encoder_set_null(self->encoder, null);
     }
     Py_RETURN_NONE;
+}
+
+static PyObject* Export_set_query(Export *self, PyObject *args, PyObject *kwargs) {
+    char *query;
+    if (!PyArg_ParseTuple(args, "s", &query)) {
+        return NULL;
+    }
+    return self->conn->SetQuery(query);
 }
 
 static PyMethodDef Export_methods[] = {
@@ -220,6 +171,7 @@ static PyMethodDef Export_methods[] = {
     {"columns", (PyCFunction)Export_columns, METH_NOARGS, ""},
     {"get_buffer", (PyCFunction)Export_get_buffer, METH_NOARGS, ""},
     {"initiate", (PyCFunction)Export_initiate, METH_VARARGS, ""},
+    {"set_query", (PyCFunction)Export_set_query, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };
 

@@ -28,15 +28,13 @@ extern "C" {
 #endif 
 
 
-static const char *module_name = "_cli";
-
 static PyMethodDef module_methods[] = {
     {NULL}  /* Sentinel */
 };
 
 #if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef moduledef = {
-    PyModuleDef_HEAD_INIT, module_name, "", -1, module_methods
+    PyModuleDef_HEAD_INIT, "_cli", "", -1, module_methods
 };
 #endif
 
@@ -52,7 +50,7 @@ MOD_INIT(_cli)
 #if PY_MAJOR_VERSION >= 3
     m = PyModule_Create(&moduledef);
 #else
-    m = Py_InitModule(module_name, module_methods);
+    m = Py_InitModule("_cli", module_methods);
 #endif
 
     giraffez_columns_import();
@@ -63,7 +61,7 @@ MOD_INIT(_cli)
         return MOD_ERROR_VAL;
     }
 
-    define_exceptions(module_name, m);
+    define_exceptions("_cli", m);
 
     Py_INCREF(&CmdType);
     PyModule_AddObject(m, "Cmd", (PyObject*)&CmdType);

@@ -31,9 +31,19 @@
 #include "unpack.h"
 
 
+static EncoderSettings default_settings = {
+    ROW_ENCODING_LIST,
+    ITEM_ENCODING_BUILTIN_TYPES,
+    DECIMAL_AS_STRING
+};
+
+
 TeradataEncoder* encoder_new(GiraffeColumns *columns, EncoderSettings *settings) {
     TeradataEncoder *e;
     e = (TeradataEncoder*)malloc(sizeof(TeradataEncoder));
+    if (settings == NULL) {
+        settings = &default_settings;
+    }
     e->Columns = columns;
     e->Settings = *settings;
     e->Delimiter = NULL;
@@ -45,9 +55,7 @@ TeradataEncoder* encoder_new(GiraffeColumns *columns, EncoderSettings *settings)
     e->UnpackDecimalFunc = NULL;
     encoder_set_delimiter(e, DEFAULT_DELIMITER);
     encoder_set_null(e, DEFAULT_NULLVALUE);
-    if (settings != NULL) {
-        encoder_set_encoding(e, settings);
-    }
+    encoder_set_encoding(e, settings);
     return e;
 }
 

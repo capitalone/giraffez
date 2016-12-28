@@ -291,7 +291,7 @@ class TPTExtension(Extension):
         "giraffez/tptmodule.cc",
     ]
 
-    depends_on = [EncoderExtension]
+    depends_on = [EncoderExtension, CLIExtension]
 
     tpt_include_dir = None
     tpt_library_dir = None
@@ -339,12 +339,15 @@ class TPTExtension(Extension):
 
         if platform.system() == 'Windows':
             self.libraries.append("telapi")
+            self.libraries.append("wincli32")
         elif platform.system() == 'Linux':
             self.libraries.append("telapi")
             self.libraries.append("pxicu")
+            self.libraries.append("cliv2")
         elif platform.system() == 'Darwin':
             self.libraries.append("telapi")
             self.libraries.append("pxicu")
+            self.libraries.append("cliv2")
 
 
 class BuildExt(build_ext):
@@ -390,6 +393,7 @@ class BuildExt(build_ext):
                     objects += self.compile(dep())
                 else:
                     objects += self.cache[dep.name]
+                objects = list(set(objects))
 
         # Return early when a shared object is not being created. This
         # is useful when dealing with Extensions that need to have

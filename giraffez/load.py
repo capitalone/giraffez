@@ -18,16 +18,14 @@ import datetime
 
 from collections import defaultdict
 
-from .cmd import *
-from .connection import *
 from .constants import *
-from .encoders import *
 from .errors import *
-from .io import *
-from .logging import *
-from .sql import *
-from .types import *
-from .utils import *
+
+from .cmd import TeradataCmd
+from .encoders import check_input, null_handler, python_to_sql
+from .io import CSVReader, JSONReader, Reader
+from .logging import log
+from .utils import pipeline
 
 
 __all__ = ['TeradataLoad']
@@ -141,6 +139,6 @@ class TeradataLoad(TeradataCmd):
                 yield current_block
         log.info("Load", "Executing ...")
         for block in _fetch():
-            self.execute_many(block, sanitize=True, parallel=True, silent=True)
+            self.execute(block, sanitize=True, multi_statement=True, silent=True)
             log.info(self.options)
         return stats

@@ -40,10 +40,12 @@ PyObject* check_tdcli_error(unsigned char *dataptr);
 PyObject* check_tdcli_failure(unsigned char *dataptr);
 PyObject* check_parcel_error(TeradataConnection *conn);
 PyObject* check_error(TeradataConnection *conn);
-PyObject* teradata_connect(TeradataConnection *conn, const char *host, const char *username,
+PyObject* teradata_close(TeradataConnection *conn);
+TeradataConnection* teradata_connect(const char *host, const char *username,
     const char *password);
 PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const char *command);
-PyObject* handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data,
+PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command);
+PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data,
     const uint32_t length);
 
 #ifdef __cplusplus

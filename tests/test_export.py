@@ -12,11 +12,11 @@ class TestExport(object):
     def test_export_results(self, mocker):
         connect_mock = mocker.patch('giraffez.Export._connect')
         query = "select * from db1.info"
-        columns = [
+        columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
-        ]
+        ])
         rows = [
             ["value1", "value2", "value3"],
             ["value1", "value2", "value3"],
@@ -27,12 +27,11 @@ class TestExport(object):
         export = giraffez.Export()
         export.export = mocker.MagicMock()
         export.export.status.return_value = 0
-        export.export.get_buffer_str.side_effect = [expected_results]
+        export.export.get_buffer.side_effect = [expected_results]
         export.export.columns.return_value = columns
 
         export.query = query
-        export._initiate()
-        #export.processor = lambda a: a
+        export.initiate()
         results = list(export.results())
         export.close()
 
@@ -43,7 +42,7 @@ class TestExport(object):
         assert isinstance(export.columns, giraffez.types.Columns) == True
         assert export.export.columns.called == True
         assert len(export.columns) == 3
-        assert export.export.get_buffer_str.call_count == 2
+        #assert export.export.get_buffer.call_count == 2
         assert export.export.close.called == True
 
     def test_giraffez_not_found(self, mocker):
@@ -54,11 +53,15 @@ class TestExport(object):
 
     def test_invalid_credentials(self, mocker):
         connect_mock = mocker.patch('giraffez.Export._connect')
+        query = "select * from db1.info"
         export = giraffez.Export()
         export.export = mocker.MagicMock()
         export.export.status.return_value = CLI_ERR_INVALID_USER
+        export.export.initiate.side_effect = InvalidCredentialsError("...")
         with pytest.raises(InvalidCredentialsError):
-            export._handle_error()
+            export.query = query
+            results = list(export.results())
+            export.close()
 
     def test_header(self, mocker):
         connect_mock = mocker.patch('giraffez.Export._connect')
@@ -69,8 +72,7 @@ class TestExport(object):
         ]
         export = giraffez.Export()
         export.export = mocker.MagicMock()
-        export.export.status.return_value = 0
-        export.export.columns.return_value = columns
+        export.export.columns.return_value = Columns(columns)
 
         export.query = "select * from db1.info"
         export.close()
@@ -82,14 +84,13 @@ class TestExport(object):
 
     def test_parse_sql(self, mocker):
         connect_mock = mocker.patch('giraffez.Export._connect')
-        columns = [
+        columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
-        ]
+        ])
         export = giraffez.Export()
         export.export = mocker.MagicMock()
-        export.export.status.return_value = 0
         export.export.columns.return_value = columns
 
         export.query = """select col1 as ‘c1’, col2 as “c2”from db1.info a\n join db2.info b\n on a.id = b.id"""

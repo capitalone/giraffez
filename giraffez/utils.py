@@ -26,7 +26,8 @@ import warnings
 
 from .constants import *
 from .errors import *
-from .logging import *
+
+from .logging import log
 
 from ._compat import *
 

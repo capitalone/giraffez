@@ -25,11 +25,12 @@
 
 
 // TODO: remove columns, result and row types
+// TODO: return errors better
+// TODO: cleanup unused
 
 static PyObject *ColumnsType;
 static PyObject *DecimalType;
 static PyObject *DateType;
-static PyObject *ResultType;
 static PyObject *RowType;
 static PyObject *TimeType;
 static PyObject *TimestampType;
@@ -95,7 +96,6 @@ int giraffez_columns_import() {
         return -1;
     }
     ColumnsType = PyObject_GetAttrString(mod, "Columns");
-    ResultType = PyObject_GetAttrString(mod, "Result");
     RowType = PyObject_GetAttrString(mod, "Row");
     Py_DECREF(mod);
     return 0;
@@ -276,18 +276,6 @@ PyObject* giraffez_decimal_from_pystring(PyObject *s) {
     PyObject *obj;
     obj = PyObject_CallFunction(DecimalType, "O", s);
     Py_DECREF(s);
-    return obj;
-}
-
-PyObject* giraffez_result_from_rows(PyObject* columns, PyObject* rows) {
-    PyObject* d;
-    PyObject* obj;
-    d = PyDict_New();
-    PyDict_SetItemString(d, "columns", columns);
-    PyDict_SetItemString(d, "rows", rows);
-    obj = PyObject_CallFunction(ResultType, "O", d);
-    Py_DECREF(rows);
-    Py_DECREF(d);
     return obj;
 }
 

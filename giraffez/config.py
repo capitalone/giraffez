@@ -20,12 +20,11 @@ import base64
 
 import yaml
 
-from .encrypt import *
 from .errors import *
-from .io import *
-from .logging import *
-from .parser import *
-from .utils import *
+
+from .encrypt import Crypto
+from .io import file_exists, file_permissions, home_file
+from .logging import log, colors
 
 from ._compat import *
 

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# XXX: still necessary? i think it is because of the std lib 'cmd'
 from __future__ import absolute_import
 
 import cmd as _cmd
@@ -25,16 +26,12 @@ import itertools
 import functools
 import threading
 
-from .cmd import *
 from .constants import *
 from .errors import *
-from .fmt import *
-from .logging import *
-from .parser import *
-from .utils import *
 
-
-__all__ = ['GiraffeShell']
+from .fmt import format_table
+from .logging import log, setup_logging
+from .utils import get_version_info, timer
 
 
 setup_logging()

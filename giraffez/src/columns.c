@@ -31,16 +31,23 @@
 GiraffeColumn* column_new() {
     GiraffeColumn *column;
     column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
+    column->Database = NULL;
+    column->Table = NULL;
     column->Name = NULL;
-    column->Title = NULL;
-    column->Alias = NULL;
     column->Type = 0;
     column->Length = 0;
     column->Precision = 0;
+    column->Interval = 0;
     column->Scale = 0;
-    column->Nullable = NULL;
-    column->Default = NULL;
+    column->GDType = 0;
+    column->TPTType = 0;
+    column->Alias = NULL;
+    column->Title = NULL;
     column->Format = NULL;
+    column->Default = NULL;
+    column->Nullable = NULL;
+    column->NullLength = 0;
+    column->SafeName = NULL;
     return column;
 }
 
@@ -56,6 +63,12 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
     if (c->length == c->size) {
         c->size *= 2;
         c->array = (GiraffeColumn*)realloc(c->array, c->size * sizeof(GiraffeColumn));
+    }
+    if (element.Type < BLOB_NN) {
+        element.TPTType = element.Type;
+        element.Type = tpt_type_to_teradata_type(element.Type);
+    } else {
+        element.TPTType = teradata_type_to_tpt_type(element.Type);
     }
     element.GDType = teradata_type_to_giraffez_type(element.Type);
     if (element.GDType == GD_VARCHAR) {

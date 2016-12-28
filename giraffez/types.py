@@ -20,14 +20,14 @@ import struct
 
 from .constants import *
 from .errors import *
-from .fmt import *
-from .logging import *
+
+from .fmt import safe_name
+from .logging import log
 
 from ._compat import *
 
 
-__all__ = ['Column', 'Columns', 'Bytes', 'Date', 'Decimal', 'Time', 'Timestamp', 'Result',
-    'Results', 'Row']
+__all__ = ['Column', 'Columns', 'Bytes', 'Date', 'Decimal', 'Time', 'Timestamp', 'Row']
 
 
 DATE_FORMATS = [
@@ -63,6 +63,7 @@ class Bytes(object):
         self.raw_array[byte] |= 128 >> bit
 
     def __add__(self, other):
+        # XXX: b2s isn't even defined
         return b2s(self) + other
 
     def __bytes__(self):
@@ -203,6 +204,8 @@ class Columns(object):
     A set of :class:`~giraffez.types.Column` objects, used to convey
     original table schema without losing information.
     """
+
+    __slots__ = ('columns', '_column_map', '_filtered_columns')
 
     def __init__(self, items=[]):
         self.columns = []
@@ -461,194 +464,6 @@ class Decimal(decimal.Decimal):
         return self.__str__()
 
 
-class Result(object):
-    """
-    Contains the result of a Teradata query
-
-    Defines the :code:`__len__` magic method to get the number of rows returned:
-
-    .. code-block:: python
-
-       result = cli.execute("select * from tablename;")
-       num_rows = len(result)
-
-    Defines the :code:`__iter__` magic method to iterate through the returned rows:
-
-    .. code-block:: python
-
-       for row in result:
-           print(row)
-
-    Defines the :code:`__getattr__` magic method to return a list of values for a given column:
-
-    .. code-block:: python
-
-       print(results.first_name) # ['alice', 'bob', 'charlie', ...]
-
-    Defines the :code:`__getitem__` magic method to return a list of values for a given column, or numeric index:
-
-    .. code-block:: python
-
-       print(results.columns.names) # first_name, last_name, id
-       print(results['first_name']) # ['alice', 'bob', 'charlie', ...]
-       print(results['id']) # ['abc123', 'bcd234', 'cde345', ...]
-       print(results[2]) # ['abc123', 'bcd234', 'cde345', ...]
-    """
-
-    def __init__(self, result):
-        self.result = result
-
-    @property
-    def columns(self):
-        """
-        The column data for the corresponding rows
-
-        :rtype: :class:`~giraffez.types.Columns` 
-        """
-        return self.result["columns"]
-
-    def first(self):
-        """
-        Return the first row (or :code:`None`) if no rows in result
-
-        :return: The first row in the results
-        :rtype: :class:`~giraffez.types.Row`
-        """
-        try:
-            return next(self.rows)
-        except IndexError:
-            return None
-
-    @property
-    def rows(self):
-        """
-        The returned row data
-
-        :return: a list of rows
-            (ordered corresponding to :meth:`~giraffez.types.Result.columns`)
-        :rtype: list of :class:`~giraffez.types.Row`
-        """
-        for row in self.result["rows"]:
-            yield row
-
-    def items(self):
-        """
-        Generator method for iterating over the :code:`dict` representations of
-        each row in the result
-
-        :return: a generator yielding each row with 
-            :meth:`~giraffez.types.Row.to_dict` called on each
-        :rtype: generator of :code:`dict`
-        """
-        for row in self.rows:
-            yield row.to_dict()
-            #yield row.items()
-
-    def to_json(self):
-        """
-        .. deprecated:: 1.0.5
-            Use :meth:`~giraffez.types.Result.items` instead.
-        """
-        return self.items()
-
-    def __getattr__(self, name):
-        try:
-            index = self.columns._column_map[name]
-            return [row.__getitem__(index) for row in self.rows]
-        except KeyError:
-            raise AttributeError("'{}' object has no attribute '{}'".format(
-                self.__class__.__name__, name))
-
-    def __getitem__(self, key):
-        if isinstance(key, basestring):
-            try:
-                index = self.columns._column_map[key]
-                return [row.__getitem__(index) for row in self.rows]
-            except KeyError:
-                raise AttributeError("'{}' object has no attribute '{}'".format(
-                    self.__class__.__name__, key))
-        else:
-            return self.rows.__getitem__(key)
-
-    def __iter__(self):
-        for row in self.result["rows"]:
-            yield row
-
-    def __len__(self):
-        return len(self.result["rows"])
-
-    def __repr__(self):
-        return "\n".join([repr(x) for x in self.rows])
-
-    def __str__(self):
-        return self.__repr__()
-
-
-class Results(object):
-    """
-    A set of :class:`~giraffez.types.Result` objects returned by queries
-
-    Defines the :code:`__iter__` magic method for convenience:
-
-    .. code-block:: python
-
-       results = cli.execute_many('''select * from table_a;
-           select * from table_b;''')
-       for result in results:
-           print(result.rows)
-
-    Defines the :code:`__getitem__` magic method to allow numeric indexing:
-
-    .. code-block:: python
-
-       results = cli.execute_many('''select * from table_a;
-           select * from table_b;''')
-       print(results[1]) # results from 'select * from table_b'
-    """
-
-    def __init__(self, results=[]):
-        self.results = []
-        for result in results:
-            self.append(result)
-
-    def append(self, item):
-        if isinstance(item, Result):
-            self.results.append(item)
-        elif isinstance(item, dict):
-            self.results.append(Result(item))
-        else:
-            raise GiraffeError(("Object of type '{}' is not a valid argument for "
-                "`Results.append`.").format(type(item)))
-
-    def one(self):
-        """
-        Return the first result, or none if there are no result sets
-
-        :return: The first result in the set
-        :rtype: :class:`~giraffez.types.Result`
-        """
-        try:
-            return self.results[0]
-        except IndexError:
-            return None
-
-    def __getitem__(self, key):
-        return self.results.__getitem__(key)
-
-    def __iter__(self):
-        for result in self.results:
-            yield result
-
-    def __len__(self):
-        return len(self.results)
-
-    def __repr__(self):
-        return "\n".join([str(x) for x in self.results])
-
-    def __str__(self):
-        return self.__repr__()
-
-
 class Row(object):
     """
     A wrapper for a single row within a :class:`~giraffez.types.Result` object.
@@ -681,14 +496,13 @@ class Row(object):
        print(row[2]) # 'abc123'
     """
 
-    __slots__ = ('columns', 'column_map', 'row')
+    __slots__ = ('columns', 'row')
 
     def __init__(self, columns, row):
         self.columns = columns
-        self.column_map = columns._column_map
         self.row = row
 
-    def to_dict(self):
+    def items(self):
         """
         Represents the contents of the row as a :code:`dict` with the column
         names as keys, and the row's fields as values. Used by 
@@ -699,16 +513,9 @@ class Row(object):
         """
         return {k.name: v for k, v in zip(self.columns, self)}
 
-    def to_json(self):
-        """
-        .. deprecated:: 1.0.5
-            Use :meth:`~giraffez.types.Row.to_dict` instead.
-        """
-        return self.to_dict()
-
     def __getattr__(self, name):
         try:
-            index = self.column_map[name]
+            index = self.columns._column_map[name]
             return self.__getitem__(index)
         except KeyError:
             raise AttributeError("'{}' object has no attribute '{}'".format(
@@ -717,7 +524,7 @@ class Row(object):
     def __getitem__(self, key):
         if isinstance(key, basestring):
             try:
-                return self.row[self.column_map[key]]
+                return self.row[self.columns._column_map[key]]
             except KeyError:
                 raise AttributeError("Row has no column '{}'".format(key))
         else:
@@ -731,7 +538,7 @@ class Row(object):
         return len(self.row)
 
     def __repr__(self):
-        return str(self.to_dict())
+        return str(self.items())
 
     def __str__(self):
         return self.__repr__()

@@ -4,8 +4,9 @@ import pytest
 
 import giraffez
 from giraffez.constants import *
+from giraffez.errors import *
 from giraffez.types import Columns
-from giraffez.utils import *
+#from giraffez.utils import *
 
 
 @pytest.mark.usefixtures('config')
@@ -24,17 +25,17 @@ class TestMLoad(object):
             ["value1", "value2", "value3"],
         ]
         mload = giraffez.MLoad()
-        mload.load = mocker.MagicMock()
-        mload.load.status.return_value = 0
-        mload.load.put_row.return_value = 0
-        mload.load.checkpoint.return_value = 0
-        mload.load.get_event.side_effect = [
+        mload.mload = mocker.MagicMock()
+        mload.mload.status.return_value = 0
+        mload.mload.put_row.return_value = 0
+        mload.mload.checkpoint.return_value = 0
+        mload.mload.get_event.side_effect = [
             b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80',
             b'\x00\x00\x00\x00',
             b'\x00\x00',
         ]
         mload.cmd = mocker.Mock()
-        mload.cmd.get_columns = mocker.Mock(return_value=columns)
+        mload.mload.columns = mocker.Mock(return_value=columns)
 
         mload.table = table
         for row in rows:
@@ -44,9 +45,16 @@ class TestMLoad(object):
 
         mload_connect_mock.assert_called_with('db1', 'user123', 'pass456')
 
-        assert mload.load.initiate.called == True
-        assert mload.load.put_row.call_count == 3
-        assert mload.load.end_acquisition.called == True
-        assert mload.load.apply_rows.called == True
-        assert mload.load.close.called == True
+        assert mload.mload.initiate.called == True
+        assert mload.mload.put_row.call_count == 3
+        assert mload.mload.end_acquisition.called == True
+        assert mload.mload.apply_rows.called == True
+        assert mload.mload.close.called == True
         assert mload.cmd.close.called == True
+
+    def test_mload_invalid_encoding(self, mocker):
+        mload_connect_mock = mocker.patch('giraffez.MLoad._connect')
+        mload = giraffez.MLoad()
+        mload.mload = mocker.MagicMock()
+        with pytest.raises(GiraffeError):
+            mload.encoding = "invalid"

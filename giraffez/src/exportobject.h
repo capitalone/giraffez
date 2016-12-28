@@ -20,23 +20,25 @@
 #include <Python.h>
 
 // Teradata Parallel Transporter API
-#include <connection.h>
-#include <schema.h>
+//#include <connection.h>
+//#include <schema.h>
 
-#include "encoder.h"
+//#include "encoder.h"
+#include "connection.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-using namespace teradata::client::API;
+//using namespace teradata::client::API;
 
 typedef struct {
     PyObject_HEAD
-    bool connected;
-    int status;
-    Connection *conn;
-    TeradataEncoder *encoder;
+    //bool connected;
+    //int status;
+    //Connection *conn;
+    //TeradataEncoder *encoder;
+    Giraffez::Connection *conn;
 } Export;
 
 extern PyTypeObject ExportType;

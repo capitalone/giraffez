@@ -205,6 +205,7 @@ typedef struct TeradataTypes {
     } TptTypes;
 } TeradataTypes;
 
+uint16_t teradata_type_to_tpt_type(uint16_t t);
 uint16_t tpt_type_to_teradata_type(uint16_t t);
 uint16_t teradata_type_to_giraffez_type(uint16_t t);
 

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# XXX: still necessary?
 GIRAFFE_NOT_FOUND = False
 try:
     from . import _encoder
@@ -26,18 +27,14 @@ try:
 except ImportError:
     TDCLI_NOT_FOUND = True
 
-from .config import *
-from .connection import *
 from .constants import *
-from .encoders import *
 from .errors import *
-from .fmt import *
-from .io import *
-from .logging import *
-from .parser import *
-from .sql import *
-from .types import *
-from .utils import *
+
+from .connection import Connection
+from .logging import log
+from .sql import parse_statement, prepare_statement
+from .types import Columns, Row
+from .utils import suppress_context
 
 
 __all__ = ['TeradataCmd']
@@ -99,6 +96,7 @@ class TeradataCmd(Connection):
         try:
             self.cmd = _cli.Cmd(host, username, password, decimal_return_type=self.decimal_return_type)
         except _cli.error as error:
+            # TODO: make sure protect/lock connection work
             raise TeradataError(error)
 
     def close(self):
@@ -183,6 +181,8 @@ class TeradataCmd(Connection):
                 columns = Columns(self.cmd.columns())
                 for column in columns:
                     log.verbose("Debug[1]", repr(column))
+                if prepare_only:
+                    yield Row(columns, [])
                 while True:
                     try:
                         data = self.cmd.fetchone()
@@ -228,7 +228,8 @@ class TeradataCmd(Connection):
         :return: the columns of the table
         :rtype: :class:`~giraffez.types.Columns`
         """
-        return self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True).columns
+        for row in self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True):
+            return row.columns
 
     def release_mload(self, table_name, silent=False):
         """

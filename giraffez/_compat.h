@@ -37,6 +37,7 @@
 
   #define Py_TPFLAGS_HAVE_ITER 0
   #define MOD_ERROR_VAL NULL
+  #define _PyUnicode_Check(ob) PyUnicode_Check(ob)
 
   #define TEXT_T Py_UNICODE
 #else

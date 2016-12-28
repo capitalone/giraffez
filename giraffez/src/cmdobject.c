@@ -30,12 +30,6 @@
 #define MAX_PARCEL_ATTEMPTS 5
 
 
-static EncoderSettings settings = {
-    ROW_ENCODING_LIST,
-    ITEM_ENCODING_GIRAFFE_TYPES,
-    DECIMAL_AS_STRING
-};
-
 
 PyObject* check_tdcli_error(unsigned char *dataptr) {
     TeradataError *err;
@@ -64,11 +58,12 @@ PyObject* check_parcel_error(TeradataConnection *conn) {
 }
 
 PyObject* check_error(TeradataConnection *conn) {
-    if (conn->result == REQEXHAUST) {
+    if (conn->result == REQEXHAUST && conn->connected) {
         if (tdcli_end_request(conn) != OK) {
             PyErr_Format(GiraffeError, "%d: %s", conn->result, conn->dbc->msg_text);
             return NULL;
         }
+        conn->connected = NOT_CONNECTED;
     } else if (conn->result != OK) {
         PyErr_Format(GiraffeError, "%d: %s", conn->result, conn->dbc->msg_text);
         return NULL;
@@ -76,30 +71,51 @@ PyObject* check_error(TeradataConnection *conn) {
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_connect(TeradataConnection *conn, const char *host, const char *username,
+PyObject* teradata_close(TeradataConnection *conn) {
+    if (conn == NULL) {
+        Py_RETURN_NONE;
+    }
+    if (tdcli_end_request(conn) != OK) {
+        PyErr_Format(GiraffeError, "%d: %s", conn->result, conn->dbc->msg_text);
+        return NULL;
+    }
+    tdcli_free(conn);
+    conn = NULL;
+    Py_RETURN_NONE;
+}
+
+TeradataConnection* teradata_connect(const char *host, const char *username,
         const char *password) {
     int status;
+    TeradataConnection *conn;
+    conn = tdcli_new();
     if ((status = tdcli_init(conn)) != OK) {
         PyErr_Format(GiraffeError, "CLIv2[init]: %s", conn->dbc->msg_text);
+        tdcli_free(conn);
         return NULL;
     }
     if ((status = tdcli_connect(conn, host, username, password)) != OK) {
         PyErr_Format(GiraffeError, "CLIv2[connect]: %s", conn->dbc->msg_text);
+        tdcli_free(conn);
         return NULL;
     }
     if ((status = tdcli_fetch(conn)) != OK) {
         PyErr_Format(GiraffeError, "CLIv2[fetch]: %s", conn->dbc->msg_text);
+        tdcli_free(conn);
         return NULL;
     } else {
         if (check_parcel_error(conn) == NULL) {
+            tdcli_free(conn);
             return NULL;
         }
     }
     if (tdcli_end_request(conn) != OK) {
         PyErr_Format(GiraffeError, "CLIv2[end_request]: %s", conn->dbc->msg_text);
+        tdcli_free(conn);
         return NULL;
     }
-    Py_RETURN_NONE;
+    conn->connected = CONNECTED;
+    return conn;
 }
 
 PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const char *command) {
@@ -115,7 +131,7 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
     count = 0;
     // Find first statement info parcel only
     while (tdcli_fetch_record(conn) == OK && count < MAX_PARCEL_ATTEMPTS) {
-        if ((row = handle_record(e, conn->dbc->fet_parcel_flavor,
+        if ((row = teradata_handle_record(e, conn->dbc->fet_parcel_flavor,
                 (unsigned char**)&conn->dbc->fet_data_ptr,
                 conn->dbc->fet_ret_data_len)) == NULL) {
             return NULL;
@@ -127,8 +143,15 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
     }
     return check_error(conn);
 }
+PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command) {
+    PyObject *result;
+    conn->dbc->req_proc_opt = 'P';
+    result = teradata_execute(conn, e, command);
+    conn->dbc->req_proc_opt = 'B';
+    return result;
+}
 
-PyObject* handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data, const uint32_t length) {
+PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data, const uint32_t length) {
     PyGILState_STATE state;
     PyObject *row = NULL;
     switch (parcel_t) {
@@ -182,17 +205,20 @@ static PyObject* Cmd_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
 static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
     char *host=NULL, *username=NULL, *password=NULL;
     int decimal_return_type = 0;
+    EncoderSettings settings;
     static char *kwlist[] = {"host", "username", "password", "decimal_return_type", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sss|i", kwlist, &host, &username, &password,
             &decimal_return_type)) {
         return -1;
     }
-    self->conn = tdcli_new();
-    if (teradata_connect(self->conn, host, username, password) == NULL) {
+    if ((self->conn = teradata_connect(host, username, password)) == NULL) {
         return -1;
     }
-    self->conn->connected = CONNECTED;
-    settings.decimal_return_type = decimal_return_type;
+    settings = (EncoderSettings){
+        ROW_ENCODING_LIST,
+        ITEM_ENCODING_GIRAFFE_TYPES,
+        (DecimalReturnType)decimal_return_type
+    };
     self->encoder = encoder_new(NULL, &settings);
     return 0;
 }
@@ -200,7 +226,7 @@ static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
 static PyObject* Cmd_close(Cmd *self) {
     tdcli_close(self->conn);
     self->conn->connected = NOT_CONNECTED;
-    return Py_BuildValue("i", self->conn->connected);
+    Py_RETURN_NONE;
 }
 
 static PyObject* Cmd_columns(Cmd *self) {
@@ -236,7 +262,7 @@ static PyObject* Cmd_execute(Cmd *self, PyObject *args, PyObject *kwargs) {
 static PyObject* Cmd_fetchone(Cmd *self) {
     PyObject* row = NULL;
     while (tdcli_fetch_record(self->conn) == OK) {
-        if ((row = handle_record(self->encoder, self->conn->dbc->fet_parcel_flavor,
+        if ((row = teradata_handle_record(self->encoder, self->conn->dbc->fet_parcel_flavor,
                 (unsigned char**)&self->conn->dbc->fet_data_ptr,
                 self->conn->dbc->fet_ret_data_len)) == NULL) {
             return NULL;

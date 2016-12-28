@@ -18,14 +18,10 @@ import textwrap
 
 from .constants import *
 from .errors import *
-from .logging import *
-from .utils import *
+
+from .logging import log
 
 from ._compat import *
-
-
-__all__ = ['escape_quotes', 'format_indent', 'format_table', 'safe_name', 'quote_string',
-    'replace_cr', 'truncate']
 
 
 def escape_quotes(s):

@@ -26,6 +26,167 @@
 const uint16_t VARCHAR_NULL_LENGTH = 2;
 
 
+uint16_t teradata_type_to_tpt_type(uint16_t t) {
+    switch (t) {
+        case BLOB_NN:
+        case BLOB_N:
+        case BLOB_AS_DEFERRED_NN:
+        case BLOB_AS_DEFERRED_N:
+        case BLOB_AS_LOCATOR_NN:
+        case BLOB_AS_LOCATOR_N:
+            return TD_BLOB;
+        case BLOB_AS_DEFERRED_NAME_NN:
+        case BLOB_AS_DEFERRED_NAME_N:
+            return TD_BLOB_AS_DEFERRED_BY_NAME;
+        case CLOB_NN:
+        case CLOB_N:
+            return TD_CLOB;
+        case CLOB_AS_DEFERRED_NN:
+        case CLOB_AS_DEFERRED_N:
+            return TD_CLOB_AS_DEFERRED_BY_NAME;
+        case CLOB_AS_LOCATOR_NN:
+        case CLOB_AS_LOCATOR_N:
+            return TD_CLOB;
+        case UDT_NN:
+        case UDT_N:
+        case DISTINCT_UDT_NN:
+        case DISTINCT_UDT_N:
+        case STRUCT_UDT_NN:
+        case STRUCT_UDT_N:
+            return TD_CHAR;
+        case VARCHAR_NN:
+        case VARCHAR_N:
+            return TD_VARCHAR;
+        case CHAR_NN:
+        case CHAR_N:
+            return TD_CHAR;
+        case LONG_VARCHAR_NN:
+        case LONG_VARCHAR_N:
+            return TD_LONGVARCHAR;
+        case VARGRAPHIC_NN:
+        case VARGRAPHIC_N:
+            return TD_VARGRAPHIC;
+        case GRAPHIC_NN:
+        case GRAPHIC_N:
+            return TD_GRAPHIC;
+        case LONG_VARGRAPHIC_NN:
+        case LONG_VARGRAPHIC_N:
+            return TD_LONGVARGRAPHIC;
+        case FLOAT_NN:
+        case FLOAT_N:
+            return TD_FLOAT;
+        case DECIMAL_NN:
+        case DECIMAL_N:
+            return TD_DECIMAL;
+        case INTEGER_NN:
+        case INTEGER_N:
+            return TD_INTEGER;
+        case SMALLINT_NN:
+        case SMALLINT_N:
+            return TD_SMALLINT;
+        case ARRAY_1D_NN:
+        case ARRAY_1D_N:
+        case ARRAY_ND_NN:
+        case ARRAY_ND_N:
+            return TD_CHAR;
+        case BIGINT_NN:
+        case BIGINT_N:
+            return TD_BIGINT;
+        case VARBYTE_NN:
+        case VARBYTE_N:
+            return TD_VARBYTE;
+        case BYTE_NN:
+        case BYTE_N:
+            return TD_BYTE;
+        case LONG_VARBYTE_NN:
+        case LONG_VARBYTE_N:
+            return TD_LONGVARCHAR;
+        case DATE_NNA:
+        case DATE_NA:
+            return TD_CHAR;
+        case DATE_NN:
+        case DATE_N:
+            return TD_DATE;
+        case BYTEINT_NN:
+        case BYTEINT_N:
+            return TD_BYTEINT;
+        case TIME_NN:
+        case TIME_N:
+            return TD_TIME;
+        case TIMESTAMP_NN:
+        case TIMESTAMP_N:
+            return TD_TIMESTAMP;
+        case TIME_NNZ:
+        case TIME_NZ:
+            return TD_TIME_WITHTIMEZONE;
+        case TIMESTAMP_NNZ:
+        case TIMESTAMP_NZ:
+            return TD_TIMESTAMP_WITHTIMEZONE;
+        case INTERVAL_YEAR_NN:
+        case INTERVAL_YEAR_N:
+            return TD_INTERVAL_YEAR;
+        case INTERVAL_YEAR_TO_MONTH_NN:
+        case INTERVAL_YEAR_TO_MONTH_N:
+            return TD_INTERVAL_YEARTOMONTH;
+        case INTERVAL_MONTH_NN:
+        case INTERVAL_MONTH_N:
+            return TD_INTERVAL_MONTH;
+        case INTERVAL_DAY_NN:
+        case INTERVAL_DAY_N:
+            return TD_INTERVAL_DAY;
+        case INTERVAL_DAY_TO_HOUR_NN:
+        case INTERVAL_DAY_TO_HOUR_N:
+            return TD_INTERVAL_DAYTOHOUR;
+        case INTERVAL_DAY_TO_MINUTE_NN:
+        case INTERVAL_DAY_TO_MINUTE_N:
+            return TD_INTERVAL_DAYTOMINUTE;
+        case INTERVAL_DAY_TO_SECOND_NN:
+        case INTERVAL_DAY_TO_SECOND_N:
+            return TD_INTERVAL_DAYTOSECOND;
+        case INTERVAL_HOUR_NN:
+        case INTERVAL_HOUR_N:
+            return TD_INTERVAL_HOUR;
+        case INTERVAL_HOUR_TO_MINUTE_NN:
+        case INTERVAL_HOUR_TO_MINUTE_N:
+            return TD_INTERVAL_HOURTOMINUTE;
+        case INTERVAL_HOUR_TO_SECOND_NN:
+        case INTERVAL_HOUR_TO_SECOND_N:
+            return TD_INTERVAL_HOURTOSECOND;
+        case INTERVAL_MINUTE_NN:
+        case INTERVAL_MINUTE_N:
+            return TD_INTERVAL_MINUTE;
+        case INTERVAL_MINUTE_TO_SECOND_NN:
+        case INTERVAL_MINUTE_TO_SECOND_N:
+            return TD_INTERVAL_MINUTETOSECOND;
+        case INTERVAL_SECOND_NN:
+        case INTERVAL_SECOND_N:
+            return TD_INTERVAL_SECOND;
+        case PERIOD_DATE_NN:
+        case PERIOD_DATE_N:
+            return TD_PERIOD_DATE;
+        case PERIOD_TIME_NN:
+        case PERIOD_TIME_N:
+            return TD_PERIOD_TIME;
+        case PERIOD_TIME_NNZ:
+        case PERIOD_TIME_NZ:
+            return TD_PERIOD_TIME_TZ;
+        case PERIOD_TIMESTAMP_NN:
+        case PERIOD_TIMESTAMP_N:
+            return TD_PERIOD_TS;
+        case PERIOD_TIMESTAMP_NNZ:
+        case PERIOD_TIMESTAMP_NZ:
+            return TD_PERIOD_TS_TZ;
+        case XML_TEXT_NN:
+        case XML_TEXT_N:
+        case XML_TEXT_DEFERRED_NN:
+        case XML_TEXT_DEFERRED_N:
+        case XML_TEXT_LOCATOR_NN:
+        case XML_TEXT_LOCATOR_N:
+            return TD_CHAR;
+    }
+    return TD_CHAR;
+}
+
 uint16_t tpt_type_to_teradata_type(uint16_t t) {
     switch (t) {
         case TD_INTEGER:
@@ -119,9 +280,6 @@ uint16_t tpt_type_to_teradata_type(uint16_t t) {
 }
 
 uint16_t teradata_type_to_giraffez_type(uint16_t t) {
-    if (t < BLOB_NN) {
-        t = tpt_type_to_teradata_type(t);
-    }
     switch (t) {
         case BLOB_NN:
         case BLOB_N:

@@ -14,31 +14,27 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFEZ_MLOAD_OBJECT_H
-#define __GIRAFFEZ_MLOAD_OBJECT_H
-
-#include <Python.h>
-
-// Teradata Parallel Transporter API
-#include <connection.h>
-#include <schema.h>
-#include <DMLGroup.h>
-
-#include <sstream>
-
+#ifndef __GIRAFFEZ_PACK_H
+#define __GIRAFFEZ_PACK_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "connection.h"
+#include <Python.h>
+#if defined(WIN32) || defined(WIN64)
+#include <pstdint.h>
+#else
+#include <stdint.h>
+#endif
 
-typedef struct {
-    PyObject_HEAD
-    Giraffez::Connection *conn;
-} MLoad;
+#include "columns.h"
+#include "encoder.h"
 
-extern PyTypeObject MLoadType;
+
+PyObject* pack_rows(const TeradataEncoder *e, unsigned char **data, const uint32_t length);
+PyObject* unpack_row(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
+PyObject* pack_row_item(const TeradataEncoder *e, unsigned char **data, const GiraffeColumn *column);
 
 #ifdef __cplusplus
 }

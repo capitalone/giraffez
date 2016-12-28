@@ -48,6 +48,79 @@ char* safe_name(const char *name) {
     return s;
 }
 
+void pack_int8_t(unsigned char **data, int8_t val) {
+    *((*data)++) = val;
+}
+
+void pack_int16_t(unsigned char **data, int16_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+}
+
+void pack_uint16_t(unsigned char **data, uint16_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+}
+
+void pack_int32_t(unsigned char **data, int32_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+    *((*data)++) = val >> 16;
+    *((*data)++) = val >> 24;
+}
+
+void pack_uint32_t(unsigned char **data, uint32_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+    *((*data)++) = val >> 16;
+    *((*data)++) = val >> 24;
+}
+
+void pack_int64_t(unsigned char **data, int64_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+    *((*data)++) = val >> 16;
+    *((*data)++) = val >> 24;
+    *((*data)++) = val >> 32;
+    *((*data)++) = val >> 40;
+    *((*data)++) = val >> 48;
+    *((*data)++) = val >> 56;
+}
+
+void pack_uint64_t(unsigned char **data, uint64_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+    *((*data)++) = val >> 16;
+    *((*data)++) = val >> 24;
+    *((*data)++) = val >> 32;
+    *((*data)++) = val >> 40;
+    *((*data)++) = val >> 48;
+    *((*data)++) = val >> 56;
+}
+
+void pack_float(unsigned char **data, double val) {
+    dsplit_t u;
+
+    u.d = val;
+
+    *((*data)++) = u.b[7];
+    *((*data)++) = u.b[6];
+    *((*data)++) = u.b[5];
+    *((*data)++) = u.b[4];
+    *((*data)++) = u.b[3];
+    *((*data)++) = u.b[2];
+    *((*data)++) = u.b[1];
+    *((*data)++) = u.b[0];
+}
+
+void pack_string(unsigned char **data, const char *str, const uint16_t length) {
+    pack_uint16_t(data, length);
+    if (length > 0) {
+        memcpy(*data, str, length);
+        *data += length;
+    }
+}
+
 void unpack_int8_t(unsigned char **data, int8_t *dst) {
     *dst = *((*data)++);
 }

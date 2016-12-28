@@ -22,18 +22,16 @@ except ImportError:
 
 from collections import defaultdict
 
-from .config import *
-from .connection import *
 from .constants import *
-from .encoders import *
 from .errors import *
-from .fmt import *
-from .io import *
-from .logging import *
-from .parser import *
-from .sql import *
-from .types import *
-from .utils import *
+
+from .config import Config
+from .connection import Connection
+from .encoders import dict_to_json
+from .fmt import truncate
+from .logging import log
+from .sql import parse_statement, remove_curly_quotes
+from .utils import get_version_info, show_warning, suppress_context
 
 from ._compat import *
 
@@ -219,7 +217,8 @@ class TeradataExport(Connection):
         else:
             self._query = statement
         self.initiated = False
-        self.export.add_attribute(TD_SELECT_STMT, statement)
+        self.export.set_query(statement)
+        #self.export.add_attribute(TD_SELECT_STMT, statement)
 
     def results(self):
         """
@@ -243,6 +242,8 @@ class TeradataExport(Connection):
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
         if not self.initiated:
+            # TODO: this may not be necessary, InvalidCredentialsError
+            # is being checked in the base class.
             try:
                 self.initiate()
             except InvalidCredentialsError as error:

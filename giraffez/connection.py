@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# XXX: still necessary?
 GIRAFFE_NOT_FOUND = False
 try:
     from . import _encoder
@@ -22,11 +23,12 @@ except ImportError:
 
 import collections
 
-from .config import *
 from .constants import *
 from .errors import *
-from .logging import *
-from .utils import *
+
+from .config import Config
+from .logging import log
+from .utils import show_warning, suppress_context
 
 
 __all__ = ['Connection']

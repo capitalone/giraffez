@@ -88,8 +88,7 @@ PyObject* unpack_row_dict(const TeradataEncoder *e, unsigned char **data, const 
             PyDict_SetItemString(row, column->Name, e->NullValue);
             continue;
         }
-        item = e->UnpackItemFunc(e, data, column);
-        if (item == NULL) {
+        if ((item = e->UnpackItemFunc(e, data, column)) == NULL) {
             return NULL;
         }
         PyDict_SetItemString(row, column->Name, item);

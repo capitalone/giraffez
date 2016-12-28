@@ -29,23 +29,25 @@ try:
 except ImportError:
     pass
 
-from .config import *
 from .constants import *
-from .cmd import *
-from .encoders import *
-from .encrypt import *
 from .errors import *
-from .export import *
-from .fmt import *
-from .io import *
-from .logging import *
-from .load import *
-from .mload import *
-from .parser import *
-from .shell import *
-from .sql import *
-from .types import *
-from .utils import *
+
+from .config import Config
+from .cmd import TeradataCmd
+from .encoders import null_handler, python_to_strings, strings_to_text
+from .encrypt import create_key_file
+from .export import TeradataExport
+from .fmt import format_table
+from .io import ArchiveFileReader, FileReader, Reader, Writer, \
+    file_delimiter, file_exists, home_file
+from .logging import colors, log, setup_logging
+from .load import TeradataLoad
+from .mload import TeradataMLoad
+from .parser import Argument, Command
+from .shell import GiraffeShell
+from .sql import parse_statement
+from .utils import pipeline, prompt_bool, readable_time, \
+    register_graceful_shutdown_signal, show_warning
 
 from ._compat import *
 
@@ -59,6 +61,7 @@ setup_logging()
 # because otherwise this would be a default signal handler for any
 # library that imports giraffez.
 register_graceful_shutdown_signal()
+
 
 class CmdCommand(Command):
     name = "cmd"
@@ -87,7 +90,7 @@ class CmdCommand(Command):
                 cmd.options("table_output", args.table_output)
                 for s in statements:
                     start_time = time.time()
-                    result = cmd.execute_one(s)
+                    result = cmd.execute(s)
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
                     if not result:

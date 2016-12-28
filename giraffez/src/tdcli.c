@@ -128,5 +128,6 @@ void tdcli_free(TeradataConnection *conn) {
             free(conn->dbc);
         }
         free(conn);
+        conn = NULL;
     }
 }
