@@ -78,7 +78,7 @@ void pack_uint32_t(unsigned char **data, uint32_t val);
 void pack_int64_t(unsigned char **data, int64_t val);
 void pack_uint64_t(unsigned char **data, uint64_t val);
 void pack_float(unsigned char **data, double val);
-void pack_string(unsigned char **data, const char *str, const uint16_t length);
+uint16_t pack_string(unsigned char **data, const char *str, const uint16_t length);
 void unpack_int8_t(unsigned char **data, int8_t *dst);
 void unpack_int16_t(unsigned char **data, int16_t *dst);
 void unpack_uint16_t(unsigned char **data, uint16_t *dst);

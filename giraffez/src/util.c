@@ -113,12 +113,14 @@ void pack_float(unsigned char **data, double val) {
     *((*data)++) = u.b[0];
 }
 
-void pack_string(unsigned char **data, const char *str, const uint16_t length) {
+uint16_t pack_string(unsigned char **data, const char *str, const uint16_t length) {
     pack_uint16_t(data, length);
     if (length > 0) {
         memcpy(*data, str, length);
         *data += length;
+        return length;
     }
+    return 0;
 }
 
 void unpack_int8_t(unsigned char **data, int8_t *dst) {

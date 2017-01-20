@@ -143,6 +143,7 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
     }
     return check_error(conn);
 }
+
 PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command) {
     PyObject *result;
     conn->dbc->req_proc_opt = 'P';

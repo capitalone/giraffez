@@ -319,10 +319,11 @@ PyObject* vchar_to_pystring(unsigned char **data) {
     return str;
 }
 
-PyObject* pystring_to_vchar(unsigned char **data, PyObject *s) {
+PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len) {
     Py_ssize_t length;
     PyObject *temp = NULL;
     char *str;
+    // TODO: should check for max length?
     if (_PyUnicode_Check(s)) {
         temp = PyUnicode_AsASCIIString(s);
         Py_DECREF(s);
@@ -334,16 +335,17 @@ PyObject* pystring_to_vchar(unsigned char **data, PyObject *s) {
     if ((str = PyBytes_AsString(temp)) == NULL) {
         return NULL;
     }
-    pack_string(data, str, length);
+    *len += pack_string(buf, str, length);
     Py_DECREF(temp);
     Py_RETURN_NONE;
 }
 
-PyObject* pystring_to_char(unsigned char **data, PyObject *s, const uint16_t column_length) {
+PyObject* pystring_to_char(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     Py_ssize_t length;
     PyObject *temp = NULL;
     int fill, i;
     char *str;
+    // TODO: should check for max length?
     if (_PyUnicode_Check(s)) {
         temp = PyUnicode_AsASCIIString(s);
         Py_DECREF(s);
@@ -355,11 +357,101 @@ PyObject* pystring_to_char(unsigned char **data, PyObject *s, const uint16_t col
     if ((str = PyBytes_AsString(temp)) == NULL) {
         return NULL;
     }
-    memcpy(*data, str, length);
+    memcpy(*buf, str, length);
+    *buf += length;
     fill = column_length - length;
     for (i = 0; i < fill; i++) {
-        *((*data)++) = (unsigned char)0x20;
+        *((*buf)++) = (unsigned char)0x20;
     }
+    *len += column_length;
     Py_DECREF(temp);
+    Py_RETURN_NONE;
+}
+
+/*switch (column_length) {*/
+    /*case INTEGER8:*/
+    /*case INTEGER16:*/
+    /*case INTEGER32:*/
+    /*case INTEGER64:*/
+    /*case INTEGER128:*/
+/*}*/
+
+PyObject* pylong_to_byte(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+    int8_t b;
+    if (!PyLong_Check(item)) {
+        return NULL;
+    }
+    b = PyLong_AsLong(item);
+    if (b == (long)-1 && PyErr_Occurred()) {
+        return NULL;
+    }
+    pack_int8_t(buf, b);
+    *len += column_length;
+    Py_RETURN_NONE;
+}
+
+PyObject* pylong_to_short(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+    int16_t h;
+    if (!PyLong_Check(item)) {
+        return NULL;
+    }
+    h = PyLong_AsLong(item);
+    if (h == (long)-1 && PyErr_Occurred()) {
+        return NULL;
+    }
+    pack_int16_t(buf, h);
+    *len += column_length;
+    Py_RETURN_NONE;
+}
+
+PyObject* pylong_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+    int32_t l;
+    if (!PyLong_Check(item)) {
+        return NULL;
+    }
+    l = PyLong_AsLong(item);
+    if (l == (long)-1 && PyErr_Occurred()) {
+        return NULL;
+    }
+    pack_int32_t(buf, l);
+    *len += column_length;
+    Py_RETURN_NONE;
+}
+
+PyObject* pylong_to_long(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+    int64_t q;
+    if (!PyLong_Check(item)) {
+        return NULL;
+    }
+    q = PyLong_AsLong(item);
+    if (q == (long)-1 && PyErr_Occurred()) {
+        return NULL;
+    }
+    pack_int64_t(buf, q);
+    *len += column_length;
+    Py_RETURN_NONE;
+}
+
+PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+    double d;
+    if (!PyFloat_Check(item)) {
+        return NULL;
+    }
+    d = PyFloat_AsDouble(item);
+    if (d == -1.0 && PyErr_Occurred()) {
+        return NULL;
+    }
+    pack_float(buf, d);
+    *len += column_length;
+    Py_RETURN_NONE;
+}
+
+PyObject* pydate_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+    *len += column_length;
+    Py_RETURN_NONE;
+}
+
+PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len) {
+    *len += column_length;
     Py_RETURN_NONE;
 }

@@ -27,6 +27,7 @@
 
 #include "columns.h"
 #include "convert.h"
+#include "pack.h"
 #include "types.h"
 #include "unpack.h"
 
@@ -48,6 +49,7 @@ TeradataEncoder* encoder_new(GiraffeColumns *columns, EncoderSettings *settings)
     e->Settings = *settings;
     e->Delimiter = NULL;
     e->NullValue = NULL;
+    e->PackRowFunc = pack_row;
     e->UnpackStmtInfoFunc = unpack_stmt_info_to_columns;
     e->UnpackRowsFunc = unpack_rows;
     e->UnpackRowFunc = NULL;

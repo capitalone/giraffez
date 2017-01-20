@@ -24,6 +24,7 @@
 #include <stdint.h>
 #endif
 #include <stdlib.h>
+#include <string.h>
 
 #include "types.h"
 #include "util.h"
@@ -90,15 +91,23 @@ void columns_free(GiraffeColumns *c) {
     c->length = c->size = 0;
 }
 
-void indicator_set(GiraffeColumns* columns, unsigned char** data) {
+void indicator_set(GiraffeColumns *columns, unsigned char **data) {
     size_t i;
     for (i=0; i<columns->header_length; i++) {
         columns->buffer[i] = reverse_lookup[*((*data)++)];
     }
 }
 
-int indicator_read(unsigned char* ind, size_t pos) {
+void indicator_clear(unsigned char **ind, size_t n) {
+    memset(*ind, 0, sizeof(unsigned char) * n);
+}
+
+int indicator_read(unsigned char *ind, size_t pos) {
     return (ind[pos/8] & (1 << (pos % 8)));
+}
+
+void indicator_write(unsigned char **ind, size_t pos, int value) {
+    *ind[pos/8] |= (value << (pos % 8));
 }
 
 void stmt_info_init(StatementInfo *s, size_t initial_size) {

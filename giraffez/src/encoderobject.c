@@ -95,6 +95,20 @@ static PyObject* Encoder_count_rows(PyObject *self, PyObject *args) {
     return PyLong_FromLong(n);
 }
 
+static PyObject* Encoder_pack_row(Encoder *self, PyObject *args) {
+    PyObject *items;
+    if (!PyArg_ParseTuple(args, "O", &items)) {
+        return NULL;
+    }
+    char buf[64000];
+    uint16_t length = 0;
+    if (self->encoder->PackRowFunc(self->encoder, items, (unsigned char**)&buf, &length) == NULL) {
+        PyErr_Format(PyExc_ValueError, "Encoder pack_row failed");
+        return NULL;
+    }
+    return PyBytes_FromStringAndSize(buf, length);
+}
+
 static PyObject* Encoder_set_encoding(Encoder *self, PyObject *args) {
     int row_encoding;
     int item_encoding;
@@ -161,6 +175,7 @@ static PyObject* Encoder_unpack_stmt_info(PyObject *self, PyObject *args) {
 
 static PyMethodDef Encoder_methods[] = {
     {"count_rows", (PyCFunction)Encoder_count_rows, METH_STATIC|METH_VARARGS, ""},
+    {"pack_row", (PyCFunction)Encoder_pack_row, METH_VARARGS, ""},
     {"set_encoding", (PyCFunction)Encoder_set_encoding, METH_VARARGS, ""},
     {"set_delimiter", (PyCFunction)Encoder_set_delimiter, METH_VARARGS, ""},
     {"set_null", (PyCFunction)Encoder_set_null, METH_VARARGS, ""},

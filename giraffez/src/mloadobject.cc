@@ -130,6 +130,7 @@ static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
 static PyObject* MLoad_put_buffer(MLoad *self, PyObject *args, PyObject *kwargs) {
     char *data;
     int length;
+    // TODO: switch to Py_Buffer
     if (!PyArg_ParseTuple(args, "s#", &data, &length)) {
         return NULL;
     }

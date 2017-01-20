@@ -61,6 +61,16 @@ PyObject* short_to_pylong(unsigned char** data);
 PyObject* short_to_pystring(unsigned char** data);
 PyObject* vchar_to_pystring(unsigned char** data);
 
+PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len);
+PyObject* pystring_to_char(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* pylong_to_byte(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* pylong_to_short(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* pylong_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* pylong_to_long(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* pydate_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len);
+
 #ifdef __cplusplus
 }
 #endif
