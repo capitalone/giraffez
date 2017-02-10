@@ -234,6 +234,8 @@ class TeradataMLoad(Connection):
 
     # TODO: could probably make getters/setters part of the base class
     # for things like columns and encoding
+    # TODO: encoding might not be a good word for what this is considering
+    # the problems that people have had with file encoding (utf-8, latin-1, etc)
     @property
     def encoding(self):
         """

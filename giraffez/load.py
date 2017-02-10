@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import datetime
+import threading
 
 from collections import defaultdict
 
@@ -29,6 +30,9 @@ from .utils import pipeline
 
 
 __all__ = ['TeradataLoad']
+
+_columns_cache = {}
+_columns_cache_lock = threading.Lock()
 
 
 class TeradataLoad(TeradataCmd):
@@ -109,7 +113,13 @@ class TeradataLoad(TeradataCmd):
         :raises `giraffez.errors.GiraffeError`: if :code:`panic` is set and the insert statement
             caused an error.
         """
-        columns = self.get_columns(table_name)
+        global _columns_cache
+        with _columns_cache_lock:
+            if table_name in _columns_cache:
+                columns = _columns_cache[table_name]
+            else:
+                columns = self.get_columns(table_name, silent=False)
+                _columns_cache[table_name] = columns
         if fields is None:
             fields = columns.safe_names
         columns.set_filter(fields)
@@ -140,5 +150,6 @@ class TeradataLoad(TeradataCmd):
         log.info("Load", "Executing ...")
         for block in _fetch():
             self.execute(block, sanitize=True, multi_statement=True, silent=True)
+            # TODO: should maybe only print once?
             log.info(self.options)
         return stats

@@ -119,7 +119,15 @@ void tdcli_close(TeradataConnection *conn) {
         conn->dbc->func = DBFDSC;
         DBCHCL(&conn->result, conn->cnta, conn->dbc);
     }
-    DBCHCLN(&conn->result, conn->cnta);
+    // TODO: this presumably cleans up some of the global variables
+    // used by CLIv2 and if done when working with multiple sessions
+    // concurrently will cause a segfault. It is possible that
+    // running it at all isn't really necessary and this can get cleaned
+    // up with the process dying. Alternatives might be using atexit
+    // calls to clean it up formally before the process exits and
+    // also providing a function that can be called should it be necessary
+    // for someone to clean this up (for like long running processes).
+    // DBCHCLN(&conn->result, conn->cnta);
 }
 
 void tdcli_free(TeradataConnection *conn) {

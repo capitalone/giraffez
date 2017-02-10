@@ -31,6 +31,7 @@ from .constants import *
 from .errors import *
 
 from .connection import Connection
+from .fmt import truncate
 from .logging import log
 from .sql import parse_statement, prepare_statement
 from .types import Columns, Row
@@ -38,6 +39,78 @@ from .utils import suppress_context
 
 
 __all__ = ['TeradataCmd']
+
+
+# TODO: i put this here to not forget something and then forget why it's here ...
+def read_sql():
+    pass
+
+
+class Cursor(object):
+    def __init__(self, conn, command, multi_statement=False, prepare_only=False):
+        self.conn = conn
+        self.command = command
+        self.multi_statement = multi_statement
+        self.prepare_only = prepare_only
+        self.columns = None
+        if self.multi_statement:
+            self.statements = [command]
+        else:
+            self.statements = parse_statement(command)
+        self.statements.reverse()
+        self._execute(self.statements.pop())
+
+    def _columns(self):
+        columns = Columns(self.conn.columns())
+        for column in columns:
+            log.verbose("Debug[1]", repr(column))
+        return columns
+
+    def _execute(self, statement):
+        try:
+            self.conn.execute(statement, prepare_only=self.prepare_only)
+            self.columns = self._columns()
+        except _cli.error as error:
+            raise suppress_context(TeradataError(error))
+
+    def _fetchone(self):
+        try:
+            return self.conn.fetchone()
+        except _cli.StatementEnded:
+            # Multi-statement requests still emit the StatementEnded parcel
+            # and therefore must be continually read until the RequestEnded
+            # parcel is received.
+            if self.multi_statement:
+                try:
+                    return self._fetchone()
+                except _cli.RequestEnded:
+                    raise StopIteration
+            self.columns = None
+            if not self.statements:
+                raise StopIteration
+            self._execute(self.statements.pop())
+            return self._fetchone()
+        except _cli.error as error:
+            raise suppress_context(TeradataError(error))
+
+    def readall(self):
+        n = 0
+        for row in self:
+            n += 1
+        return n
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.prepare_only:
+            raise StopIteration
+        data = self._fetchone()
+        return Row(self.columns, data)
+
+    def __repr__(self):
+        return "Cursor(n_stmts={}, multi={}, prepare={})".format(len(self.statements),
+            self.multi_statement, self.prepare_only)
 
 
 class TeradataCmd(Connection):
@@ -160,7 +233,12 @@ class TeradataCmd(Connection):
         :raises `giraffez.errors.TeradataError`: if the query is invalid
         :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
         """
+        # TODO: self.options needs thread lock?
         self.options("panic", self.panic)
+        if multi_statement:
+            self.options("multi-statement mode", True, 3)
+        else:
+            self.options("multi-stmtement mode", False, 3)
         if log.level >= VERBOSE:
             self.options("query", command, 2)
         else:
@@ -171,34 +249,8 @@ class TeradataCmd(Connection):
         if sanitize:
             command = prepare_statement(command) # accounts for comments and newlines
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
-        try:
-            if multi_statement:
-                statements = [command]
-            statements = parse_statement(command)
-            results = []
-            for statement in statements:
-                self.cmd.execute(statement, prepare_only=prepare_only)
-                columns = Columns(self.cmd.columns())
-                for column in columns:
-                    log.verbose("Debug[1]", repr(column))
-                if prepare_only:
-                    yield Row(columns, [])
-                while True:
-                    try:
-                        data = self.cmd.fetchone()
-                        if data is None:
-                            break
-                        if columns is None:
-                            columns = Columns(self.cmd.columns())
-                            for column in columns:
-                                log.verbose("Debug[1]", repr(column))
-                        yield Row(columns, data)
-                    except _cli.StatementEnded:
-                        columns = None
-                    except _cli.RequestEnded:
-                        break
-        except _cli.error as error:
-            raise suppress_context(TeradataError(error))
+        return Cursor(self.cmd, command, multi_statement=multi_statement,
+            prepare_only=prepare_only)
 
     def exists(self, object_name, silent=False):
         """
@@ -228,8 +280,7 @@ class TeradataCmd(Connection):
         :return: the columns of the table
         :rtype: :class:`~giraffez.types.Columns`
         """
-        for row in self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True):
-            return row.columns
+        return self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True).columns;
 
     def release_mload(self, table_name, silent=False):
         """
