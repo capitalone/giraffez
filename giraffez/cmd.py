@@ -85,9 +85,9 @@ class Cursor(object):
                     return self._fetchone()
                 except _cli.RequestEnded:
                     raise StopIteration
-            self.columns = None
             if not self.statements:
                 raise StopIteration
+            self.columns = None
             self._execute(self.statements.pop())
             return self._fetchone()
         except _cli.error as error:
@@ -101,6 +101,9 @@ class Cursor(object):
 
     def __iter__(self):
         return self
+
+    def next(self):
+        return self.__next__()
 
     def __next__(self):
         if self.prepare_only:

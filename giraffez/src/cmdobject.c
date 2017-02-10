@@ -146,6 +146,7 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
 
 PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command) {
     PyObject *result;
+    // TODO: should probably store previous req_proc_opt and replace when done
     conn->dbc->req_proc_opt = 'P';
     result = teradata_execute(conn, e, command);
     conn->dbc->req_proc_opt = 'B';
