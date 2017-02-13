@@ -146,9 +146,10 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
 
 PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command) {
     PyObject *result;
+    const char old_proc_opt = conn->dbc->req_proc_opt;
     conn->dbc->req_proc_opt = 'P';
     result = teradata_execute(conn, e, command);
-    conn->dbc->req_proc_opt = 'B';
+    conn->dbc->req_proc_opt = old_proc_opt;
     return result;
 }
 
@@ -205,22 +206,22 @@ static PyObject* Cmd_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
 
 static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
     char *host=NULL, *username=NULL, *password=NULL;
-    int decimal_return_type = 0;
-    EncoderSettings settings;
-    static char *kwlist[] = {"host", "username", "password", "decimal_return_type", NULL};
+    uint32_t settings;
+
+    static char *kwlist[] = {"host", "username", "password", "encoder_settings", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sss|i", kwlist, &host, &username, &password,
-            &decimal_return_type)) {
+            &settings)) {
         return -1;
     }
     if ((self->conn = teradata_connect(host, username, password)) == NULL) {
         return -1;
     }
-    settings = (EncoderSettings){
-        ROW_ENCODING_LIST,
-        ITEM_ENCODING_GIRAFFE_TYPES,
-        (DecimalReturnType)decimal_return_type
-    };
-    self->encoder = encoder_new(NULL, &settings);
+
+    self->encoder = encoder_new(NULL, settings);
+    if (self->encoder == NULL) {
+        PyErr_Format(PyExc_ValueError, "Could not create encoder, settings value 0x%06x is invalid.", settings);
+        return -1;
+    }
     return 0;
 }
 
@@ -234,7 +235,16 @@ static PyObject* Cmd_columns(Cmd *self) {
     if (self->encoder == NULL || self->encoder->Columns == NULL) {
         Py_RETURN_NONE;
     }
-    return columns_to_pylist(self->encoder->Columns);
+    PyObject *stmt_info;
+    PyObject *cols;
+    PyObject *tup;
+
+    stmt_info = PyBytes_FromStringAndSize(self->encoder->Columns->raw_stmt_info, self->encoder->Columns->raw_stmt_info_length);
+    cols = columns_to_pylist(self->encoder->Columns);
+    tup = Py_BuildValue("(OO)", stmt_info, cols);
+    Py_DECREF(stmt_info);
+    Py_DECREF(cols);
+    return tup;
 }
 
 static PyObject* Cmd_execute(Cmd *self, PyObject *args, PyObject *kwargs) {

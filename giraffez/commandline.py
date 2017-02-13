@@ -91,6 +91,7 @@ class CmdCommand(Command):
                 for s in statements:
                     start_time = time.time()
                     result = cmd.execute(s)
+                    count = 0
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
                     if not result:
@@ -100,12 +101,14 @@ class CmdCommand(Command):
                             args.query.lower().startswith("help")):
                         result.rows.insert(0, result.columns.names)
                         out.writen("\r{}".format(format_table(result.rows)))
+                        count = 1
                     else:
                         for row in result:
-                            out.writen("\t".join([str(x) for x in row]))
+                            out.writen("\t".join([str(x) for x in row]).replace("\r", "\n"))
+                            count += 1
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
-                    log.info("Results", "{} rows in {}".format(len(result), readable_time(time.time() - start_time)))
+                    log.info("Results", "{} row{} in {}".format(count, '' if count == 1 else 's', readable_time(time.time() - start_time)))
 
 
 class ConfigCommand(Command):
@@ -219,10 +222,7 @@ class ExportCommand(Command):
             export.query = args.query
 
             with Writer(args.output_file, archive=args.archive, use_gzip=args.gzip) as out:
-                # Call this so the output is in the correct order rather than allowing
-                # results lazily call _initiate
-                export._initiate()
-                export._columns = export._get_columns()
+                export.initiate()
                 export.options("output", out.name, 4)
                 if out.is_stdout:
                     log.info(colors.green(colors.bold("-"*32)))

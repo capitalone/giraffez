@@ -32,21 +32,14 @@
 #include "unpack.h"
 
 
-static EncoderSettings default_settings = {
-    ROW_ENCODING_LIST,
-    ITEM_ENCODING_BUILTIN_TYPES,
-    DECIMAL_AS_STRING
-};
-
-
-TeradataEncoder* encoder_new(GiraffeColumns *columns, EncoderSettings *settings) {
+TeradataEncoder* encoder_new(GiraffeColumns *columns, uint32_t settings) {
     TeradataEncoder *e;
     e = (TeradataEncoder*)malloc(sizeof(TeradataEncoder));
-    if (settings == NULL) {
-        settings = &default_settings;
+    if (settings == 0) {
+        settings = ENCODER_SETTINGS_DEFAULT;
     }
     e->Columns = columns;
-    e->Settings = *settings;
+    e->Settings = settings;
     e->Delimiter = NULL;
     e->NullValue = NULL;
     e->PackRowFunc = pack_row;
@@ -57,12 +50,15 @@ TeradataEncoder* encoder_new(GiraffeColumns *columns, EncoderSettings *settings)
     e->UnpackDecimalFunc = NULL;
     encoder_set_delimiter(e, DEFAULT_DELIMITER);
     encoder_set_null(e, DEFAULT_NULLVALUE);
-    encoder_set_encoding(e, settings);
+    if (encoder_set_encoding(e, settings) != 0) {
+        return NULL;
+    }
     return e;
 }
 
-void encoder_set_encoding(TeradataEncoder *e, EncoderSettings *settings) {
-    switch (settings->row_encoding_type) {
+int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
+    // to switch on the value we just mask the particular byte
+    switch (settings & ROW_ENCODING_MASK) {
         case ROW_ENCODING_STRING:
             e->UnpackRowFunc = unpack_row_str;
             encoder_set_delimiter(e, DEFAULT_DELIMITER);
@@ -77,10 +73,13 @@ void encoder_set_encoding(TeradataEncoder *e, EncoderSettings *settings) {
             encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
         case ROW_ENCODING_RAW:
+            e->UnpackRowFunc = unpack_row_raw;
             e->UnpackRowsFunc = unpack_rows_raw;
             break;
+        default:
+            return -1;
     }
-    switch (settings->item_encoding_type) {
+    switch (settings & ITEM_ENCODING_MASK) {
         case ITEM_ENCODING_STRING:
             e->UnpackItemFunc = unpack_row_item_as_str;
             break;
@@ -90,8 +89,10 @@ void encoder_set_encoding(TeradataEncoder *e, EncoderSettings *settings) {
         case ITEM_ENCODING_GIRAFFE_TYPES:
             e->UnpackItemFunc = unpack_row_item_with_giraffe_types;
             break;
+        default:
+            return -1;
     }
-    switch (settings->decimal_return_type) {
+    switch (settings & DECIMAL_RETURN_MASK) {
         case DECIMAL_AS_STRING:
             e->UnpackDecimalFunc = decimal_to_pystring;
             break;
@@ -101,7 +102,10 @@ void encoder_set_encoding(TeradataEncoder *e, EncoderSettings *settings) {
         case DECIMAL_AS_GIRAFFEZ_DECIMAL:
             e->UnpackDecimalFunc = decimal_to_giraffez_decimal;
             break;
+        default:
+            return -1;
     }
+    return 0;
 }
 
 void encoder_set_delimiter(TeradataEncoder* e, PyObject *obj) {
@@ -115,7 +119,7 @@ void encoder_set_null(TeradataEncoder *e, PyObject *obj) {
 }
 
 void encoder_clear(TeradataEncoder *e) {
-    if (e->Columns != NULL) {
+    if (e != NULL && e->Columns != NULL) {
         columns_free(e->Columns);
         e->Columns = NULL;
     }

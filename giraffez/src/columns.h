@@ -56,6 +56,8 @@ typedef struct {
     size_t header_length;
     unsigned char *buffer;
     GiraffeColumn *array;
+    char *raw_stmt_info;
+    uint32_t raw_stmt_info_length;
 } GiraffeColumns;
 
 typedef struct {

@@ -133,6 +133,10 @@ PyObject* unpack_row_str(const TeradataEncoder *e, unsigned char **data, const u
     return row_str;
 }
 
+PyObject* unpack_row_raw(const TeradataEncoder *e, unsigned char **data, const uint16_t length) {
+    return PyBytes_FromStringAndSize((char*)*data, length);
+}
+
 PyObject* unpack_row_item_as_str(const TeradataEncoder *e, unsigned char **data,
         const GiraffeColumn *column) {
     switch (column->GDType) {
@@ -225,6 +229,12 @@ GiraffeColumns* unpack_stmt_info_to_columns(unsigned char **data, const uint32_t
     size_t i;
     columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
     columns_init(columns, 1);
+
+    // save raw statement info
+    columns->raw_stmt_info = malloc(sizeof(char) * length);
+    memcpy(columns->raw_stmt_info, data, length);
+    columns->raw_stmt_info_length = length;
+
     s = (StatementInfo*)malloc(sizeof(StatementInfo));
     stmt_info_init(s, 1);
     unpack_stmt_info(data, s, length);

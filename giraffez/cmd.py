@@ -47,12 +47,21 @@ def read_sql():
 
 
 class Cursor(object):
-    def __init__(self, conn, command, multi_statement=False, prepare_only=False):
+    def __init__(self, conn, command, multi_statement=False, prepare_only=False, encoder_settings=ENCODER_SETTINGS_DEFAULT):
         self.conn = conn
         self.command = command
         self.multi_statement = multi_statement
         self.prepare_only = prepare_only
         self.columns = None
+        if encoder_settings & ROW_ENCODING_STRING:
+            self.processor = lambda x, y: y
+        elif encoder_settings & ROW_ENCODING_DICT:
+            self.processor = lambda x, y: y
+        elif encoder_settings & ROW_ENCODING_LIST:
+            self.processor = lambda x, y: Row(x, y)
+        else:
+            # TODO: better error handling
+            raise "help me"
         if self.multi_statement:
             self.statements = [command]
         else:
@@ -99,6 +108,9 @@ class Cursor(object):
             n += 1
         return n
 
+    def next(self):
+        return self.__next__()
+
     def __iter__(self):
         return self
 
@@ -106,7 +118,7 @@ class Cursor(object):
         if self.prepare_only:
             raise StopIteration
         data = self._fetchone()
-        return Row(self.columns, data)
+        return self.processor(self.columns, data)
 
     def __repr__(self):
         return "Cursor(n_stmts={}, multi={}, prepare={})".format(len(self.statements),
@@ -157,17 +169,17 @@ class TeradataCmd(Connection):
     """
 
     def __init__(self, host=None, username=None, password=None, log_level=INFO, panic=False,
-            config=None, key_file=None, dsn=None, protect=False, mload_session=False, decimal_return_type="str"):
+            config=None, key_file=None, dsn=None, protect=False, mload_session=False, encoder_settings=ENCODER_SETTINGS_DEFAULT):
         if TDCLI_NOT_FOUND:
             raise TeradataCLIv2NotFound(TeradataCLIv2NotFound.__doc__.rstrip())
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
-            dsn, protect, mload_session, decimal_return_type)
+            dsn, protect, mload_session, encoder_settings)
 
         self.panic = panic
 
     def _connect(self, host, username, password):
         try:
-            self.cmd = _cli.Cmd(host, username, password, decimal_return_type=self.decimal_return_type)
+            self.cmd = _cli.Cmd(host, username, password, encoder_settings=self.encoder_settings)
         except _cli.error as error:
             # TODO: make sure protect/lock connection work
             raise TeradataError(error)

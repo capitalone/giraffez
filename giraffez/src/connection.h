@@ -54,7 +54,7 @@ namespace Giraffez {
             this->username = strdup(username);
             this->password = strdup(password);
             encoder = NULL;
-            encoder = encoder_new(NULL, NULL);
+            encoder = encoder_new(NULL, 0);
         }
         ~Connection() {
             if (encoder != NULL) {
@@ -63,12 +63,12 @@ namespace Giraffez {
             }
         }
 
-        PyObject* SetEncoding(EncoderSettings *settings) {
+        PyObject* SetEncoding(uint32_t settings) {
             encoder_set_encoding(encoder, settings);
             Py_RETURN_NONE;
         }
 
-        PyObject* SetEncoding(EncoderSettings *settings, PyObject *null, PyObject *delimiter) {
+        PyObject* SetEncoding(uint32_t settings, PyObject *null, PyObject *delimiter) {
             if (!_PyUnicode_Check(delimiter)) {
                 PyErr_SetString(PyExc_TypeError, "Delimiter must be string");
                 return NULL;

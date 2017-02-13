@@ -205,10 +205,13 @@ class Columns(object):
     original table schema without losing information.
     """
 
-    __slots__ = ('columns', '_column_map', '_filtered_columns')
+    __slots__ = ('columns', '_column_map', '_filtered_columns', 'statement_info')
 
     def __init__(self, items=[]):
         self.columns = []
+        self.statement_info = None
+        if isinstance(items, tuple):
+            self.statement_info, items = items
         for item in items:
             self.columns.append(Column(item))
         self._filtered_columns = []
