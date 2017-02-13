@@ -37,7 +37,7 @@ from .cmd import TeradataCmd
 from .encoders import null_handler, python_to_strings, strings_to_text
 from .encrypt import create_key_file
 from .export import TeradataExport
-from .fmt import format_table
+from .fmt import format_table, replace_cr
 from .io import ArchiveFileReader, FileReader, Reader, Writer, \
     file_delimiter, file_exists, home_file
 from .logging import colors, log, setup_logging
@@ -94,21 +94,19 @@ class CmdCommand(Command):
                     count = 0
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
-                    if not result:
-                        log.info("Results", "{} rows in {}".format(0, readable_time(time.time() - start_time)))
-                        continue
+                    i = 0
                     if args.table_output and not (args.query.lower().startswith("show") or \
                             args.query.lower().startswith("help")):
-                        result.rows.insert(0, result.columns.names)
-                        out.writen("\r{}".format(format_table(result.rows)))
-                        count = 1
+                        rows = [replace_cr(row) for row in result]
+                        i = len(rows)
+                        rows.insert(0, result.columns.names)
+                        out.writen("\r{}".format(format_table(rows)))
                     else:
-                        for row in result:
-                            out.writen("\t".join([str(x) for x in row]).replace("\r", "\n"))
-                            count += 1
+                        for i, row in enumerate(result, 1):
+                            out.writen("\t".join([str(replace_cr(x)) for x in row]))
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
-                    log.info("Results", "{} row{} in {}".format(count, '' if count == 1 else 's', readable_time(time.time() - start_time)))
+                    log.info("Results", "{} rows in {}".format(i, readable_time(time.time() - start_time)))
 
 
 class ConfigCommand(Command):
