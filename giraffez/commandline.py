@@ -91,6 +91,7 @@ class CmdCommand(Command):
                 for s in statements:
                     start_time = time.time()
                     result = cmd.execute(s)
+                    count = 0
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
                     i = 0
@@ -219,10 +220,7 @@ class ExportCommand(Command):
             export.query = args.query
 
             with Writer(args.output_file, archive=args.archive, use_gzip=args.gzip) as out:
-                # Call this so the output is in the correct order rather than allowing
-                # results lazily call _initiate
-                export._initiate()
-                export._columns = export._get_columns()
+                export.initiate()
                 export.options("output", out.name, 4)
                 if out.is_stdout:
                     log.info(colors.green(colors.bold("-"*32)))

@@ -59,8 +59,10 @@ PyObject* pack_row(const TeradataEncoder *e, PyObject *row, unsigned char **data
     GiraffeColumn *column;
     Py_ssize_t i, slength;
     // TODO: check if tuple, list, etc
-    slength = PySequence_Size(row);
-    if (e->Columns->length != slength) {
+    if ((slength = PySequence_Size(row)) == -1) {
+        return NULL;
+    }
+    if (e->Columns->length != (size_t)slength) {
         return NULL;
     }
     int nullable;

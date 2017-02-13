@@ -120,37 +120,25 @@ static PyObject* Export_initiate(Export *self, PyObject *args, PyObject *kwargs)
         return NULL;
     }
     // TODO: create presets
-    EncoderSettings settings;
+    uint32_t settings = 0; // zero so we have defaults for the else case below
     if (strcmp(encoding, "archive") == 0) {
         // TODO: idk
-        settings = (EncoderSettings){
-            ROW_ENCODING_RAW,
-            ITEM_ENCODING_BUILTIN_TYPES,
-            DECIMAL_AS_STRING
-        };
-        if (self->conn->SetEncoding(&settings) == NULL) {
+        settings = ROW_ENCODING_RAW | ITEM_ENCODING_BUILTIN_TYPES | DECIMAL_AS_STRING;
+        if (self->conn->SetEncoding(settings) == NULL) {
             return NULL;
         }
     } else if (strcmp(encoding, "dict") == 0 || strcmp(encoding, "json") == 0) {
-        settings = (EncoderSettings){
-            ROW_ENCODING_DICT,
-            ITEM_ENCODING_BUILTIN_TYPES,
-            DECIMAL_AS_STRING
-        };
-        if (self->conn->SetEncoding(&settings) == NULL) {
+        settings = ENCODER_SETTINGS_DEFAULT;
+        if (self->conn->SetEncoding(settings) == NULL) {
             return NULL;
         }
     } else if (strcmp(encoding, "str") == 0) {
-        settings = (EncoderSettings){
-            ROW_ENCODING_STRING,
-            ITEM_ENCODING_STRING,
-            DECIMAL_AS_STRING
-        };
-        if (self->conn->SetEncoding(&settings, null, delimiter) == NULL) {
+        settings = ENCODER_SETTINGS_STRING;
+        if (self->conn->SetEncoding(settings, null, delimiter) == NULL) {
             return NULL;
         }
     } else {
-        if (self->conn->SetEncoding(&settings) == NULL) {
+        if (self->conn->SetEncoding(settings) == NULL) {
             return NULL;
         }
     }

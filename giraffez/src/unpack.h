@@ -40,6 +40,7 @@ PyObject* unpack_rows_raw(const TeradataEncoder *e, unsigned char **data, const 
 PyObject* unpack_row_dict(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
 PyObject* unpack_row_str(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
 PyObject* unpack_row_list(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
+PyObject* unpack_row_raw(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
 
 PyObject* unpack_row_item_as_str(const TeradataEncoder *e, unsigned char **data, const GiraffeColumn *column);
 PyObject* unpack_row_item_with_builtin_types(const TeradataEncoder *e, unsigned char **data, const GiraffeColumn *column);

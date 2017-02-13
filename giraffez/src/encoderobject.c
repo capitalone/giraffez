@@ -41,46 +41,23 @@ static PyObject* Encoder_new(PyTypeObject *type, PyObject *args, PyObject *kwarg
 static int Encoder_init(Encoder *self, PyObject *args, PyObject *kwargs) {
     PyObject *columns_obj;
     GiraffeColumns *columns;
-    static EncoderSettings settings = {
-        ROW_ENCODING_LIST,
-        ITEM_ENCODING_BUILTIN_TYPES,
-        DECIMAL_AS_STRING
-    };
-    char *row_encoding = "";
-    char *item_encoding = "";
-    char *decimal_return_type = "";
-    static char *kwlist[] = {"columns_obj", "row_encoding", "item_encoding", "decimal_return_type", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|sss", kwlist, &columns_obj, &row_encoding,
-            &item_encoding, &decimal_return_type)) {
+    uint32_t settings;
+
+    static char *kwlist[] = {"columns_obj", "settings", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|i", kwlist, &columns_obj, &settings)) {
         return -1;
     }
-    if (strcmp(row_encoding, "str") == 0) {
-        settings.row_encoding_type = ROW_ENCODING_STRING;
-    } else if (strcmp(row_encoding, "dict") == 0) {
-        settings.row_encoding_type = ROW_ENCODING_DICT;
-    } else if (strcmp(row_encoding, "list") == 0) {
-        settings.row_encoding_type = ROW_ENCODING_LIST;
-    }
-    if (strcmp(item_encoding, "str") == 0) {
-        settings.item_encoding_type = ITEM_ENCODING_STRING;
-    } else if (strcmp(item_encoding, "builtin") == 0) {
-        settings.item_encoding_type = ITEM_ENCODING_BUILTIN_TYPES;
-    } else if (strcmp(item_encoding, "giraffez") == 0) {
-        settings.item_encoding_type = ITEM_ENCODING_GIRAFFE_TYPES;
-    }
-    if (strcmp(decimal_return_type, "str") == 0) {
-        settings.decimal_return_type = DECIMAL_AS_STRING;
-    } else if (strcmp(decimal_return_type, "float") == 0) {
-        settings.decimal_return_type = DECIMAL_AS_FLOAT;
-    } else if (strcmp(decimal_return_type, "decimal") == 0) {
-        settings.decimal_return_type = DECIMAL_AS_GIRAFFEZ_DECIMAL;
-    }
+
     columns = columns_to_giraffez_columns(columns_obj);
     if (columns == NULL) {
         PyErr_SetString(PyExc_ValueError, "No columns found.");
         return -1;
     }
-    self->encoder = encoder_new(columns, &settings);
+    self->encoder = encoder_new(columns, settings);
+    if (self->encoder == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Could not create encoder. Bad settings. Bad person.");
+        return -1;
+    }
     return 0;
 }
 
@@ -114,15 +91,16 @@ static PyObject* Encoder_pack_row(Encoder *self, PyObject *args) {
 }
 
 static PyObject* Encoder_set_encoding(Encoder *self, PyObject *args) {
-    int row_encoding;
-    int item_encoding;
-    int decimal_return_type;
-    EncoderSettings settings;
-    if (!PyArg_ParseTuple(args, "iii", &row_encoding, &item_encoding, &decimal_return_type)) {
+    uint32_t settings;
+
+    if (!PyArg_ParseTuple(args, "i", &settings)) {
         return NULL;
     }
-    settings = (EncoderSettings){row_encoding, item_encoding, decimal_return_type};
-    encoder_set_encoding(self->encoder, &settings);
+
+    if (encoder_set_encoding(self->encoder, settings) != 0) {
+        PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);
+        return NULL;
+    }
     Py_RETURN_NONE;
 }
 
@@ -172,7 +150,7 @@ static PyObject* Encoder_unpack_stmt_info(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
-    columns = unpack_stmt_info_to_columns((unsigned char**)buffer.buf, buffer.len);
+    columns = unpack_stmt_info_to_columns((unsigned char**)&buffer.buf, buffer.len);
     PyBuffer_Release(&buffer);
     return giraffez_columns_from_columns(columns);
 }

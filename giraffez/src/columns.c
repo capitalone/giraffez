@@ -57,6 +57,8 @@ void columns_init(GiraffeColumns *c, size_t initial_size) {
     c->length = 0;
     c->size = initial_size;
     c->header_length = 0;
+    c->raw_stmt_info = NULL;
+    c->raw_stmt_info_length = 0;
     c->buffer = (unsigned char*)malloc(c->header_length * sizeof(unsigned char));
 }
 
@@ -86,9 +88,11 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
 void columns_free(GiraffeColumns *c) {
     free(c->array);
     free(c->buffer);
+    free(c->raw_stmt_info);
     c->array = NULL;
     c->buffer = NULL;
     c->length = c->size = 0;
+    c->raw_stmt_info_length = 0;
 }
 
 void indicator_set(GiraffeColumns *columns, unsigned char **data) {
