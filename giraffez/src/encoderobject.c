@@ -100,13 +100,17 @@ static PyObject* Encoder_pack_row(Encoder *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O", &items)) {
         return NULL;
     }
-    char buf[64000];
+    /*char buf[64000];*/
+    unsigned char *buf = (unsigned char*)malloc(sizeof(unsigned char)*64000);
+    unsigned char *start = buf;
     uint16_t length = 0;
-    if (self->encoder->PackRowFunc(self->encoder, items, (unsigned char**)&buf, &length) == NULL) {
-        PyErr_Format(PyExc_ValueError, "Encoder pack_row failed");
+    if (self->encoder->PackRowFunc(self->encoder, items, &start, &length) == NULL) {
+        /*PyErr_Format(PyExc_ValueError, "Encoder pack_row failed");*/
         return NULL;
     }
-    return PyBytes_FromStringAndSize(buf, length);
+    PyObject *ret = PyBytes_FromStringAndSize(buf, length);
+    free(buf);
+    return ret;
 }
 
 static PyObject* Encoder_set_encoding(Encoder *self, PyObject *args) {

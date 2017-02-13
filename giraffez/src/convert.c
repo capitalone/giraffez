@@ -319,22 +319,35 @@ PyObject* vchar_to_pystring(unsigned char **data) {
     return str;
 }
 
+
+// PACK
+
 PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len) {
     Py_ssize_t length;
     PyObject *temp = NULL;
     char *str;
     // TODO: should check for max length?
     if (_PyUnicode_Check(s)) {
-        temp = PyUnicode_AsASCIIString(s);
+            if ((temp = PyUnicode_AsUTF8String(s)) == NULL) {
+            }
+            if ((temp = PyUnicode_AsUTF8String(s)) == NULL) {
+            }
+        }
         Py_DECREF(s);
     } else if (PyBytes_Check(s)) {
         temp = s;
         Py_INCREF(temp);
+    } else {
+        // TODO:
     }
-    length = PyBytes_Size(temp);
+    // XXX:
+    if (temp == NULL) {
+        return NULL;
+    }
     if ((str = PyBytes_AsString(temp)) == NULL) {
         return NULL;
     }
+    length = PyBytes_Size(temp);
     *len += pack_string(buf, str, length);
     Py_DECREF(temp);
     Py_RETURN_NONE;
@@ -445,13 +458,76 @@ PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigne
     *len += column_length;
     Py_RETURN_NONE;
 }
+#define dot PyUnicode_FromString(".")
+#define hyphen PyUnicode_FromString("-")
+#define blank PyUnicode_FromString("")
 
 PyObject* pydate_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+    PyObject *s;
+    if ((s = PyUnicode_Replace(item, hyphen, blank, -1)) == NULL) {
+        return NULL;
+    }
+    PyObject *d = PyLong_FromUnicodeObject(s, 10);
+    int32_t l;
+    l = PyLong_AsLong(d);
+    l -= 19000000;
+    pack_int32_t(buf, l);
     *len += column_length;
     Py_RETURN_NONE;
 }
 
+char dbuf[1024];
+
 PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len) {
+    // CheckUnicode/String
+    PyObject *parts;
+    if ((parts = PyUnicode_Split(item, dot, 1)) == NULL) {
+        return NULL;
+    }
+    Py_ssize_t l = PyList_Size(parts);
+    char *x = "";
+    char *y = "";
+    PyObject *a;
+    PyObject *b;
+    if (l == 1) {
+        if ((a = PyList_GetItem(parts, 0)) == NULL) {
+            return NULL;
+        }
+        x = PyUnicode_AsUTF8(a);
+        y = "";
+    } else if (l == 2) {
+        if ((a = PyList_GetItem(parts, 0)) == NULL) {
+            return NULL;
+        }
+        if ((b = PyList_GetItem(parts, 1)) == NULL) {
+            return NULL;
+        }
+        x = PyUnicode_AsUTF8(a);
+        y = PyUnicode_AsUTF8(b);
+    } else {
+        printf("WTF DUDE\n");
+    }
+    int size = sprintf(dbuf, "%s%0*s", x, column_scale, y);
+    int64_t q;
+    PyObject *s = PyLong_FromString(dbuf, NULL, 10);
+    /*if (s == NULL) {*/
+        /*printf("It is like super NULL\n");*/
+    /*}*/
+    q = PyLong_AsLongLong(s);
+    pack_int64_t(buf, q);
+
+    /*switch (column_length) {*/
+        /*case DECIMAL8:*/
+            /*return pystring_to_decimal8(data, column_scale);*/
+        /*case DECIMAL16:*/
+            /*return pystring_to_decimal16(data, column_scale);*/
+        /*case DECIMAL32:*/
+            /*return pystring_to_decimal32(data, column_scale);*/
+        /*case DECIMAL64:*/
+            /*return pystring_to_decimal64(data, column_scale);*/
+        /*case DECIMAL128:*/
+            /*return pystring_to_decimal128(data, column_scale);*/
+    /*}*/
     *len += column_length;
     Py_RETURN_NONE;
 }

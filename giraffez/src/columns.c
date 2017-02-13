@@ -107,7 +107,7 @@ int indicator_read(unsigned char *ind, size_t pos) {
 }
 
 void indicator_write(unsigned char **ind, size_t pos, int value) {
-    *ind[pos/8] |= (value << (pos % 8));
+    (*ind)[pos/8] |= (value << (7 - (pos % 8)));
 }
 
 void stmt_info_init(StatementInfo *s, size_t initial_size) {

@@ -53,6 +53,7 @@ namespace Giraffez {
             this->host = strdup(host);
             this->username = strdup(username);
             this->password = strdup(password);
+            // XXX:
             encoder = NULL;
             encoder = encoder_new(NULL, NULL);
         }

@@ -65,8 +65,9 @@ PyObject* pack_row(const TeradataEncoder *e, PyObject *row, unsigned char **data
     }
     int nullable;
     unsigned char *ind = *data;
-    /*memcpy(ind, 0, sizeof(unsigned char) * e->Columns->header_length);*/
     indicator_clear(&ind, e->Columns->header_length);
+    *data += e->Columns->header_length;
+    *length += e->Columns->header_length;
     for (i=0; i<slength; i++) {
         column = &e->Columns->array[i];
         if ((item = PySequence_GetItem(row, i)) == NULL) {
@@ -83,10 +84,12 @@ PyObject* pack_row(const TeradataEncoder *e, PyObject *row, unsigned char **data
         if (pack_row_item(e, column, item, data, length) == NULL) {
             indicator_write(&ind, i, 1);
             pack_none(column, data, length);
+            PyErr_Format(PyExc_ValueError, "Unable to unpack column %d '%s'\n", i, column->Name);
+            return NULL;
             // TODO: if panic, then return NULL;
         }
-        Py_DECREF(item);
     }
+    Py_DECREF(item);
     Py_RETURN_NONE;
 }
 

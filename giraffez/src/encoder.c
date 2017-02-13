@@ -104,7 +104,7 @@ void encoder_set_encoding(TeradataEncoder *e, EncoderSettings *settings) {
     }
 }
 
-void encoder_set_delimiter(TeradataEncoder* e, PyObject *obj) {
+void encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
     Py_XDECREF(e->Delimiter);
     e->Delimiter = obj;
 }
