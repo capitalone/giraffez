@@ -47,7 +47,7 @@ from .parser import Argument, Command
 from .shell import GiraffeShell
 from .sql import parse_statement
 from .utils import pipeline, prompt_bool, readable_time, \
-    register_graceful_shutdown_signal, show_warning
+    register_graceful_shutdown_signal, show_warning, timer
 
 from ._compat import *
 
@@ -231,14 +231,14 @@ class ExportCommand(Command):
                 start_time = time.time()
                 i = 0
                 if args.archive:
-                    for n, chunk in enumerate(export.results(), 1):
+                    for n, chunk in enumerate(export, 1):
                         i += _encoder.Encoder.count_rows(chunk)
                         if n % 50 == 0 and args.output_file:
                             log.info("\rExport", "Processed {} rows".format(int(round(i, -5))), console=True)
                         out.writen(chunk)
                     log.info("\rExport", "Processed {} rows".format(i))
                 else:
-                    for i, row in enumerate(export.results(), 1):
+                    for i, row in enumerate(export, 1):
                         if i % 100000 == 0 and args.output_file:
                             log.info("\rExport", "Processed {} rows".format(i), console=True)
                         out.writen(row)
@@ -295,6 +295,7 @@ class FmtCommand(Command):
         Argument("--count", default=False, help="Count the table")
     ]
 
+    @timer
     def run(self, args):
         with Reader(args.input_file) as f:
             log.verbose("Debug[1]", "File type: ", f)
@@ -310,6 +311,7 @@ class FmtCommand(Command):
                     pass
                 log.info("Lines: ", i)
             else:
+                # TODO: should change this to just use regex
                 processors = []
                 dst_delimiter = DEFAULT_DELIMITER
                 if args.delimiter:
@@ -397,7 +399,7 @@ class MLoadCommand(Command):
     ]
 
     def run(self, args):
-        if args.encoding not in ["archive", "text"]:
+        if args.encoding not in ["archive", "str"]:
             raise GiraffeError("'{}' is not an encoder.".format(args.encoding))
         if not file_exists(args.input_file):
             raise GiraffeError("File '{}' does not exist.".format(args.input_file))

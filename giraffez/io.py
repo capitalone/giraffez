@@ -20,6 +20,7 @@ import gzip
 import struct
 import csv
 import json
+import io
 
 from .constants import *
 from .errors import *
@@ -65,7 +66,7 @@ class BaseReader(object):
                 _open = gzip.open
             else:
                 _open = open
-        self.fd = _open(abspath, mode)
+        self.fd = io.BufferedReader(_open(abspath, mode))
         self._header = None
 
     @property
@@ -88,7 +89,7 @@ class BaseReader(object):
     @classmethod
     def read_header(cls, path):
         with cls(path, 'rb') as f:
-            return f.read(len(GIRAFFE_MAGIC))
+            return f.read(len(GIRAFFE_MAGIC) + 2)
 
     def __iter__(self):
         while True:
@@ -106,6 +107,8 @@ class BaseReader(object):
 
 
 class FileReader(BaseReader):
+    encoding = "str"
+
     @classmethod
     def check_length(cls, path, length):
         with cls(path, "rb") as f:
@@ -116,6 +119,9 @@ class FileReader(BaseReader):
 
 
 class CSVReader(FileReader):
+
+    encoding = "csv"
+
     def __init__(self, path, delimiter=None, quotechar='"'):
         super(CSVReader, self).__init__(path)
         delimiter = file_delimiter(path)
@@ -133,13 +139,19 @@ class CSVReader(FileReader):
 
 
 class JSONReader(FileReader):
+
+    encoding = "dict"
+
     def __init__(self, path):
         super(JSONReader, self).__init__(path)
         self._header = json.loads(next(self.fd)).keys()
         self.fd.seek(0)
 
     def readline(self):
-        return json.loads(next(self.fd)).values()
+        #obj = json.loads(next(self.fd))
+        #return [obj.get(c, None) for c  in self.columns.names]
+        #return json.loads(next(self.fd)).values()
+        return json.loads(next(self.fd))
 
 
 class ArchiveFileReader(BaseReader):
@@ -147,7 +159,7 @@ class ArchiveFileReader(BaseReader):
         super(ArchiveFileReader, self).__init__(path, 'rb')
         if self.fd.tell() != 0:
             raise GiraffeError("Cannot read columns, file descriptor must be at 0.")
-        self.fd.read(len(GIRAFFE_MAGIC))
+        self.fd.read(len(GIRAFFE_MAGIC) + 2)
         self.columns = Columns.deserialize(self.readline())
 
     @property
@@ -165,7 +177,8 @@ class ArchiveFileReader(BaseReader):
 class Reader(object):
     def __new__(cls, path, **kwargs):
         data = FileReader.read_header(path)
-        if data == GIRAFFE_MAGIC:
+        if data[0:3] == GIRAFFE_MAGIC:
+            #if data[3:5] == b'\x00\x02':
             return ArchiveFileReader(path)
         with open(path) as f:
             data = f.readline().strip()
@@ -199,9 +212,9 @@ class Writer(object):
                 _open = gzip.open
             else:
                 _open = open
-            self.fd = _open(abspath, "w{}".format(mode))
+            self.fd = io.BufferedWriter(_open(abspath, "w{}".format(mode)))
             if archive:
-                self.write(GIRAFFE_MAGIC)
+                self.write(GIRAFFE_MAGIC + b'\x00\x02')
                 self.writen = self.write
 
     @property

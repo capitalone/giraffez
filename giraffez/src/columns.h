@@ -28,6 +28,10 @@ extern "C" {
 #include <stdint.h>
 #endif
 
+typedef struct {
+    uint32_t length;
+    char *data;
+} RawStatementInfo;
 
 typedef struct {
     char *Database;
@@ -56,8 +60,7 @@ typedef struct {
     size_t header_length;
     unsigned char *buffer;
     GiraffeColumn *array;
-    char *raw_stmt_info;
-    uint32_t raw_stmt_info_length;
+    RawStatementInfo *raw;
 } GiraffeColumns;
 
 typedef struct {
@@ -119,6 +122,8 @@ void indicator_write(unsigned char **ind, size_t pos, int value);
 void stmt_info_init(StatementInfo *s, size_t initial_size);
 void stmt_info_append(StatementInfo *s, StatementInfoColumn element);
 void stmt_info_free(StatementInfo *s);
+GiraffeColumns* unpack_stmt_info_to_columns(unsigned char **data, const uint32_t length);
+void unpack_stmt_info(unsigned char **data, StatementInfo *s, const uint32_t length);
 
 #ifdef __cplusplus
 }

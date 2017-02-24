@@ -103,47 +103,103 @@ static PyObject* MLoad_get_event(MLoad *self, PyObject *args, PyObject *kwargs) 
 }
 
 static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
+    char *encoding = NULL;
+    PyObject *null, *delimiter;
     char *tbl_name = NULL;
-    PyObject *column_list;
-    DMLOption dml_option;
-    if (!PyArg_ParseTuple(args, "sOi", &tbl_name, &column_list, &dml_option)) {
+    PyObject *column_list = NULL;
+    // TODO:
+    DMLOption dml_option = (DMLOption)0;
+
+    static const char *kwlist[] = {"tbl_name", "encoding", "null", "delimiter", "column_list",
+        "dml_option", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ssOO|Oii", (char**)kwlist, &tbl_name,
+            &encoding, &null, &delimiter, &column_list, &dml_option)) {
         return NULL;
     }
-    if (!PyList_Check(column_list)) {
+
+    uint32_t settings = 0; // zero so we have defaults for the else case below
+    DEBUG_PRINTF("%s", encoding);
+    if (strcmp(encoding, "archive") == 0) {
+        // TODO: idk
+        settings = ROW_ENCODING_RAW | ITEM_ENCODING_BUILTIN_TYPES | DECIMAL_AS_STRING;
+        if (self->conn->SetEncoding(settings) == NULL) {
+            return NULL;
+        }
+    } else if (strcmp(encoding, "dict") == 0 || strcmp(encoding, "json") == 0) {
+        settings = ENCODER_SETTINGS_JSON;
+        if (self->conn->SetEncoding(settings) == NULL) {
+            return NULL;
+        }
+    } else if (strcmp(encoding, "str") == 0) {
+        settings = ENCODER_SETTINGS_STRING;
+        if (self->conn->SetEncoding(settings, null, delimiter) == NULL) {
+            return NULL;
+        }
+    } else if (strcmp(encoding, "csv") == 0) {
+        // TODO: this isn't right
+        settings = ENCODER_SETTINGS_STRING;
+        if (self->conn->SetEncoding(settings, null, delimiter) == NULL) {
+            return NULL;
+        }
+    } else {
+        if (self->conn->SetEncoding(settings) == NULL) {
+            return NULL;
+        }
+    }
+    if (column_list != NULL && !(PyList_Check(column_list) || column_list == Py_None)) {
         PyErr_Format(GiraffeError, "Column list must be <list> type");
         return NULL;
     }
-    if ((self->conn->SetTable(tbl_name)) == NULL) {
+    if (self->conn->SetTable(tbl_name) == NULL) {
         return NULL;
     }
-    if ((self->conn->SetSchema(column_list, dml_option)) == NULL) {
+    if (self->conn->SetSchema(column_list, dml_option) == NULL) {
         return NULL;
     }
     if ((self->conn->Initiate()) == NULL) {
-        return NULL;
+        DEBUG_PRINTF("%s: %d", "mload status", self->conn->status);
+        switch ((TeradataStatus)self->conn->status) {
+            case TD_ERROR_WORK_TABLE_MISSING:
+            case TD_ERROR_TABLE_MLOAD_EXISTS:
+            case TD_ERROR_TRANS_ABORTED:
+                PyErr_Clear();
+                if (self->conn->Release(tbl_name) == NULL) {
+                    return NULL;
+                }
+                if ((self->conn->Initiate()) == NULL) {
+                    return NULL;
+                }
+                break;
+            default:
+                return NULL;
+        }
     }
     self->conn->connected = true;
     Py_RETURN_NONE;
 }
 
-// TODO: is archive using buffer? it should
-static PyObject* MLoad_put_buffer(MLoad *self, PyObject *args, PyObject *kwargs) {
-    char *data;
-    int length;
-    // TODO: switch to Py_Buffer
-    if (!PyArg_ParseTuple(args, "s#", &data, &length)) {
+static PyObject* MLoad_exists(MLoad *self, PyObject *args, PyObject *kwargs) {
+    char *tbl_name = NULL;
+    if (!PyArg_ParseTuple(args, "s", &tbl_name)) {
         return NULL;
     }
-    return self->conn->PutBuffer(data, length, 1);
+    return self->conn->Exists(tbl_name);
+}
+
+static PyObject* MLoad_drop_table(MLoad *self, PyObject *args, PyObject *kwargs) {
+    char *tbl_name = NULL;
+    if (!PyArg_ParseTuple(args, "s", &tbl_name)) {
+        return NULL;
+    }
+    return self->conn->DropTable(tbl_name);
 }
 
 static PyObject* MLoad_put_row(MLoad *self, PyObject *args, PyObject *kwargs) {
-    char *data;
-    int length;
-    if (!PyArg_ParseTuple(args, "s#", &data, &length)) {
+    PyObject *row = NULL;
+    if (!PyArg_ParseTuple(args, "O", &row)) {
         return NULL;
     }
-    return self->conn->PutRow(data, length);
+    return self->conn->PutRow(row);
 }
 
 static PyMethodDef MLoad_methods[] = {
@@ -152,10 +208,11 @@ static PyMethodDef MLoad_methods[] = {
     {"checkpoint", (PyCFunction)MLoad_checkpoint, METH_NOARGS, ""},
     {"close", (PyCFunction)MLoad_close, METH_NOARGS, ""},
     {"columns", (PyCFunction)MLoad_columns, METH_NOARGS, ""},
+    {"drop_table", (PyCFunction)MLoad_drop_table, METH_VARARGS, ""},
     {"end_acquisition", (PyCFunction)MLoad_end_acquisition, METH_NOARGS, ""},
+    {"exists", (PyCFunction)MLoad_exists, METH_VARARGS, ""},
     {"get_event", (PyCFunction)MLoad_get_event, METH_VARARGS, ""},
-    {"initiate", (PyCFunction)MLoad_initiate, METH_VARARGS, "" },
-    {"put_buffer", (PyCFunction)MLoad_put_buffer, METH_VARARGS, ""},
+    {"initiate", (PyCFunction)MLoad_initiate, METH_VARARGS|METH_KEYWORDS, "" },
     {"put_row", (PyCFunction)MLoad_put_row, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };

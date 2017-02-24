@@ -136,6 +136,9 @@ int giraffez_decimal_import() {
 // only some of the members and not cause undefined behavior. Some things
 // like export only ever set name, type, length, precision and scale for 
 // example.
+// TODO: the above definition is no longer the case since now the columns
+// are set via teradata_execute_p, so a lot of this stuff could probably
+// go away.
 PyObject* giraffez_columns_from_columns(GiraffeColumns *c) {
     size_t i;
     GiraffeColumn *column;

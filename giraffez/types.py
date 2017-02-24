@@ -205,13 +205,10 @@ class Columns(object):
     original table schema without losing information.
     """
 
-    __slots__ = ('columns', '_column_map', '_filtered_columns', 'statement_info')
+    __slots__ = ('columns', '_column_map', '_filtered_columns')
 
     def __init__(self, items=[]):
         self.columns = []
-        self.statement_info = None
-        if isinstance(items, tuple):
-            self.statement_info, items = items
         for item in items:
             self.columns.append(Column(item))
         self._filtered_columns = []
@@ -310,13 +307,15 @@ class Columns(object):
     # TODO: make v2 format with extra data and checksums?
     def serialize(self):
         """
-        Serializes the columns into the giraffez archive header
-        binary format::
+        Serializes the columns into the giraffez archive header v2
+        binary format. The following format is distinct from the 
+        previous legacy (v1) format in that it adds a Version
+        field::
 
-            0      1      2      
+            0      1      2      3      4 
             +------+------+------+------+------+------+------+------+
-            | Header      | Header Data                             |
-            | Length      |                                         |
+            | Version     | Header      | Header Data               |
+            |             | Length      |                           |
             +------+------+------+------+------+------+------+------+
 
                        giraffez Archive Header Format

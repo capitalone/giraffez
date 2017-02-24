@@ -32,8 +32,16 @@ extern "C" {
 #include "encoder.h"
 
 
-PyObject* pack_row(const TeradataEncoder *e, PyObject *row, unsigned char **data, uint16_t *length);
-PyObject* pack_row_item(const TeradataEncoder *e, const GiraffeColumn *column, PyObject *item, unsigned char **data, uint16_t *length);
+PyObject* pydict_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsigned char **data,
+    uint16_t *length);
+PyObject* pybytes_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsigned char **data,
+    uint16_t *length);
+PyObject* pystring_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsigned char **data,
+    uint16_t *length);
+PyObject* pytuple_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsigned char **data,
+    uint16_t *length);
+PyObject* pyobject_to_teradata_item(const TeradataEncoder *e, const GiraffeColumn *column,
+    PyObject *item, unsigned char **data, uint16_t *length);
 
 #ifdef __cplusplus
 }

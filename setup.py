@@ -150,6 +150,7 @@ class Extension(_Extension):
                 self.define_macros.append(('WIN32', 1))
         else:
             self.extra_compile_args = ['-Wfatal-errors']
+        self.define_macros.append(("DEBUG", 1))
 
     @classmethod
     def set_objects(cls, objects):
@@ -183,6 +184,7 @@ class EncoderExtension(Extension):
         "giraffez/src/columns.c",
         "giraffez/src/convert.c",
         "giraffez/src/encoder.c",
+        "giraffez/src/errors.c",
         "giraffez/src/pack.c",
         "giraffez/src/pytypes.c",
         "giraffez/src/types.c",
@@ -196,6 +198,7 @@ class EncoderExtension(Extension):
         "giraffez/src/columns.h",
         "giraffez/src/convert.h",
         "giraffez/src/encoder.h",
+        "giraffez/src/errors.h",
         "giraffez/src/pack.h",
         "giraffez/src/pytypes.h",
         "giraffez/src/types.h",

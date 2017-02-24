@@ -32,23 +32,18 @@ extern "C" {
 #include "encoder.h"
 
 
-uint32_t count_rows(unsigned char* data, const uint32_t length);
+uint32_t teradata_buffer_count_rows(unsigned char *data, const uint32_t length);
+PyObject* teradata_buffer_to_pybytes(const TeradataEncoder *e, unsigned char **data, const uint32_t length);
+PyObject* teradata_buffer_to_pylist(const TeradataEncoder *e, unsigned char **data, const uint32_t length);
 
-PyObject* unpack_rows(const TeradataEncoder *e, unsigned char **data, const uint32_t length);
-PyObject* unpack_rows_raw(const TeradataEncoder *e, unsigned char **data, const uint32_t length);
+PyObject* teradata_row_to_pybytes(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
+PyObject* teradata_row_to_pydict(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
+PyObject* teradata_row_to_pystring(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
+PyObject* teradata_row_to_pytuple(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
 
-PyObject* unpack_row_dict(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
-PyObject* unpack_row_str(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
-PyObject* unpack_row_list(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
-PyObject* unpack_row_raw(const TeradataEncoder *e, unsigned char **data, const uint16_t length);
+PyObject* teradata_item_to_pyobject(const TeradataEncoder *e, unsigned char **data,
+    const GiraffeColumn *column);
 
-PyObject* unpack_row_item_as_str(const TeradataEncoder *e, unsigned char **data, const GiraffeColumn *column);
-PyObject* unpack_row_item_with_builtin_types(const TeradataEncoder *e, unsigned char **data, const GiraffeColumn *column);
-PyObject* unpack_row_item_with_giraffe_types(const TeradataEncoder *e, unsigned char **data, const GiraffeColumn *column);
-
-GiraffeColumns* unpack_stmt_info_to_columns(unsigned char **data, const uint32_t length);
-void unpack_stmt_info(unsigned char **data, StatementInfo *s, const uint32_t length);
-void unpack_stmt_info_ext(unsigned char **data, StatementInfoColumn *column, const uint16_t length);
 
 #ifdef __cplusplus
 }

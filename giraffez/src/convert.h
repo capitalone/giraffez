@@ -37,30 +37,52 @@ enum DecimalTypes {
     DECIMAL128 = 16
 };
 
-PyObject* byte_to_pylong(unsigned char** data);
-PyObject* byte_to_pystring(unsigned char** data);
-PyObject* char_to_pystring(unsigned char** data, const uint64_t column_length);
-PyObject* char_to_time(unsigned char** data, const uint64_t column_length);
-PyObject* char_to_timestamp(unsigned char** data, const uint64_t column_length);
-PyObject* date_to_pydate(unsigned char** data);
-PyObject* date_to_pystring(unsigned char** data);
-PyObject* decimal_to_pystring(unsigned char** data, const uint64_t column_length,
-    const uint16_t column_scale);
-PyObject* decimal_to_pyfloat(unsigned char** data, const uint64_t column_length,
-        const uint16_t column_scale);
-PyObject* decimal_to_giraffez_decimal(unsigned char** data, const uint64_t column_length,
-        const uint16_t column_scale);
-PyObject* int_to_pylong(unsigned char** data);
-PyObject* int_to_pystring(unsigned char** data);
-PyObject* float_to_pyfloat(unsigned char** data);
-PyObject* float_to_pystring(unsigned char** data);
-PyObject* long_to_pylong(unsigned char** data);
-PyObject* long_to_pystring(unsigned char** data);
-PyObject* pystring_from_cformat(const char* fmt, ...);
-PyObject* short_to_pylong(unsigned char** data);
-PyObject* short_to_pystring(unsigned char** data);
-PyObject* vchar_to_pystring(unsigned char** data);
+enum IntegerTypes {
+    INTEGER8   =  1,
+    INTEGER16  =  2,
+    INTEGER32  =  4,
+    INTEGER64  =  8
+};
 
+// Character types
+PyObject* teradata_char_to_pystring(unsigned char **data, const uint64_t column_length);
+PyObject* teradata_vchar_to_pystring(unsigned char** data);
+
+// Numeric types
+PyObject* teradata_byteint_to_pylong(unsigned char **data);
+PyObject* teradata_byteint_to_pystring(unsigned char **data);
+PyObject* teradata_smallint_to_pylong(unsigned char **data);
+PyObject* teradata_smallint_to_pystring(unsigned char **data);
+PyObject* teradata_int_to_pylong(unsigned char **data);
+PyObject* teradata_int_to_pystring(unsigned char **data);
+PyObject* teradata_bigint_to_pylong(unsigned char **data);
+PyObject* teradata_bigint_to_pystring(unsigned char **data);
+PyObject* teradata_float_to_pyfloat(unsigned char **data);
+PyObject* teradata_float_to_pystring(unsigned char **data);
+
+// Dates
+int teradata_date_to_cstring(unsigned char **data, char *buf);
+PyObject* teradata_date_to_giraffez_date(unsigned char **data);
+PyObject* teradata_date_to_pystring(unsigned char **data);
+PyObject* teradata_time_to_giraffez_time(unsigned char **data, const uint64_t column_length);
+PyObject* teradata_ts_to_giraffez_ts(unsigned char **data, const uint64_t column_length);
+
+// Decimal
+int teradata_decimal_to_cstring(unsigned char **data, const uint64_t column_length, 
+        const uint16_t column_scale, char *buf);
+int teradata_decimal8_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
+int teradata_decimal16_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
+int teradata_decimal32_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
+int teradata_decimal64_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
+int teradata_decimal128_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
+
+
+inline PyObject* cstring_to_pystring(const char *buf, const int length);
+PyObject* cstring_to_giraffez_decimal(const char *buf, const int length);
+PyObject* cstring_to_pyfloat(const char *buf, const int length);
+PyObject* pystring_from_cformat(const char* fmt, ...);
+
+// PACK
 PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len);
 PyObject* pystring_to_char(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *len);
 PyObject* pylong_to_byte(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
@@ -69,7 +91,8 @@ PyObject* pylong_to_int(PyObject *item, const uint16_t column_length, unsigned c
 PyObject* pylong_to_long(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
 PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
 PyObject* pydate_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
-PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len);
+PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length,
+    const uint16_t column_scale, unsigned char **buf, uint16_t *len);
 
 #ifdef __cplusplus
 }

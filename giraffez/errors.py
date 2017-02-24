@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .utils import suppress_context
+
+
 class GiraffeError(Exception):
     """
     Baseclass for all giraffez errors.
@@ -116,7 +119,9 @@ class TeradataError(Exception):
         super(TeradataError, self).__init__(message)
 
         if isinstance(message, Exception):
-            message = getattr(message, 'message', '')
+            #message = getattr(message, 'message', '')
+            message = str(message)
+
 
         if code is None:
             if isinstance(message, (list, tuple)):
@@ -134,21 +139,21 @@ class TeradataError(Exception):
                     code = None
                     message = "Unable to parse CLI error code/message"
             if code == ObjectDoesNotExist.code:
-                raise ObjectDoesNotExist(message, code)
+                raise suppress_context(ObjectDoesNotExist(message, code))
             elif code == ObjectNotTable.code:
-                raise ObjectNotTable(message, code)
+                raise suppress_context(ObjectNotTable(message, code))
             elif code == ObjectNotView.code:
-                raise ObjectNotView(message, code)
+                raise suppress_context(ObjectNotView(message, code))
             elif code == TransactionAborted.code:
-                raise TransactionAborted(message, code)
+                raise suppress_context(TransactionAborted(message, code))
             elif code == CannotReleaseMultiLoad.code:
-                raise CannotReleaseMultiLoad(message, code)
+                raise suppress_context(CannotReleaseMultiLoad(message, code))
             elif code == MultiLoadTableExists.code:
-                raise MultiLoadTableExists(message, code)
+                raise suppress_context(MultiLoadTableExists(message, code))
             elif code == MultiLoadWorkTableNotFound.code:
-                raise MultiLoadWorkTableNotFound(message, code)
+                raise suppress_context(MultiLoadWorkTableNotFound(message, code))
             elif code == InvalidCredentialsError.code:
-                raise InvalidCredentialsError(message, code)
+                raise suppress_context(InvalidCredentialsError(message, code))
 
         self.message = message
         self.code = code

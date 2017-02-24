@@ -47,7 +47,9 @@ def read_sql():
 
 
 class Cursor(object):
-    def __init__(self, conn, command, multi_statement=False, prepare_only=False, encoder_settings=ENCODER_SETTINGS_DEFAULT):
+    def __init__(self, conn, command, multi_statement=False, prepare_only=False,
+            encoder_settings=ENCODER_SETTINGS_DEFAULT, coerce_floats=True, parse_dates=[],
+            parse_decimals=[]):
         self.conn = conn
         self.command = command
         self.multi_statement = multi_statement
@@ -71,6 +73,7 @@ class Cursor(object):
 
     def _columns(self):
         columns = Columns(self.conn.columns())
+        log.debug(self.conn.columns(debug=True))
         for column in columns:
             log.verbose("Debug[1]", repr(column))
         return columns
@@ -99,6 +102,8 @@ class Cursor(object):
             self.columns = None
             self._execute(self.statements.pop())
             return self._fetchone()
+        # TODO: should make errors in C work natively so no need
+        # to continue wrapping with Python defined exception
         except _cli.error as error:
             raise suppress_context(TeradataError(error))
 
@@ -107,6 +112,10 @@ class Cursor(object):
         for row in self:
             n += 1
         return n
+
+    def items(self):
+        # set 'dict'
+        return self
 
     def next(self):
         return self.__next__()

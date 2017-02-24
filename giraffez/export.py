@@ -20,6 +20,8 @@ try:
 except ImportError:
     TPT_NOT_FOUND = True
 
+from . import _encoder
+import struct
 from collections import defaultdict
 
 from .constants import *
@@ -109,10 +111,9 @@ class TeradataExport(Connection):
     def _connect(self, host, username, password):
         try:
             self.export = _tpt.Export(host, username, password)
-            title, version = get_version_info()
-            query_band = "UTILITYNAME={};VERSION={};".format(title, version)
-            self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
-        except _tpt.errors as error:
+            self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
+                *get_version_info()))
+        except _tpt.error as error:
             raise suppress_context(TeradataError(error))
 
     def close(self):
@@ -135,6 +136,7 @@ class TeradataExport(Connection):
 
     @encoding.setter
     def encoding(self, value):
+        # TODO: should set as 'enum' from string value by lookup?
         if value == self._encoding:
             return
         else:
@@ -163,11 +165,13 @@ class TeradataExport(Connection):
     def initiate(self):
         log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
         try:
-            self.export.initiate(self.encoding, self.null, self.delimiter)
+            self.export.initiate()
+            self.export.set_encoding(self.encoding, self.null, self.delimiter)
         except _tpt.error as error:
             raise suppress_context(TeradataError(error))
         self.initiated = True
         log.info("Export", "Teradata PT request accepted.")
+        # TODO: move this stuff?
         if self.encoding == "json":
             self.processor = dict_to_json
         else:
@@ -218,9 +222,35 @@ class TeradataExport(Connection):
             self._query = statement
         self.initiated = False
         self.export.set_query(statement)
-        #self.export.add_attribute(TD_SELECT_STMT, statement)
 
-    def results(self):
+    # TODO: should the return type be implicit to the method called? like dict
+    # when calling items, and then with iterating over the Export instance
+    # returning a list or str?
+    def items(self):
+        self.encoding = "dict"
+        self.export.set_encoding(self.encoding)
+        return self
+        # set row encoding 'dict'
+
+    # TODO: if this were host you returned it as a list would it then need to be
+    # setup in a way it works like Python3's views? I'm thinking no
+    def values(self):
+        self.encoding = "list"
+        self.export.set_encoding(self.encoding)
+        return self
+
+    # TODO: what should this method be called?
+    def values_as_str(self):
+        # set row encoding 'str'
+        # this encoding setting doesn't allow setting options
+        # like coerce_floats, or use giraffez.types
+        #self.export.set_encoding(ENCODER_SETTINGS_STRING)
+        self.encoding = "str"
+        self.export.set_encoding(self.encoding)
+        return self
+
+    # TODO: rename?
+    def __iter__(self):
         """
         Generates and yields row results as they are returned from
         Teradata and processed. 
@@ -250,5 +280,9 @@ class TeradataExport(Connection):
                 if self.protect:
                     Config.lock_connection(self.config, self.dsn)
                 raise suppress_context(error)
-        for row in self.export.get_buffer():
-            yield self.processor(row)
+        while True:
+            data = self.export.get_buffer()
+            if not data:
+                break
+            for row in data:
+                yield self.processor(row)

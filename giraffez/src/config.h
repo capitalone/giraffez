@@ -14,31 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFEZ_ERRORS_H
-#define __GIRAFFEZ_ERRORS_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <Python.h>
+#ifndef __GIRAFFEZ_INTERNAL_CONFIG
+#define __GIRAFFEZ_INTERNAL_CONFIG
 
 
-extern PyObject *GiraffeError;
-extern PyObject *EndStatementError;
-extern PyObject *EndRequestError;
+#define BUFFER_SIZE 8 * 1024
+#define ITEM_BUFFER_SIZE 1024
 
-#ifdef DEBUG
-#define DEBUG_PRINTF(fmt, ...) debug_printf(fmt, __VA_ARGS__)
-#else
-#define DEBUG_PRINTF(fmt, ...)
-#endif
-
-void debug_printf(const char *fmt, ...);
-void define_exceptions(const char *name, PyObject *module);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -33,6 +33,15 @@ char* concat(const char *s1, const char *s2) {
     return result;
 }
 
+void debug_printf(const char *fmt, ...) {
+    PyObject *s;
+    va_list vargs;
+    va_start(vargs, fmt);
+    s = PyUnicode_FromFormatV(fmt, vargs);
+    va_end(vargs);
+    fprintf(stderr, "DEBUG: %s\n", PyUnicode_AsUTF8(s));
+}
+
 void define_exceptions(const char *name, PyObject *module) {
     GiraffeError = PyErr_NewException(concat(name, "error"), NULL, NULL);
     PyModule_AddObject(module, "error", GiraffeError);

@@ -15,12 +15,14 @@
 # limitations under the License.
 
 import struct
+import threading
 
 TPT_NOT_FOUND = False
 try:
     from . import _tpt
 except ImportError:
     TPT_NOT_FOUND = True
+from . import _encoder
 
 from .constants import *
 from .errors import *
@@ -29,7 +31,7 @@ from .cmd import TeradataCmd
 from .connection import Connection
 from .encoders import null_handler, python_to_teradata
 from .fmt import format_table
-from .io import FileReader, Reader
+from .io import ArchiveFileReader, CSVReader, FileReader, JSONReader, Reader
 from .logging import log
 from .utils import get_version_info, pipeline, suppress_context
 
@@ -72,7 +74,7 @@ class TeradataMLoad(Connection):
     is complete.
     """
     checkpoint_interval = DEFAULT_CHECKPOINT_INTERVAL
-    _valid_encodings = {"str", "archive"}
+    _valid_encodings = {"str", "archive", "dict"}
 
     def __init__(self, table=None, host=None, username=None, password=None, log_level=INFO,
             config=None, key_file=None, dsn=None, protect=False):
@@ -127,12 +129,15 @@ class TeradataMLoad(Connection):
 
     def _end_acquisition(self):
         log.info("MLoad", "Ending acquisition phase ...")
-        self.mload.end_acquisition()
+        try:
+            self.mload.end_acquisition()
+        except _tpt.error as error:
+            raise suppress_context(TeradataError(error))
         self.end_acquisition = True
         log.info("MLoad", "Acquisition phase ended.")
 
     def _connect(self, host, username, password):
-        self.cmd = TeradataCmd(host, username, password, log_level=log.level, mload_session=True)
+        #self.cmd = TeradataCmd(host, username, password, log_level=log.level, mload_session=True)
         try:
             self.mload = _tpt.MLoad(host, username, password)
         except _tpt.error as error:
@@ -144,29 +149,13 @@ class TeradataMLoad(Connection):
     def initiate(self):
         if not self.table:
             raise GiraffeError("Table must be set prior to initiating.")
-        if self.columns is None:
-            raise GiraffeError("Columns must be set prior to initiating.")
         if self.initiated:
             raise GiraffeError("Already initiated connection.")
         log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
-        try:
-            try:
-                self.mload.initiate(self.table, self.columns.names, MARK_DUPLICATE_ROWS)
-            except _tpt.error as error:
-                raise suppress_context(MultiLoadError(error))
-        except (MultiLoadLocked, TransactionAborted) as error:
-            log.info("MLoad", "Teradata PT request failed with code '{}'.".format(error.code))
-            self.release()
-            try:
-                self.mload.initiate(self.table, self.columns, MARK_DUPLICATE_ROWS)
-            except _tpt.error as error:
-                raise suppress_context(MultiLoadError(error))
+        #self.mload.initiate(self.table, column_list=self._columns)
+        self.mload.initiate(self.table, self.encoding, self.null, self.delimiter)
         log.info("MLoad", "Teradata PT request accepted.")
         self._columns = self.mload.columns()
-        if self.processor is None:
-            self.processor = pipeline([
-                python_to_teradata(self.columns)
-            ])
         self.initiated = True
 
     def checkpoint(self):
@@ -175,13 +164,10 @@ class TeradataMLoad(Connection):
         when loading from a file. Updates the exit code of the driver to
         reflect errors.
         """
-        checkpoint_status = self.mload.checkpoint()
-        #if checkpoint_status >= TD_ERROR:
-            #status_message = MESSAGES.get(int(checkpoint_status), None)
-            #error_table = [("Error Code", "Error Description")]
-            #error_table.append((checkpoint_status, status_message))
-            #log.info("\r{}".format(format_table(error_table)))
-        return checkpoint_status
+        try:
+            return self.mload.checkpoint()
+        except _tpt.error as error:
+            raise suppress_context(TeradataError(error))
 
     def cleanup(self):
         """
@@ -190,9 +176,17 @@ class TeradataMLoad(Connection):
 
         :raises `giraffez.errors.TeradataError`: if a Teradata error ocurred
         """
-        for table in filter(lambda x: self.cmd.exists(x, silent=(log.level < DEBUG)), self.tables):
+        threads = []
+        for i, table in enumerate(filter(lambda x: self.mload.exists(x), self.tables)):
+            if i == 1:
+                table = table + "lol"
             log.info("MLoad", "Dropping table '{}'...".format(table))
-            self.cmd.drop_table(table, silent=True)
+            t = threading.Thread(target=self.mload.drop_table, args=(table,))
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+            #self.mload.drop_table(table)
 
     def close(self):
         log.info("MLoad", "Closing Teradata PT connection ...")
@@ -200,7 +194,7 @@ class TeradataMLoad(Connection):
             log.info("MLoad", "Acquisition phase was not called before closing.")
             self._end_acquisition()
         self.mload.close()
-        self.cmd.close()
+        #self.cmd.close()
         log.info("MLoad", "Teradata PT request complete.")
 
     @property
@@ -321,23 +315,32 @@ class TeradataMLoad(Connection):
             self.table = table
 
         with Reader(filename, delimiter=delimiter, quotechar=quotechar) as f:
-            if not self.columns:
-                self.columns = f.header
+            #if not self.columns:
+                #self.columns = f.header
 
-            if isinstance(f, FileReader):
-                self.processor = pipeline([
-                    null_handler(null),
-                    python_to_teradata(self.columns, self.allow_precision_loss)
-                ])
-            else:
+            if isinstance(f, JSONReader):
+                print("ITS JSON")
+                self.encoding = "dict"
                 self.processor = lambda s: s
-
+            elif isinstance(f, FileReader):
+                self.encoding = "str"
+                #self.processor = lambda s: s.split(f.delimiter)
+                self.processor = lambda s: s
+            elif isinstance(f, ArchiveFileReader):
+                self.encoding = "archive"
+                self.processor = lambda s: s
+            self.null = null
+            if delimiter is None:
+                delimiter = "|"
+            self.delimiter = delimiter
             self.initiate()
             i = 0
             for i, line in enumerate(f, 1):
                 self.load_row(line, panic=panic)
+                #self.load_row("whoops", panic=panic)
                 if i % self.checkpoint_interval == 1:
                     log.info("\rMLoad", "Processed {} rows".format(i), console=True)
+                    # TODO: get error info and catch error 10517: UPDATE_OPERATOR: TPT10510: Error Limit has been reached or exceeded.
                     checkpoint_status = self.checkpoint()
                     exit_code = self.exit_code
                     if exit_code != 0:
@@ -375,18 +378,18 @@ class TeradataMLoad(Connection):
                 raise error
             log.info("MLoad", error)
 
-    def release(self):
-        """
-        Attempt release of target mload table.
+    #def release(self):
+        #"""
+        #Attempt release of target mload table.
 
-        :raises `giraffez.errors.GiraffeError`: if table was not set by
-            the constructor, the :code:`TeradataMLoad.table`, or
-            :meth:`~giraffez.mload.TeradataMLoad.from_file`.
-        """
-        if self.table is None:
-            raise GiraffeError("Cannot release. Target table has not been set.")
-        log.info("MLoad", "Attempting release for table {}".format(self.table))
-        self.cmd.release_mload(self.table, silent=True)
+        #:raises `giraffez.errors.GiraffeError`: if table was not set by
+            #the constructor, the :code:`TeradataMLoad.table`, or
+            #:meth:`~giraffez.mload.TeradataMLoad.from_file`.
+        #"""
+        #if self.table is None:
+            #raise GiraffeError("Cannot release. Target table has not been set.")
+        #log.info("MLoad", "Attempting release for table {}".format(self.table))
+        #self.cmd.release_mload(self.table, silent=True)
 
     @property
     def status(self):
@@ -440,14 +443,13 @@ class TeradataMLoad(Connection):
         if self.initiated:
             raise GiraffeError("Cannot reuse MLoad context for more than one table")
         self._table_name = table_name
-        #self.mload.set_table(table_name)
-        try:
-            log.info("MLoad", "Requesting column info for table '{}' ...".format(self.table))
-            self._columns = self.cmd.get_columns(self.table, silent=True)
-        except MultiLoadTableExists as error:
-            log.info("MLoad", "Teradata PT request failed with code '{}'.".format(error.code))
-            self.release()
-            self._columns = self.cmd.get_columns(self.table, silent=True)
+        #try:
+            #log.info("MLoad", "Requesting column info for table '{}' ...".format(self.table))
+            #self._columns = self.cmd.get_columns(self.table, silent=True)
+        #except MultiLoadTableExists as error:
+            #log.info("MLoad", "Teradata PT request failed with code '{}'.".format(error.code))
+            #self.release()
+            #self._columns = self.cmd.get_columns(self.table, silent=True)
 
     @property
     def total_count(self):

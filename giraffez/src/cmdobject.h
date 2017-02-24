@@ -43,6 +43,7 @@ PyObject* check_error(TeradataConnection *conn);
 PyObject* teradata_close(TeradataConnection *conn);
 TeradataConnection* teradata_connect(const char *host, const char *username,
     const char *password);
+PyObject* teradata_execute_rc(TeradataConnection *conn, TeradataEncoder *e, const char *command, int *rc);
 PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const char *command);
 PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command);
 PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data,

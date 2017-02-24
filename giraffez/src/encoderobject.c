@@ -41,7 +41,7 @@ static PyObject* Encoder_new(PyTypeObject *type, PyObject *args, PyObject *kwarg
 static int Encoder_init(Encoder *self, PyObject *args, PyObject *kwargs) {
     PyObject *columns_obj;
     GiraffeColumns *columns;
-    uint32_t settings;
+    uint32_t settings = ENCODER_SETTINGS_DEFAULT;
 
     static char *kwlist[] = {"columns_obj", "settings", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|i", kwlist, &columns_obj, &settings)) {
@@ -67,7 +67,7 @@ static PyObject* Encoder_count_rows(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "s*", &buffer)) {
         return NULL;
     }
-    n = count_rows((unsigned char*)buffer.buf, buffer.len);
+    n = teradata_buffer_count_rows((unsigned char*)buffer.buf, buffer.len);
     PyBuffer_Release(&buffer);
     return PyLong_FromLong(n);
 }
@@ -85,7 +85,7 @@ static PyObject* Encoder_pack_row(Encoder *self, PyObject *args) {
         /*PyErr_Format(PyExc_ValueError, "Encoder pack_row failed");*/
         return NULL;
     }
-    PyObject *ret = PyBytes_FromStringAndSize(buf, length);
+    PyObject *ret = PyBytes_FromStringAndSize((char*)buf, length);
     free(buf);
     return ret;
 }

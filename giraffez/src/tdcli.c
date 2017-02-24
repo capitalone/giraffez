@@ -27,13 +27,22 @@
 
 TeradataError* tdcli_read_error(char *dataptr) {
     TeradataError *err;
-    err = (struct CliErrorType*)dataptr;
+    err = (TeradataError*)malloc(sizeof(TeradataError));
+    struct CliErrorType *e;
+    e = (struct CliErrorType*)dataptr;
+    err->Code = e->Code;
+    err->Msg = e->Msg;
     return err;
 }
 
-TeradataFailure* tdcli_read_failure(char *dataptr) {
-    TeradataFailure *err;
-    err = (struct CliFailureType*)dataptr;
+/*TeradataFailure* tdcli_read_failure(char *dataptr) {*/
+TeradataError* tdcli_read_failure(char *dataptr) {
+    TeradataError *err;
+    err = (TeradataError*)malloc(sizeof(TeradataError));
+    struct CliFailureType *e;
+    e = (struct CliFailureType*)dataptr;
+    err->Code = e->Code;
+    err->Msg = e->Msg;
     return err;
 }
 
@@ -42,6 +51,7 @@ TeradataConnection* tdcli_new() {
     conn = (TeradataConnection*)malloc(sizeof(TeradataConnection));
     conn->result = 0;
     conn->connected = NOT_CONNECTED;
+    conn->request_status = REQUEST_CLOSED;
     conn->dbc = (dbcarea_t*)malloc(sizeof(dbcarea_t));
     conn->dbc->total_len = sizeof(*conn->dbc);
     return conn;
@@ -73,6 +83,9 @@ uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *u
     conn->dbc->maximum_parcel = 'H';
     conn->dbc->max_decimal_returned = 38;
     conn->dbc->charset_type = 'N';
+    // TODO: should this be in ANSI or Teradata mode? The default on the current system is Teradata
+    /*conn->dbc->tx_semantics = 'T';*/
+    /*conn->dbc->tx_semantics = 'A';*/
     conn->dbc->consider_APH_resps = 'Y';
     snprintf(conn->session_charset, 32, "%-30s", "UTF8");
     conn->dbc->inter_ptr = conn->session_charset;
@@ -80,7 +93,10 @@ uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *u
     conn->dbc->logon_ptr = conn->logonstr;
     conn->dbc->logon_len = (UInt32)strlen(conn->logonstr);
     conn->dbc->func = DBFCON;
+    // TODO: may cause weird race condition? not sure just happened once
+    Py_BEGIN_ALLOW_THREADS
     DBCHCL(&conn->result, conn->cnta, conn->dbc);
+    Py_END_ALLOW_THREADS
     return conn->result;
 }
 
@@ -91,6 +107,9 @@ uint16_t tdcli_fetch(TeradataConnection *conn) {
     return tdcli_fetch_record(conn);
 }
 
+// TODO: Py_BEGIN_ALLOW_THREADS should maybe be moved so that
+// this file can be free of depedency on Python
+// TODO: or should it???
 uint16_t tdcli_fetch_record(TeradataConnection *conn) {
     Py_BEGIN_ALLOW_THREADS
     DBCHCL(&conn->result, conn->cnta, conn->dbc);
@@ -102,22 +121,35 @@ uint16_t tdcli_execute(TeradataConnection *conn, const char *command) {
     conn->dbc->req_ptr = (char*)command;
     conn->dbc->req_len = (UInt32)strlen(command);
     conn->dbc->func = DBFIRQ;
+    Py_BEGIN_ALLOW_THREADS
     DBCHCL(&conn->result, conn->cnta, conn->dbc);
+    Py_END_ALLOW_THREADS
+    if (conn->result == OK) {
+        conn->request_status = REQUEST_OPEN;
+    }
     return conn->result;
 }
 
 uint16_t tdcli_end_request(TeradataConnection *conn) {
+    if (conn->request_status == REQUEST_CLOSED) {
+        return conn->result;
+    }
     conn->dbc->i_sess_id = conn->dbc->o_sess_id;
     conn->dbc->i_req_id = conn->dbc->o_req_id;
     conn->dbc->func = DBFERQ;
     DBCHCL(&conn->result, conn->cnta, conn->dbc);
+    if (conn->result == OK) {
+        conn->request_status = REQUEST_CLOSED;
+    }
     return conn->result;
 }
 
 void tdcli_close(TeradataConnection *conn) {
     if (conn->connected == CONNECTED) {
         conn->dbc->func = DBFDSC;
+        Py_BEGIN_ALLOW_THREADS
         DBCHCL(&conn->result, conn->cnta, conn->dbc);
+        Py_END_ALLOW_THREADS
     }
     // TODO: this presumably cleans up some of the global variables
     // used by CLIv2 and if done when working with multiple sessions

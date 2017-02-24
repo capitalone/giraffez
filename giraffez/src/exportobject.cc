@@ -49,8 +49,10 @@ static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
 
     // The min and max for sessions has been hard set to reasonable
     // values that *should* be one-size fits-all.
-    self->conn->AddAttribute(TD_MIN_SESSIONS, 5);
-    self->conn->AddAttribute(TD_MAX_SESSIONS, 32);
+    //self->conn->AddAttribute(TD_MIN_SESSIONS, 5);
+    //self->conn->AddAttribute(TD_MAX_SESSIONS, 32);
+    self->conn->AddAttribute(TD_MIN_SESSIONS, 2);
+    self->conn->AddAttribute(TD_MAX_SESSIONS, 5);
     self->conn->AddAttribute(TD_MAX_DECIMAL_DIGITS, 38);
 
     // Charset is set to prefer UTF8.  There may need to be changes to
@@ -106,20 +108,16 @@ static PyObject* Export_get_buffer(Export *self) {
     return self->conn->GetBuffer();
 }
 
-// TODO: ensure that multiple export jobs can run consecutively within
-// the same context
-static PyObject* Export_initiate(Export *self, PyObject *args, PyObject *kwargs) {
+static PyObject* Export_set_encoding(Export *self, PyObject *args, PyObject *kwargs) {
     char *encoding;
     PyObject *null, *delimiter;
     // TODO: better default handling here for null/delimiter. ensure there
     // isn't a way to set this that will create undefined behavior
-    if (!PyArg_ParseTuple(args, "sOO", &encoding, &null, &delimiter)) {
-        return NULL;
-    }
-    if ((self->conn->Initiate()) == NULL) {
+    if (!PyArg_ParseTuple(args, "s|OO", &encoding, &null, &delimiter)) {
         return NULL;
     }
     // TODO: create presets
+    // TODO: move before initiate?
     uint32_t settings = 0; // zero so we have defaults for the else case below
     if (strcmp(encoding, "archive") == 0) {
         // TODO: idk
@@ -128,7 +126,7 @@ static PyObject* Export_initiate(Export *self, PyObject *args, PyObject *kwargs)
             return NULL;
         }
     } else if (strcmp(encoding, "dict") == 0 || strcmp(encoding, "json") == 0) {
-        settings = ENCODER_SETTINGS_DEFAULT;
+        settings = ENCODER_SETTINGS_JSON;
         if (self->conn->SetEncoding(settings) == NULL) {
             return NULL;
         }
@@ -141,6 +139,15 @@ static PyObject* Export_initiate(Export *self, PyObject *args, PyObject *kwargs)
         if (self->conn->SetEncoding(settings) == NULL) {
             return NULL;
         }
+    }
+    Py_RETURN_NONE;
+}
+
+// TODO: ensure that multiple export jobs can run consecutively within
+// the same context
+static PyObject* Export_initiate(Export *self) {
+    if ((self->conn->Initiate()) == NULL) {
+        return NULL;
     }
     Py_RETURN_NONE;
 }
@@ -158,7 +165,8 @@ static PyMethodDef Export_methods[] = {
     {"close", (PyCFunction)Export_close, METH_NOARGS, ""},
     {"columns", (PyCFunction)Export_columns, METH_NOARGS, ""},
     {"get_buffer", (PyCFunction)Export_get_buffer, METH_NOARGS, ""},
-    {"initiate", (PyCFunction)Export_initiate, METH_VARARGS, ""},
+    {"initiate", (PyCFunction)Export_initiate, METH_NOARGS, ""},
+    {"set_encoding", (PyCFunction)Export_set_encoding, METH_VARARGS, ""},
     {"set_query", (PyCFunction)Export_set_query, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };

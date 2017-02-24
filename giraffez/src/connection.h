@@ -31,6 +31,7 @@
 #include "errors.h"
 #include "pytypes.h"
 #include "tdcli.h"
+#include "util.h"
 
 // Python 2/3 C API and Windows compatibility
 #include "_compat.h"
@@ -46,7 +47,7 @@ namespace Giraffez {
         std::string table_name;
         const char *host, *username, *password;
     public:
-        TD_StatusCode status;
+        int status;
         bool connected;
 
         Connection(const char *host, const char *username, const char *password) {
@@ -100,6 +101,26 @@ namespace Giraffez {
             TConn::AddAttribute(key, value);
         }
 
+        PyObject* AddAttribute(PyObject *attrs) {
+            if (!PyList_Check(attrs)) {
+                PyErr_Format(GiraffeError, "Expected list by received '%s'", Py_TYPE(attrs)->tp_name);
+                return NULL;
+            }
+            PyObject *obj;
+            TD_Attribute key;
+            PyObject *value;
+            Py_ssize_t len, i;
+            len = PyList_Size(attrs);
+            for (i = 0; i < len; i++) {
+                Py_RETURN_ERROR(obj = PyList_GetItem(attrs, i));
+                if (!PyArg_ParseTuple(obj, "(iO)", &key, &value)) {
+                    return NULL;
+                }
+                this->AddAttribute(key, value);
+            }
+            Py_RETURN_NONE;
+        }
+
         PyObject* AddAttribute(TD_Attribute key, PyObject *value) {
             if PyLong_Check(value) {
                 TConn::AddAttribute(key, (int)PyLong_AsLong(value));
@@ -112,7 +133,7 @@ namespace Giraffez {
         }
 
         PyObject* ApplyRows() {
-            if ((status = TConn::ApplyRows()) >= TD_Error) {
+            if ((status = TConn::ApplyRows()) >= TD_ERROR) {
                 return this->HandleError();
             }
             Py_RETURN_NONE;
@@ -122,7 +143,7 @@ namespace Giraffez {
             // TODO: need free?
             char *data;
             TD_Length length = 0;
-            if ((status = TConn::Checkpoint(&data, &length)) >= TD_Error) {
+            if ((status = TConn::Checkpoint(&data, &length)) >= TD_ERROR) {
                 return this->HandleError();
             }
             return PyBytes_FromStringAndSize(data, length);
@@ -137,7 +158,7 @@ namespace Giraffez {
         }
 
         PyObject* EndAcquisition() {
-            if ((status = TConn::EndAcquisition()) >= TD_Error) {
+            if ((status = TConn::EndAcquisition()) >= TD_ERROR) {
                 return this->HandleError();
             }
             Py_RETURN_NONE;
@@ -146,7 +167,7 @@ namespace Giraffez {
         PyObject* GetBuffer() {
             unsigned char *data = NULL;
             int length;
-            if (TConn::GetBuffer((char**)&data, (TD_Length*)&length) == TD_END_Method) {
+            if ((int)TConn::GetBuffer((char**)&data, (TD_Length*)&length) == TD_END_METHOD) {
                 Py_RETURN_NONE;
             }
             return encoder->UnpackRowsFunc(encoder, &data, length);
@@ -155,38 +176,74 @@ namespace Giraffez {
         PyObject* GetEvent(TD_EventType event_type, TD_Index index) {
             char *data = NULL;
             TD_Length length = 0;
-            // TODO: check TD_Unavailable and raise different exception
-            if ((status = TConn::GetEvent(event_type, &data, &length, index)) >= TD_Error) {
+            // TODO: check TD_Unavailable and raise different exception.  Necessary?
+            if ((status = TConn::GetEvent(event_type, &data, &length, index)) >= TD_ERROR) {
                 return this->HandleError();
             }
             return PyBytes_FromStringAndSize(data, length);
         }
 
         PyObject* Initiate() {
-            if ((status = TConn::Initiate()) >= TD_Error) {
+            if ((status = TConn::Initiate()) >= TD_ERROR) {
                 return this->HandleError();
             }
             connected = true;
             Py_RETURN_NONE;
         }
 
-        PyObject* PutBuffer(char *data, TD_Length length, TD_Boolean indicator) {
-            if ((status = TConn::PutBuffer(data, length, indicator)) != TD_Success) {
+        PyObject* PutRow(char *data, TD_Length length) {
+            if ((status = TConn::PutRow(data, length)) != TD_SUCCESS) {
                 return this->HandleError();
             }
             Py_RETURN_NONE;
         }
 
-        PyObject* PutRow(char *data, TD_Length length) {
-            if ((status = TConn::PutRow(data, length)) != TD_Success) {
+        PyObject* PutRow(PyObject *items) {
+            //TD_Length length;
+            uint16_t length = 0;
+            unsigned char *data = (unsigned char*)malloc(sizeof(unsigned char)*64000);
+            unsigned char *buf = data;
+            encoder->PackRowFunc(encoder, items, &buf, &length);
+            //encoder->PackRowFunc(encoder, items, &data, &length);
+            if ((status = TConn::PutRow((char*)data, (TD_Length)length)) != TD_SUCCESS) {
                 return this->HandleError();
+            }
+            Py_RETURN_NONE;
+        }
+
+        PyObject* Release(char *tbl_name) {
+            table_name = std::string(tbl_name);
+            TeradataEncoder *e;
+            int status;
+            e = encoder_new(NULL, ENCODER_SETTINGS_DEFAULT);
+            TeradataConnection *cmd;
+            std::string query = "release mload "  + table_name;
+            if ((cmd = teradata_connect(host, username, password)) == NULL) {
+                return NULL;
+            }
+            if (teradata_execute_rc(cmd, e, strdup(query.c_str()), &status) == NULL) {
+                if (status != TD_ERROR_CANNOT_RELEASE_MLOAD) {
+                    return NULL;
+                }
+                PyErr_Clear();
+                query = query + " in apply";
+                if (teradata_execute_rc(cmd, e, strdup(query.c_str()), &status) == NULL) {
+                    return NULL;
+                }
+            }
+            if (teradata_close(cmd) == NULL) {
+                return NULL;
+            }
+            if (e != NULL) {
+                encoder_free(e);
+                e = NULL;
             }
             Py_RETURN_NONE;
         }
 
         PyObject* Terminate() {
             if (connected) {
-                if ((status = TConn::Terminate()) >= TD_Error) {
+                if ((status = TConn::Terminate()) >= TD_ERROR) {
                     return this->HandleError();
                 }
                 connected = false;
@@ -202,19 +259,60 @@ namespace Giraffez {
             return NULL;
         }
 
+        PyObject* Exists(const char *tbl_name) {
+            table_name = std::string(tbl_name);
+            TeradataEncoder *e;
+            int status;
+            e = encoder_new(NULL, 0);
+            TeradataConnection *cmd;
+            std::string query;
+            PyObject *ret;
+            ret = Py_False;
+            Py_INCREF(ret);
+            Py_RETURN_ERROR(cmd = teradata_connect(host, username, password));
+            query = "show table " + table_name;
+            if (teradata_execute_rc(cmd, e, strdup(query.c_str()), &status) == NULL) {
+                if (status != TD_ERROR_OBJECT_NOT_EXIST) {
+                    return NULL;
+                }
+                PyErr_Clear();
+            }
+            Py_RETURN_ERROR(teradata_close(cmd));
+            if (e != NULL) {
+                encoder_free(e);
+                e = NULL;
+            }
+            if (status == TD_SUCCESS) {
+                // TODO: ref correct?
+                ret = Py_True;
+            }
+            return ret;
+        }
+
+        PyObject* DropTable(const char *tbl_name) {
+            std::string query = std::string(tbl_name);
+            TeradataEncoder *e;
+            int status;
+            e = encoder_new(NULL, 0);
+            TeradataConnection *cmd;
+            query = "drop table " + query;
+            Py_RETURN_ERROR(cmd = teradata_connect(host, username, password));
+            Py_RETURN_ERROR(teradata_execute_rc(cmd, e, strdup(query.c_str()), &status));
+            Py_RETURN_ERROR(teradata_close(cmd));
+            if (e != NULL) {
+                encoder_free(e);
+                e = NULL;
+            }
+            Py_RETURN_NONE;
+        }
+
         PyObject* SetQuery(const char *query) {
             this->AddAttribute(TD_SELECT_STMT, query);
             encoder_clear(encoder);
             TeradataConnection *cmd;
-            if ((cmd = teradata_connect(host, username, password)) == NULL) {
-                return NULL;
-            }
-            if (teradata_execute_p(cmd, encoder, query) == NULL) {
-                return NULL;
-            }
-            if (teradata_close(cmd) == NULL) {
-                return NULL;
-            }
+            Py_RETURN_ERROR(cmd = teradata_connect(host, username, password));
+            Py_RETURN_ERROR(teradata_execute_p(cmd, encoder, query));
+            Py_RETURN_ERROR(teradata_close(cmd));
             Py_RETURN_NONE;
         }
 
@@ -227,15 +325,9 @@ namespace Giraffez {
             this->AddArrayAttribute(TD_ERROR_TABLE_2, 1, strdup((table_name + "_e2").c_str()), NULL);
             encoder_clear(encoder);
             TeradataConnection *cmd;
-            if ((cmd = teradata_connect(host, username, password)) == NULL) {
-                return NULL;
-            }
-            if (teradata_execute_p(cmd, encoder, ("select * from " + table_name).c_str()) == NULL) {
-                return NULL;
-            }
-            if (teradata_close(cmd) == NULL) {
-                return NULL;
-            }
+            Py_RETURN_ERROR(cmd = teradata_connect(host, username, password));
+            Py_RETURN_ERROR(teradata_execute_p(cmd, encoder, ("select top 1 * from " + table_name).c_str()));
+            Py_RETURN_ERROR(teradata_close(cmd));
             Py_RETURN_NONE;
         }
 
@@ -247,25 +339,40 @@ namespace Giraffez {
             GiraffeColumn *column;
             std::stringstream dml, column_names, safe_column_names;
             PyObject *column_name;
+            GiraffeColumns *ncolumns;
+            ncolumns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
             size_t j;
             Py_ssize_t len, i;
             table_schema = new Schema((char*)"input");
             // TODO: either use this or SetInputSchema
             this->ClearSchemaList();
-            len = PyList_Size(column_list);
-            for (i = 0; i < len; i++) {
-                // TODO: check to ensure that the supplied value is valid as a
-                // a column
-                column_name = PyList_GetItem(column_list, i);
+            if (column_list == NULL) {
                 for (j=0; j<encoder->Columns->length; j++) {
                     column = &encoder->Columns->array[j];
-                    if (strcmp(column->Name, PyUnicode_AsUTF8(column_name)) == 0) {
-                        table_schema->AddColumn(column->Name, (TD_DataType)column->TPTType, column->Length,
-                            column->Precision, column->Scale);
-                        column_names << "\"" << column->Name << "\",";
-                        safe_column_names << ":" << column->SafeName << ",";
+                    table_schema->AddColumn(column->Name, (TD_DataType)column->TPTType, column->Length,
+                        column->Precision, column->Scale);
+                    column_names << "\"" << column->Name << "\",";
+                    safe_column_names << ":" << column->SafeName << ",";
+                }
+            } else {
+                columns_init(ncolumns, 0);
+                len = PyList_Size(column_list);
+                for (i = 0; i < len; i++) {
+                    // TODO: check to ensure that the supplied value is valid as a
+                    // a column
+                    column_name = PyList_GetItem(column_list, i);
+                    for (j=0; j<encoder->Columns->length; j++) {
+                        column = &encoder->Columns->array[j];
+                        if (strcmp(column->Name, PyUnicode_AsUTF8(column_name)) == 0) {
+                            table_schema->AddColumn(column->Name, (TD_DataType)column->TPTType, column->Length,
+                                column->Precision, column->Scale);
+                            column_names << "\"" << column->Name << "\",";
+                            safe_column_names << ":" << column->SafeName << ",";
+                            columns_append(ncolumns, *column);
+                        }
                     }
                 }
+                encoder->Columns = ncolumns;
             }
             // TODO: May not be necessary to specify the column names, since it
             // appears to pull that from what is added via AddColumn (possibly)
@@ -281,7 +388,7 @@ namespace Giraffez {
             dml_group = new DMLGroup();
             dml_group->AddStatement(strdup(dml.str().c_str()));
             dml_group->AddDMLOption(dml_option);
-            if ((status = this->AddDMLGroup(dml_group, &dml_group_index)) >= TD_Error) {
+            if ((status = this->AddDMLGroup(dml_group, &dml_group_index)) >= TD_ERROR) {
                 return this->HandleError();
             }
             delete dml_group;

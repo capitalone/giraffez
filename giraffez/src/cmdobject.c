@@ -31,28 +31,19 @@
 
 
 
-PyObject* check_tdcli_error(unsigned char *dataptr) {
-    TeradataError *err;
-    err = tdcli_read_error((char*)dataptr);
-    PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
-    return NULL;
-}
-
-PyObject* check_tdcli_failure(unsigned char *dataptr) {
-    TeradataFailure *err;
-    err = tdcli_read_failure((char*)dataptr);
-    PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
-    return NULL;
-}
-
 PyObject* check_parcel_error(TeradataConnection *conn) {
+    TeradataError *err;
     switch (conn->dbc->fet_parcel_flavor) {
     case PclSUCCESS:
         Py_RETURN_NONE;
     case PclFAILURE:
-        return check_tdcli_failure((unsigned char*)conn->dbc->fet_data_ptr);
+        err = tdcli_read_failure(conn->dbc->fet_data_ptr);
+        PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
+        return NULL;
     case PclERROR:
-        return check_tdcli_error((unsigned char*)&conn->dbc->fet_data_ptr);
+        err = tdcli_read_error(conn->dbc->fet_data_ptr);
+        PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
+        return NULL;
     }
     return NULL;
 }
@@ -79,6 +70,7 @@ PyObject* teradata_close(TeradataConnection *conn) {
         PyErr_Format(GiraffeError, "%d: %s", conn->result, conn->dbc->msg_text);
         return NULL;
     }
+    tdcli_close(conn);
     tdcli_free(conn);
     conn = NULL;
     Py_RETURN_NONE;
@@ -144,16 +136,55 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
     return check_error(conn);
 }
 
+PyObject* teradata_execute_rc(TeradataConnection *conn, TeradataEncoder *e, const char *command, int *rc) {
+    TeradataError *err;
+    if (tdcli_execute(conn, command) != OK) {
+        PyErr_Format(GiraffeError, "CLIv2[execute_init]: %s", conn->dbc->msg_text);
+        return NULL;
+    }
+    conn->dbc->i_sess_id = conn->dbc->o_sess_id;
+    conn->dbc->i_req_id = conn->dbc->o_req_id;
+    conn->dbc->func = DBFFET;
+    while (tdcli_fetch_record(conn) == OK) {
+        switch (conn->dbc->fet_parcel_flavor) {
+            case PclFAILURE:
+                err = tdcli_read_failure(conn->dbc->fet_data_ptr);
+                *rc = err->Code;
+                PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
+                return NULL;
+            case PclERROR:
+                err = tdcli_read_error(conn->dbc->fet_data_ptr);
+                *rc = err->Code;
+                PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
+                return NULL;
+        }
+    }
+    if (conn->result == TD_ERROR_REQUEST_EXHAUSTED && conn->connected == CONNECTED) {
+        if (tdcli_end_request(conn) != OK) {
+            *rc = conn->result;
+            PyErr_Format(GiraffeError, "%d: %s", conn->result, conn->dbc->msg_text);
+            return NULL;
+        }
+    } else if (conn->result != OK) {
+        *rc = conn->result;
+        PyErr_Format(GiraffeError, "%d: %s", conn->result, conn->dbc->msg_text);
+        return NULL;
+    }
+    *rc = conn->result;
+    Py_RETURN_NONE;
+}
+
 PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command) {
     PyObject *result;
-    const char old_proc_opt = conn->dbc->req_proc_opt;
+    const char tmp = conn->dbc->req_proc_opt;
     conn->dbc->req_proc_opt = 'P';
     result = teradata_execute(conn, e, command);
-    conn->dbc->req_proc_opt = old_proc_opt;
+    conn->dbc->req_proc_opt = tmp;
     return result;
 }
 
 PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data, const uint32_t length) {
+    TeradataError *err;
     PyGILState_STATE state;
     PyObject *row = NULL;
     switch (parcel_t) {
@@ -177,9 +208,13 @@ PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, un
             PyErr_SetNone(EndRequestError);
             return NULL;
         case PclFAILURE:
-            return check_tdcli_failure(*data);
+            err = tdcli_read_failure((char*)*data);
+            PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
+            return NULL;
         case PclERROR:
-            return check_tdcli_error(*data);
+            err = tdcli_read_error((char*)*data);
+            PyErr_Format(GiraffeError, "%d: %s", err->Code, err->Msg);
+            return NULL;
     }
     Py_RETURN_NONE;
 }
@@ -231,20 +266,20 @@ static PyObject* Cmd_close(Cmd *self) {
     Py_RETURN_NONE;
 }
 
-static PyObject* Cmd_columns(Cmd *self) {
+static PyObject* Cmd_columns(Cmd *self, PyObject *args, PyObject *kwargs) {
+    PyObject *debug = NULL;
+    static char *kwlist[] = {"debug", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", kwlist, &debug)) {
+        return NULL;
+    }
     if (self->encoder == NULL || self->encoder->Columns == NULL) {
         Py_RETURN_NONE;
     }
-    PyObject *stmt_info;
-    PyObject *cols;
-    PyObject *tup;
-
-    stmt_info = PyBytes_FromStringAndSize(self->encoder->Columns->raw_stmt_info, self->encoder->Columns->raw_stmt_info_length);
-    cols = columns_to_pylist(self->encoder->Columns);
-    tup = Py_BuildValue("(OO)", stmt_info, cols);
-    Py_DECREF(stmt_info);
-    Py_DECREF(cols);
-    return tup;
+    if (debug != NULL && PyBool_Check(debug) && debug == Py_True) {
+        RawStatementInfo *raw = self->encoder->Columns->raw;
+        return PyBytes_FromStringAndSize(raw->data, raw->length);
+    }
+    return columns_to_pylist(self->encoder->Columns);
 }
 
 static PyObject* Cmd_execute(Cmd *self, PyObject *args, PyObject *kwargs) {
@@ -286,7 +321,7 @@ static PyObject* Cmd_fetchone(Cmd *self) {
 
 static PyMethodDef Cmd_methods[] = {
     {"close", (PyCFunction)Cmd_close, METH_NOARGS, ""},
-    {"columns", (PyCFunction)Cmd_columns, METH_NOARGS, ""},
+    {"columns", (PyCFunction)Cmd_columns, METH_VARARGS|METH_KEYWORDS, ""},
     {"execute", (PyCFunction)Cmd_execute, METH_VARARGS|METH_KEYWORDS, ""},
     {"fetchone", (PyCFunction)Cmd_fetchone, METH_NOARGS, ""},
     {NULL}  /* Sentinel */

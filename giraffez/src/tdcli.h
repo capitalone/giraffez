@@ -24,13 +24,15 @@ extern "C" {
 #define NO_CLIV2_ERROR_T
 #define STRING_CLI
 
-#define CONNECTED     0
-#define NOT_CONNECTED 1
-#define OK            0
-#define STOP          1
-#define FAILED       -1
-#define PCL_FAIL     -2
-#define PCL_ERR      -3
+#define CONNECTED      0
+#define NOT_CONNECTED  1
+#define REQUEST_OPEN   1
+#define REQUEST_CLOSED 0
+#define OK             0
+#define STOP           1
+#define FAILED        -1
+#define PCL_FAIL      -2
+#define PCL_ERR       -3
 
 // This header file does not make use of the Python C API, however, the
 // Python C API is designed in such a way that in order to prevent
@@ -53,13 +55,37 @@ typedef struct TeradataConnection {
     char session_charset[36];
     Int32 result;
     int connected;
+    int request_status;
 } TeradataConnection;
 
-typedef struct CliFailureType TeradataFailure;
-typedef struct CliErrorType TeradataError;
+typedef struct TeradataError {
+    int  Code;
+    char *Msg;
+} TeradataError;
+
+typedef enum TeradataStatus {
+    TD_SUCCESS = 0,
+    TD_SYNC_BARRIER,
+    //TD_SYNC_TELINFO,
+    TD_END_METHOD = 3,
+    TD_UNAVAILABLE,
+    TD_SYNC_SCHEMA,
+    TD_ERROR = 99,
+    TD_ERROR_REQUEST_EXHAUSTED = 307,
+    TD_ERROR_CANNOT_RELEASE_MLOAD = 2572,
+    TD_ERROR_TABLE_MLOAD_EXISTS = 2574,
+    TD_ERROR_WORK_TABLE_MISSING = 2583,
+    TD_ERROR_TRANS_ABORTED = 2631,
+    TD_ERROR_USER_NO_SELECT_ACCESS = 3523,
+    TD_ERROR_OBJECT_NOT_EXIST = 3807,
+    TD_ERROR_OBJECT_NOT_TABLE = 3853,
+    TD_ERROR_OBJECT_NOT_VIEW = 3854,
+    TD_ERROR_INVALID_USER = 8017,
+    TD_CALL_ENDACQ = 25000
+} TeradataStatus;
 
 TeradataError* tdcli_read_error(char *dataptr);
-TeradataFailure* tdcli_read_failure(char *dataptr);
+TeradataError* tdcli_read_failure(char *dataptr);
 TeradataConnection* tdcli_new();
 uint16_t tdcli_init(TeradataConnection *conn);
 uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *username, const char *password);
