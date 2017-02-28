@@ -215,13 +215,13 @@ PyObject* int_to_pystring(unsigned char** data) {
 PyObject* long_to_pylong(unsigned char** data) {
     int64_t q;
     unpack_int64_t(data, &q);
-    return PyLong_FromLong((long)q);
+    return PyLong_FromLongLong(q);
 }
 
 PyObject* long_to_pystring(unsigned char** data) {
     int64_t q;
     unpack_int64_t(data, &q);
-    return PyUnicode_FromFormat("%ld", q);
+    return pystring_from_cformat("%lld", q);
 }
 
 PyObject* pystring_from_cformat(const char* fmt, ...) {

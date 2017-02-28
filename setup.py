@@ -291,8 +291,8 @@ class TPTExtension(Extension):
             else:
                 tptapi_inc = os.path.join(TERADATA_HOME, "Teradata Parallel Transporter/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "Teradata Parallel Transporter/bin")
-                if not os.path.isdir(tptapi_lib):
-                    tptapi_lib = os.path.join(TERADATA_HOME, "bin")
+            if not os.path.isdir(tptapi_lib):
+                tptapi_lib = os.path.join(TERADATA_HOME, "bin")
         elif platform.system() == 'Linux':
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
