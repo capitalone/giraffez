@@ -175,6 +175,26 @@ class TestCEncoder(object):
         result_text = encoder.read(expected_bytes)
         assert result_text == expected_text
 
+    def test_decimal_extra_trailing_zeroes(self, encoder):
+        encoder.columns = [
+            ('col1', TD_DECIMAL, 4, 5, 2),
+            ('col2', TD_DECIMAL, 2, 2, 2),
+        ]
+        expected_bytes = b'\x00\x78\x00\x00\x00\x14\x00'
+        expected_text = ('1.20000','0.20')
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+    def test_decimal_scale_padding(self, encoder):
+        encoder.columns = [
+            ('col1', TD_DECIMAL, 4, 5, 2),
+            ('col2', TD_DECIMAL, 4, 5, 4),
+        ]
+        expected_bytes = b'\x00\x14\x00\x00\x00\xe0\x2e\x00\x00'
+        expected_text = ('0.2','1.20')
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
     def test_decimal_overflow(self, encoder):
         """
         Testing all decimal sizes (based on byte-length) for integer

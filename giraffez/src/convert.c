@@ -539,14 +539,25 @@ PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, cons
         x = PyUnicode_AsUTF8(a);
         y = PyUnicode_AsUTF8(bb);
     } else {
+        // TODO: set an error here
         printf("WTF DUDE\n");
+        return NULL;
     }
     Py_DECREF(parts);
-    /*char fmt[100];*/
-    /*sprintf(fmt, "%%s%%0%d%s")*/
-    /*int size = sprintf(dbuf, "%s%0*s", x, column_scale, y);*/
-    /*sprintf(dbuf, "%s%-*s", x, column_scale, y);*/
-    sprintf(dbuf, "%s%0*s", x, column_scale, y);
+
+    int x_length = strlen(x);
+    int y_length = strlen(y);
+    int padding_needed = column_scale - y_length;
+
+    memcpy(dbuf, x, x_length);
+    if (padding_needed > 0) {
+        memcpy(dbuf+x_length, y, y_length);
+        memset(dbuf+x_length+y_length, '0', padding_needed);
+        dbuf[x_length+column_scale] = '\0';
+    } else {
+        snprintf(dbuf+x_length, column_scale + 1, "%s", y);
+    }
+
     if ((s = PyLong_FromString(dbuf, NULL, 10)) == NULL) {
         return NULL;
     }
