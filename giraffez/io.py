@@ -63,10 +63,10 @@ class BaseReader(object):
         with open(path, "rb") as f:
             data = f.read(2)
             if data == GZIP_MAGIC:
-                _open = gzip.open
+                _open = lambda p, m: io.BufferedReader(gzip.open(p, m))
             else:
-                _open = open
-        self.fd = io.BufferedReader(_open(abspath, mode))
+                _open = lambda p, m: io.open(p, m)
+        self.fd = _open(abspath, mode)
         self._header = None
 
     @property
@@ -209,10 +209,10 @@ class Writer(object):
             else:
                 mode = 't'
             if use_gzip:
-                _open = gzip.open
+                _open = lambda p, m: io.BufferedWriter(gzip.open(p, m))
             else:
-                _open = open
-            self.fd = io.BufferedWriter(_open(abspath, "w{}".format(mode)))
+                _open = lambda p, m: io.open(p, m)
+            self.fd = _open(abspath, "w{}".format(mode))
             if archive:
                 self.write(GIRAFFE_MAGIC + b'\x00\x02')
                 self.writen = self.write

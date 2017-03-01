@@ -61,7 +61,14 @@ MOD_INIT(_cli)
         return MOD_ERROR_VAL;
     }
 
-    define_exceptions("_cli", m);
+    EndStatementError = PyErr_NewException("_cli.StatementEnded", NULL, NULL);
+    PyModule_AddObject(m, "StatementEnded", EndStatementError);
+    EndRequestError = PyErr_NewException("_cli.RequestEnded", NULL, NULL);
+    PyModule_AddObject(m, "RequestEnded", EndRequestError);
+
+    if (define_exceptions(m) == NULL) {
+        return NULL;
+    }
 
     Py_INCREF(&CmdType);
     PyModule_AddObject(m, "Cmd", (PyObject*)&CmdType);

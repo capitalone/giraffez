@@ -57,7 +57,7 @@ MOD_INIT(_tpt)
         return MOD_ERROR_VAL;
     }
 
-    define_exceptions(module_name, m);
+    define_exceptions(m);
 
     Py_INCREF(&ExportType);
     PyModule_AddObject(m, "Export", (PyObject*)&ExportType);

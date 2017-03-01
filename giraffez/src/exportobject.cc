@@ -121,7 +121,7 @@ static PyObject* Export_set_encoding(Export *self, PyObject *args, PyObject *kwa
     uint32_t settings = 0; // zero so we have defaults for the else case below
     if (strcmp(encoding, "archive") == 0) {
         // TODO: idk
-        settings = ROW_ENCODING_RAW | ITEM_ENCODING_BUILTIN_TYPES | DECIMAL_AS_STRING;
+        settings = ROW_ENCODING_RAW | DATETIME_AS_STRING | DECIMAL_AS_STRING;
         if (self->conn->SetEncoding(settings) == NULL) {
             return NULL;
         }

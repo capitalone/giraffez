@@ -36,8 +36,9 @@ typedef struct {
 
 extern PyTypeObject CmdType;
 
-PyObject* check_tdcli_error(unsigned char *dataptr);
-PyObject* check_tdcli_failure(unsigned char *dataptr);
+extern PyObject *EndStatementError;
+extern PyObject *EndRequestError;
+
 PyObject* check_parcel_error(TeradataConnection *conn);
 PyObject* check_error(TeradataConnection *conn);
 PyObject* teradata_close(TeradataConnection *conn);

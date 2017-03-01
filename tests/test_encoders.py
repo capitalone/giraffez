@@ -372,25 +372,25 @@ class TestEncoders(object):
         assert len(data) == 0
         assert result == expected_text
 
-    def test_unpack_stmt_info(self):
-        stmt_info = b"""\x03\x00\x07\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x07\x00\x00\x00\x01\x00\x02\x00[\x00\x00\x00\x00\x00\x04\x00col1\x00\x00\x04\x00col1\x04\x00col1\n\x00-------.99\x00\x00NNNNYN\xe4\x01\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00UYNUYYU\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02\x00U\x00\x00\x00\x00\x00\x04\x00col2\x00\x00\x04\x00col2\x04\x00col2\x04\x00X(2)\x00\x00NNNNYN\xc0\x01\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02\x00\x00\x00\x00\x00\x00\x00NUNUYYU\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x02\x00\x00\x00"""
-        result = unpack_stmt_info(stmt_info)
-        expected_results = [b"col1|4|484|8|2||-------.99|N", b"col2|6|448|0|0||X(2)|N"]
+    #def test_unpack_stmt_info(self):
+        #stmt_info = b"""\x03\x00\x07\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x07\x00\x00\x00\x01\x00\x02\x00[\x00\x00\x00\x00\x00\x04\x00col1\x00\x00\x04\x00col1\x04\x00col1\n\x00-------.99\x00\x00NNNNYN\xe4\x01\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00UYNUYYU\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02\x00U\x00\x00\x00\x00\x00\x04\x00col2\x00\x00\x04\x00col2\x04\x00col2\x04\x00X(2)\x00\x00NNNNYN\xc0\x01\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02\x00\x00\x00\x00\x00\x00\x00NUNUYYU\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x02\x00\x00\x00"""
+        #result = unpack_stmt_info(stmt_info)
+        #expected_results = [b"col1|4|484|8|2||-------.99|N", b"col2|6|448|0|0||X(2)|N"]
 
-        assert result[0]['name'] == b"col1"
-        assert result[0]['length'] == 4
-        assert result[0]['type'] == 484
-        assert result[0]['precision'] == 8
-        assert result[0]['scale'] == 2
-        assert result[0]['default'] == b""
-        assert result[0]['format'] == b"-------.99"
-        assert result[0]['nullable'] == b"N"
+        #assert result[0]['name'] == b"col1"
+        #assert result[0]['length'] == 4
+        #assert result[0]['type'] == 484
+        #assert result[0]['precision'] == 8
+        #assert result[0]['scale'] == 2
+        #assert result[0]['default'] == b""
+        #assert result[0]['format'] == b"-------.99"
+        #assert result[0]['nullable'] == b"N"
 
-        assert result[1]['name'] == b"col2"
-        assert result[1]['length'] == 6
-        assert result[1]['type'] == 448
-        assert result[1]['precision'] == 0
-        assert result[1]['scale'] == 0
-        assert result[1]['default'] == b""
-        assert result[1]['format'] == b"X(2)"
-        assert result[1]['nullable'] == b"N"
+        #assert result[1]['name'] == b"col2"
+        #assert result[1]['length'] == 6
+        #assert result[1]['type'] == 448
+        #assert result[1]['precision'] == 0
+        #assert result[1]['scale'] == 0
+        #assert result[1]['default'] == b""
+        #assert result[1]['format'] == b"X(2)"
+        #assert result[1]['nullable'] == b"N"

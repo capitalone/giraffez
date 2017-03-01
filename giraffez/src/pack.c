@@ -55,7 +55,7 @@ static PyObject* pack_none(const GiraffeColumn *column, unsigned char **buf, uin
     Py_RETURN_NONE;
 }
 
-PyObject* pybytes_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsigned char **data,
+PyObject* teradata_row_from_pybytes(const TeradataEncoder *e, PyObject *row, unsigned char **data,
         uint16_t *length) {
     char *str;
     int len;
@@ -70,19 +70,19 @@ PyObject* pybytes_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsig
     Py_RETURN_NONE;
 }
 
-PyObject* pystring_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsigned char **data,
+PyObject* teradata_row_from_pystring(const TeradataEncoder *e, PyObject *row, unsigned char **data,
         uint16_t *length) {
     PyObject *items;
     if ((items = PyUnicode_Split(row, e->Delimiter, e->Columns->length-1)) == NULL) {
         return NULL;
     }
-    if (pytuple_to_teradata_row(e, items, data, length) == NULL) {
+    if (teradata_row_from_pytuple(e, items, data, length) == NULL) {
         return NULL;
     }
     Py_RETURN_NONE;
 }
 
-PyObject* pydict_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsigned char **data,
+PyObject* teradata_row_from_pydict(const TeradataEncoder *e, PyObject *row, unsigned char **data,
         uint16_t *length) {
     PyObject *items;
     PyObject *item;
@@ -102,13 +102,13 @@ PyObject* pydict_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsign
     }
     /*DEBUG_PRINTF("%R", items);*/
     // TODO: check length?
-    if (pytuple_to_teradata_row(e, items, data, length) == NULL) {
+    if (teradata_row_from_pytuple(e, items, data, length) == NULL) {
         return NULL;
     }
     Py_RETURN_NONE;
 }
 
-PyObject* pytuple_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsigned char **data,
+PyObject* teradata_row_from_pytuple(const TeradataEncoder *e, PyObject *row, unsigned char **data,
         uint16_t *length) {
     PyObject *item = NULL;
     GiraffeColumn *column;
@@ -138,10 +138,10 @@ PyObject* pytuple_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsig
             pack_none(column, data, length);
             continue;
         }
-        if (pyobject_to_teradata_item(e, column, item, data, length) == NULL) {
+        if (teradata_item_from_pyobject(e, column, item, data, length) == NULL) {
             indicator_write(&ind, i, 1);
             pack_none(column, data, length);
-            PyErr_Format(PyExc_ValueError, "Unable to unpack column %d '%s'\n", i, column->Name);
+            /*PyErr_Format(PyExc_ValueError, "Unable to unpack column %d '%s'\n", i, column->Name);*/
             return NULL;
             // TODO: if panic, then return NULL;
         }
@@ -150,7 +150,7 @@ PyObject* pytuple_to_teradata_row(const TeradataEncoder *e, PyObject *row, unsig
     Py_RETURN_NONE;
 }
 
-PyObject* pyobject_to_teradata_item(const TeradataEncoder *e, const GiraffeColumn *column,
+PyObject* teradata_item_from_pyobject(const TeradataEncoder *e, const GiraffeColumn *column,
         PyObject *item, unsigned char **data, uint16_t *length) {
     switch (column->GDType) {
         case GD_BYTEINT:

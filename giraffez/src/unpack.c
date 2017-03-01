@@ -30,6 +30,7 @@
 #include "columns.h"
 #include "config.h"
 #include "convert.h"
+#include "errors.h"
 #include "encoder.h"
 #include "pytypes.h"
 #include "types.h"
@@ -82,6 +83,7 @@ PyObject* teradata_row_to_pydict(const TeradataEncoder *e, unsigned char **data,
         column = &e->Columns->array[i];
         if (indicator_read(e->Columns->buffer, i)) {
             *data += column->NullLength;
+            // TODO:
             Py_INCREF(e->NullValue);
             PyDict_SetItemString(row, column->Name, e->NullValue);
             continue;

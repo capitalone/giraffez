@@ -28,6 +28,7 @@
 #include "_compat.h"
 
 #include "config.h"
+#include "errors.h"
 #include "pytypes.h"
 #include "util.h"
 
@@ -303,7 +304,7 @@ int teradata_decimal128_to_cstring(unsigned char **data, const uint16_t column_s
         buf[j++] = s[--i];
     }
     buf[j] = '\0';
-    return 0;
+    return j;
 }
 
 PyObject* cstring_to_pyfloat(const char *buf, const int length) {
@@ -344,10 +345,8 @@ PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len) {
                 return NULL;
             }
         }
-        Py_DECREF(s);
     } else if (PyBytes_Check(s)) {
         temp = s;
-        Py_INCREF(temp);
     } else {
         // TODO:
     }
@@ -360,7 +359,7 @@ PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len) {
     }
     length = PyBytes_Size(temp);
     *len += pack_string(buf, str, length);
-    Py_DECREF(temp);
+    /*Py_DECREF(temp);*/
     Py_RETURN_NONE;
 }
 
@@ -372,10 +371,8 @@ PyObject* pystring_to_char(PyObject *s, const uint16_t column_length, unsigned c
     // TODO: should check for max length?
     if (_PyUnicode_Check(s)) {
         temp = PyUnicode_AsASCIIString(s);
-        Py_DECREF(s);
     } else if (PyBytes_Check(s)) {
         temp = s;
-        Py_INCREF(temp);
     }
     length = PyBytes_Size(temp);
     if ((str = PyBytes_AsString(temp)) == NULL) {
@@ -387,8 +384,9 @@ PyObject* pystring_to_char(PyObject *s, const uint16_t column_length, unsigned c
     for (i = 0; i < fill; i++) {
         *((*buf)++) = (unsigned char)0x20;
     }
+    /*printf("char cl: %d\n", column_length);*/
     *len += column_length;
-    Py_DECREF(temp);
+    /*Py_DECREF(temp);*/
     Py_RETURN_NONE;
 }
 
@@ -450,10 +448,24 @@ PyObject* pylong_to_long(PyObject *item, const uint16_t column_length, unsigned 
 
 PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     double d;
+    PyObject *f;
+    PyObject *s;
     if (!PyFloat_Check(item)) {
-        return NULL;
+        if (PyUnicode_Check(item)) {
+            if ((s = PyUnicode_AsASCIIString(item)) == NULL) {
+                return NULL;
+            }
+        } else {
+            return NULL;
+        }
+
+        if ((f = _PyFloat_FromString(s)) == NULL) {
+            return NULL;
+        }
+    } else {
+        f = item;
     }
-    d = PyFloat_AsDouble(item);
+    d = PyFloat_AsDouble(f);
     if (d == -1.0 && PyErr_Occurred()) {
         return NULL;
     }
@@ -462,43 +474,60 @@ PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigne
     Py_RETURN_NONE;
 }
 
-#define dot PyUnicode_FromString(".")
-#define hyphen PyUnicode_FromString("-")
-#define blank PyUnicode_FromString("")
-
 PyObject* pydate_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
-    PyObject *s;
-    if ((s = PyUnicode_Replace(item, hyphen, blank, -1)) == NULL) {
+    // check unicode/string and datetime
+    char *str;
+    struct tm tm;
+    int32_t l = 0;
+    if ((str = PyUnicode_AsUTF8(item)) == NULL) {
         return NULL;
     }
-    PyObject *d = PyLong_FromUnicodeObject(s, 10);
-    int32_t l;
-    l = PyLong_AsLong(d);
+    memset(&tm, '\0', sizeof(tm));
+    // TODO: while over format strings
+    if (strptime(str, "%Y-%m-%d", &tm) == NULL) {
+        PyErr_Format(EncoderError, "Unable to parse date string '%s'", str);
+        return NULL;
+    }
+    l += (tm.tm_year+1900) * 10000;
+    l += (tm.tm_mon+1) * 100;
+    l += tm.tm_mday;
     l -= 19000000;
     pack_int32_t(buf, l);
-    *len += column_length;
+    *len += 4;
     Py_RETURN_NONE;
 }
 
+
 PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len) {
-    int8_t b; int16_t h; int32_t l; int64_t q;
+    int8_t b; int16_t h; int32_t l; int64_t q; uint64_t Q;
     char dbuf[ITEM_BUFFER_SIZE];
+    PyObject *str = NULL;
+    PyObject *dot = PyUnicode_FromString(".");
     // CheckUnicode/String
     PyObject *parts;
-    if ((parts = PyUnicode_Split(item, dot, 1)) == NULL) {
+    if (PyUnicode_Check(item)) {
+        str = item;
+        Py_INCREF(str);
+    } else if (PyFloat_Check(item) || PyLong_Check(item)) {
+        if ((str = PyObject_Str(item)) == NULL) {
+            return NULL;
+        }
+    }
+    if ((parts = PyUnicode_Split(str, dot, 1)) == NULL) {
         return NULL;
     }
+    Py_DECREF(dot);
+    Py_XDECREF(str);
     Py_ssize_t ll = PyList_Size(parts);
-    char *x = "";
-    char *y = "";
-    PyObject *a;
-    PyObject *bb;
-    PyObject *s;
+    char *x = "", *y = "";
+    PyObject *a, *bb, *s;
     if (ll == 1) {
         if ((a = PyList_GetItem(parts, 0)) == NULL) {
             return NULL;
         }
-        x = PyUnicode_AsUTF8(a);
+        if ((x = PyUnicode_AsUTF8(a)) == NULL) {
+            return NULL;
+        }
         y = "";
     } else if (ll == 2) {
         if ((a = PyList_GetItem(parts, 0)) == NULL) {
@@ -512,10 +541,17 @@ PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, cons
     } else {
         printf("WTF DUDE\n");
     }
+    Py_DECREF(parts);
+    /*char fmt[100];*/
+    /*sprintf(fmt, "%%s%%0%d%s")*/
     /*int size = sprintf(dbuf, "%s%0*s", x, column_scale, y);*/
-    if ((s = PyLong_FromString(dbuf, NULL, 10)) == NULL){
+    /*sprintf(dbuf, "%s%-*s", x, column_scale, y);*/
+    sprintf(dbuf, "%s%0*s", x, column_scale, y);
+    if ((s = PyLong_FromString(dbuf, NULL, 10)) == NULL) {
         return NULL;
     }
+    PyObject *upper, *lower, *lower1, *shift;
+    shift = PyLong_FromLong(64);
     switch (column_length) {
         case DECIMAL8:
             b = PyLong_AsLongLong(s);
@@ -534,8 +570,32 @@ PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, cons
             pack_int64_t(buf, q);
             break;
         case DECIMAL128:
+            if ((upper = PyNumber_Rshift(s, shift)) == NULL) {
+                return NULL;
+            }
+            if ((lower1 = PyNumber_Lshift(upper, shift)) == NULL) {
+                return NULL;
+            }
+            if ((lower = PyNumber_Xor(lower1, s)) == NULL) {
+                return NULL;
+            }
+            Q = PyLong_AsUnsignedLongLong(lower);
+            if (PyErr_Occurred()) {
+                return NULL;
+            }
+            q = PyLong_AsLongLong(upper);
+            if (PyErr_Occurred()) {
+                return NULL;
+            }
+            pack_uint64_t(buf, Q);
+            pack_int64_t(buf, q);
+            Py_DECREF(upper);
+            Py_DECREF(lower);
+            Py_DECREF(lower1);
             break;
     }
+    Py_DECREF(shift);
+    Py_DECREF(s);
     *len += column_length;
     Py_RETURN_NONE;
 }

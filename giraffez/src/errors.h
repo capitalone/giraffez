@@ -24,9 +24,18 @@ extern "C" {
 #include <Python.h>
 
 
-extern PyObject *GiraffeError;
-extern PyObject *EndStatementError;
-extern PyObject *EndRequestError;
+typedef struct {
+    PyException_HEAD
+    PyObject *message;
+    PyObject *code;
+} TeradataErrorObject;
+
+extern PyObject *TeradataError;
+extern PyObject *GiraffezError;
+extern PyObject *EncoderError;
+
+//extern PyObject *TeradataError;
+extern PyObject *InvalidCredentialsError;
 
 #ifdef DEBUG
 #define DEBUG_PRINTF(fmt, ...) debug_printf(fmt, __VA_ARGS__)
@@ -35,7 +44,8 @@ extern PyObject *EndRequestError;
 #endif
 
 void debug_printf(const char *fmt, ...);
-void define_exceptions(const char *name, PyObject *module);
+//void define_exceptions(const char *name, PyObject *module);
+PyObject* define_exceptions(PyObject *module);
 
 #ifdef __cplusplus
 }

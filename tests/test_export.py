@@ -32,7 +32,7 @@ class TestExport(object):
 
         export.query = query
         export.initiate()
-        results = list(export.results())
+        results = list(export.values())
         export.close()
 
         # This ensures that the config was proper mocked
@@ -60,7 +60,7 @@ class TestExport(object):
         export.export.initiate.side_effect = InvalidCredentialsError("...")
         with pytest.raises(InvalidCredentialsError):
             export.query = query
-            results = list(export.results())
+            results = list(export.values())
             export.close()
 
     def test_header(self, mocker):

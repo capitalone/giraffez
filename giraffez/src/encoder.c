@@ -46,13 +46,12 @@ TeradataEncoder* encoder_new(GiraffeColumns *columns, uint32_t settings) {
     e->NullValueStr = NULL;
     e->DelimiterStrLen = 0;
     e->NullValueStrLen = 0;
-    /*e->buffer = malloc(sizeof(char) * ENCODER_BUFFER_SIZE);*/
     e->buffer = buffer_new(ENCODER_BUFFER_SIZE);
-    e->PackRowFunc = pytuple_to_teradata_row;
+    e->PackRowFunc = NULL;
     e->UnpackStmtInfoFunc = unpack_stmt_info_to_columns;
-    e->UnpackRowsFunc = teradata_buffer_to_pylist;
+    e->UnpackRowsFunc = NULL;
     e->UnpackRowFunc = NULL;
-    e->UnpackItemFunc = teradata_item_to_pyobject;
+    e->UnpackItemFunc = NULL;
     e->UnpackDecimalFunc = NULL;
     encoder_set_delimiter(e, DEFAULT_DELIMITER);
     encoder_set_null(e, DEFAULT_NULLVALUE);
@@ -66,44 +65,47 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
     // to switch on the value we just mask the particular byte
     switch (settings & ROW_ENCODING_MASK) {
         case ROW_ENCODING_STRING:
+            e->UnpackRowsFunc = teradata_buffer_to_pylist;
             e->UnpackRowFunc = teradata_row_to_pystring;
-            e->PackRowFunc = pystring_to_teradata_row;
+            e->UnpackItemFunc = teradata_item_to_pyobject;
+            e->PackRowFunc = teradata_row_from_pystring;
+            // TODO: maybe just assert here or something that null is pystring
+            // type rather than setting it potentially multiple times (or also
+            // possibly overwriting it)
             encoder_set_delimiter(e, DEFAULT_DELIMITER);
             encoder_set_null(e, DEFAULT_NULLVALUE_STR);
             break;
         case ROW_ENCODING_DICT:
+            e->UnpackRowsFunc = teradata_buffer_to_pylist;
             e->UnpackRowFunc = teradata_row_to_pydict;
-            e->PackRowFunc = pydict_to_teradata_row;
+            e->UnpackItemFunc = teradata_item_to_pyobject;
+            e->PackRowFunc = teradata_row_from_pydict;
             encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
         case ROW_ENCODING_LIST:
+            e->UnpackRowsFunc = teradata_buffer_to_pylist;
             e->UnpackRowFunc = teradata_row_to_pytuple;
-            e->PackRowFunc = pytuple_to_teradata_row;
+            e->UnpackItemFunc = teradata_item_to_pyobject;
+            e->PackRowFunc = teradata_row_from_pytuple;
             encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
         case ROW_ENCODING_RAW:
-            e->UnpackRowFunc = teradata_row_to_pybytes;
             e->UnpackRowsFunc = teradata_buffer_to_pybytes;
-            /*e->UnpackRowsFunc = unpack_rows;*/
-            e->PackRowFunc = pybytes_to_teradata_row;
+            e->UnpackRowFunc = teradata_row_to_pybytes;
+            // TODO: 
+            e->UnpackItemFunc = teradata_item_to_pyobject;
+            e->PackRowFunc = teradata_row_from_pybytes;
             break;
         default:
             return -1;
     }
-    switch (settings & ITEM_ENCODING_MASK) {
-        case ITEM_ENCODING_STRING:
-            /*e->UnpackItemFunc = unpack_row_item_as_str;*/
+    switch (settings & DATETIME_RETURN_MASK) {
+        case DATETIME_AS_STRING:
             e->UnpackDateFunc = teradata_date_to_pystring;
             e->UnpackTimeFunc = teradata_char_to_pystring;
             e->UnpackTimestampFunc = teradata_char_to_pystring;
             break;
-        case ITEM_ENCODING_BUILTIN_TYPES:
-            e->UnpackItemFunc = teradata_item_to_pyobject;
-            e->UnpackDateFunc = teradata_date_to_pystring;
-            e->UnpackTimeFunc = teradata_char_to_pystring;
-            e->UnpackTimestampFunc = teradata_char_to_pystring;
-            break;
-        case ITEM_ENCODING_GIRAFFE_TYPES:
+        case DATETIME_AS_GIRAFFE_TYPES:
             e->UnpackDateFunc = teradata_date_to_giraffez_date;
             e->UnpackTimeFunc = teradata_time_to_giraffez_time;
             e->UnpackTimestampFunc = teradata_ts_to_giraffez_ts;
@@ -113,16 +115,12 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
     }
     switch (settings & DECIMAL_RETURN_MASK) {
         case DECIMAL_AS_STRING:
-            /*e->UnpackDecimalFunc = decimal_to_pystring;*/
-            /*e->UnpackDecimalFunc = PyUnicode_FromStringAndSize;*/
             e->UnpackDecimalFunc = cstring_to_pystring;
             break;
         case DECIMAL_AS_FLOAT:
-            /*e->UnpackDecimalFunc = cstring_to_pystring;*/
             e->UnpackDecimalFunc = cstring_to_pyfloat;
             break;
         case DECIMAL_AS_GIRAFFEZ_DECIMAL:
-            /*e->UnpackDecimalFunc = decimal_to_giraffez_decimal;*/
             e->UnpackDecimalFunc = cstring_to_giraffez_decimal;
             break;
         default:
@@ -133,6 +131,7 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
 
 PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
     Py_XDECREF(e->Delimiter);
+    Py_INCREF(obj);
     e->Delimiter = obj;
     // TODO: should probably check items here to ensure they are
     // the correct Python type
@@ -154,6 +153,7 @@ PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
         if ((delimiter = PyUnicode_AsUTF8(tmp)) == NULL) {
             return NULL;
         }
+        Py_DECREF(tmp);
     }
     e->DelimiterStr = delimiter;
     e->DelimiterStrLen = strlen(delimiter);
@@ -162,6 +162,7 @@ PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
 
 PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
     Py_XDECREF(e->NullValue);
+    Py_INCREF(obj);
     e->NullValue = obj;
     // TODO: should probably check items here to ensure they are
     // the correct Python type
@@ -180,6 +181,7 @@ PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
         if ((null = PyUnicode_AsUTF8(tmp)) == NULL) {
             return NULL;
         }
+        Py_DECREF(tmp);
     }
     e->NullValueStr = null;
     e->NullValueStrLen = strlen(e->NullValueStr);
@@ -196,6 +198,8 @@ void encoder_clear(TeradataEncoder *e) {
 void encoder_free(TeradataEncoder *e) {
     Py_XDECREF(e->Delimiter);
     Py_XDECREF(e->NullValue);
+    e->Delimiter = NULL;
+    e->NullValue = NULL;
     encoder_clear(e);
     if (e != NULL) {
         /*if (e->buffer != NULL) {*/

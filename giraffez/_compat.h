@@ -38,6 +38,7 @@
   #define Py_TPFLAGS_HAVE_ITER 0
   #define MOD_ERROR_VAL NULL
   #define _PyUnicode_Check(ob) PyUnicode_Check(ob)
+  #define _PyFloat_FromString(ob) PyFloat_FromString(ob)
 
   #define TEXT_T Py_UNICODE
 #else
@@ -46,6 +47,7 @@
   #define PyBytes_FromStringAndSize PyString_FromStringAndSize
   #define PyFloat_FromString(str) PyFloat_FromString(str, NULL)
   #define _PyUnicode_Check(ob) PyString_Check(ob) || PyUnicode_Check(ob)
+  #define _PyFloat_FromString(ob) PyFloat_FromString(ob, NULL)
 
   #define MOD_ERROR_VAL
   #define MOD_SUCCESS_VAL(val)

@@ -50,7 +50,6 @@ class TestMLoad(object):
         assert mload.mload.end_acquisition.called == True
         assert mload.mload.apply_rows.called == True
         assert mload.mload.close.called == True
-        assert mload.cmd.close.called == True
 
     def test_mload_invalid_encoding(self, mocker):
         mload_connect_mock = mocker.patch('giraffez.MLoad._connect')

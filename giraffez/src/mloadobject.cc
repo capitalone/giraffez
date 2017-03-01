@@ -32,6 +32,11 @@
 #include "_compat.h"
 
 
+static void MLoad_dealloc(MLoad *self) {
+    delete self->conn;
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
 static PyObject* MLoad_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     MLoad *self;
     self = (MLoad*)type->tp_alloc(type, 0);
@@ -84,11 +89,6 @@ static PyObject* MLoad_columns(MLoad *self) {
     return self->conn->Columns();
 }
 
-static void MLoad_dealloc(MLoad *self) {
-    delete self->conn;
-    Py_TYPE(self)->tp_free((PyObject*)self);
-}
-
 static PyObject* MLoad_end_acquisition(MLoad *self) {
     return self->conn->EndAcquisition();
 }
@@ -121,7 +121,7 @@ static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
     DEBUG_PRINTF("%s", encoding);
     if (strcmp(encoding, "archive") == 0) {
         // TODO: idk
-        settings = ROW_ENCODING_RAW | ITEM_ENCODING_BUILTIN_TYPES | DECIMAL_AS_STRING;
+        settings = ROW_ENCODING_RAW | DATETIME_AS_STRING | DECIMAL_AS_STRING;
         if (self->conn->SetEncoding(settings) == NULL) {
             return NULL;
         }
@@ -147,7 +147,7 @@ static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
         }
     }
     if (column_list != NULL && !(PyList_Check(column_list) || column_list == Py_None)) {
-        PyErr_Format(GiraffeError, "Column list must be <list> type");
+        PyErr_Format(GiraffezError, "Column list must be <list> type");
         return NULL;
     }
     if (self->conn->SetTable(tbl_name) == NULL) {
@@ -202,6 +202,17 @@ static PyObject* MLoad_put_row(MLoad *self, PyObject *args, PyObject *kwargs) {
     return self->conn->PutRow(row);
 }
 
+static PyObject* MLoad_release(MLoad *self, PyObject *args) {
+    char *tbl_name = NULL;
+    if (!PyArg_ParseTuple(args, "s", &tbl_name)) {
+        return NULL;
+    }
+    if (self->conn->Release(tbl_name) == NULL) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef MLoad_methods[] = {
     {"add_attribute", (PyCFunction)MLoad_add_attribute, METH_VARARGS, ""},
     {"apply_rows", (PyCFunction)MLoad_apply_rows, METH_NOARGS, ""},
@@ -214,6 +225,7 @@ static PyMethodDef MLoad_methods[] = {
     {"get_event", (PyCFunction)MLoad_get_event, METH_VARARGS, ""},
     {"initiate", (PyCFunction)MLoad_initiate, METH_VARARGS|METH_KEYWORDS, "" },
     {"put_row", (PyCFunction)MLoad_put_row, METH_VARARGS, ""},
+    {"release", (PyCFunction)MLoad_release, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };
 

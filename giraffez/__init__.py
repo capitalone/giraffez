@@ -48,6 +48,7 @@ from .errors import (
     InvalidCredentialsError,
     ConnectionLock
 )
+from .encoders import TeradataEncoder as Encoder
 from .export import TeradataExport as Export
 from .io import (
     Reader,

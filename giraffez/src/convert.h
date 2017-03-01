@@ -68,7 +68,7 @@ PyObject* teradata_time_to_giraffez_time(unsigned char **data, const uint64_t co
 PyObject* teradata_ts_to_giraffez_ts(unsigned char **data, const uint64_t column_length);
 
 // Decimal
-int teradata_decimal_to_cstring(unsigned char **data, const uint64_t column_length, 
+int teradata_decimal_to_cstring(unsigned char **data, const uint64_t column_length,
         const uint16_t column_scale, char *buf);
 int teradata_decimal8_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
 int teradata_decimal16_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);

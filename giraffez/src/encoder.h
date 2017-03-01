@@ -37,11 +37,9 @@ extern "C" {
 #define ENCODER_BUFFER_SIZE 64260
 
 // TODO: is good?
-//#define ENCODER_SETTINGS_DEFAULT (ROW_ENCODING_DICT|ITEM_ENCODING_BUILTIN_TYPES|DECIMAL_AS_STRING)
-#define ENCODER_SETTINGS_DEFAULT (ROW_ENCODING_LIST|ITEM_ENCODING_BUILTIN_TYPES|DECIMAL_AS_STRING)
-#define ENCODER_SETTINGS_STRING  (ROW_ENCODING_STRING|ITEM_ENCODING_STRING|DECIMAL_AS_STRING)
-#define ENCODER_SETTINGS_JSON  (ROW_ENCODING_DICT|ITEM_ENCODING_BUILTIN_TYPES|DECIMAL_AS_STRING)
-#define ENCODER_SETTINGS_DIRECT  (ROW_ENCODING_DIRECT|ITEM_ENCODING_STRING|DECIMAL_AS_STRING)
+#define ENCODER_SETTINGS_DEFAULT (ROW_ENCODING_LIST|DATETIME_AS_STRING|DECIMAL_AS_FLOAT)
+#define ENCODER_SETTINGS_STRING  (ROW_ENCODING_STRING|DATETIME_AS_STRING|DECIMAL_AS_STRING)
+#define ENCODER_SETTINGS_JSON  (ROW_ENCODING_DICT|DATETIME_AS_STRING|DECIMAL_AS_FLOAT)
 
 enum RowEncodingType {
     ROW_ENCODING_INVALID  = 0x00,
@@ -52,12 +50,11 @@ enum RowEncodingType {
     ROW_ENCODING_MASK     = 0xff,
 };
 
-enum ItemEncodingType {
-    ITEM_ENCODING_INVALID        = 0x0000,
-    ITEM_ENCODING_STRING         = 0x0100,
-    ITEM_ENCODING_BUILTIN_TYPES  = 0x0200,
-    ITEM_ENCODING_GIRAFFE_TYPES  = 0x0400,
-    ITEM_ENCODING_MASK           = 0xff00,
+enum DateTimeReturnType {
+    DATETIME_AS_INVALID        = 0x0000,
+    DATETIME_AS_STRING         = 0x0100,
+    DATETIME_AS_GIRAFFE_TYPES  = 0x0200,
+    DATETIME_RETURN_MASK       = 0xff00,
 };
 
 enum DecimalReturnType {
@@ -88,8 +85,6 @@ typedef struct TeradataEncoder {
     char *DelimiterStr;
     size_t NullValueStrLen;
     char *NullValueStr;
-
-    //char *buffer;
     Buffer *buffer;
 
     GiraffeColumns* (*UnpackStmtInfoFunc)(unsigned char**,const uint32_t);
@@ -97,7 +92,6 @@ typedef struct TeradataEncoder {
     PyObject* (*UnpackRowsFunc)(const struct TeradataEncoder*,unsigned char**,const uint32_t);
     PyObject* (*UnpackRowFunc)(const struct TeradataEncoder*,unsigned char**,const uint16_t);
     PyObject* (*UnpackItemFunc)(const struct TeradataEncoder*,unsigned char**,const GiraffeColumn*);
-    //PyObject* (*UnpackDecimalFunc)(unsigned char**,const uint64_t,const uint16_t);
     PyObject* (*UnpackDecimalFunc)(const char*,const int);
     PyObject* (*UnpackDateFunc)(unsigned char**);
     PyObject* (*UnpackTimeFunc)(unsigned char**,const uint64_t);

@@ -29,7 +29,7 @@ from .errors import *
 
 from .cmd import TeradataCmd
 from .connection import Connection
-from .encoders import null_handler, python_to_teradata
+from .encoders import null_handler
 from .fmt import format_table
 from .io import ArchiveFileReader, CSVReader, FileReader, JSONReader, Reader
 from .logging import log
@@ -95,10 +95,12 @@ class TeradataMLoad(Connection):
 
         self.applied_count = 0
         self.error_count = 0
-        self.processor = None
+        self.preprocessor = lambda s: s
 
         self.allow_precision_loss = False
         self.encoding = DEFAULT_ENCODING
+        self.delimiter = DEFAULT_DELIMITER
+        self.null = DEFAULT_NULL
         if table is not None:
             self.table = table
 
@@ -129,19 +131,18 @@ class TeradataMLoad(Connection):
 
     def _end_acquisition(self):
         log.info("MLoad", "Ending acquisition phase ...")
-        try:
-            self.mload.end_acquisition()
-        except _tpt.error as error:
-            raise suppress_context(TeradataError(error))
+        #try:
+        self.mload.end_acquisition()
+        #except _tpt.error as error:
+            #raise suppress_context(TeradataError(error))
         self.end_acquisition = True
         log.info("MLoad", "Acquisition phase ended.")
 
     def _connect(self, host, username, password):
-        #self.cmd = TeradataCmd(host, username, password, log_level=log.level, mload_session=True)
-        try:
-            self.mload = _tpt.MLoad(host, username, password)
-        except _tpt.error as error:
-            raise suppress_context(TeradataError(error))
+        #try:
+        self.mload = _tpt.MLoad(host, username, password)
+        #except _tpt.error as error:
+            #raise suppress_context(TeradataError(error))
         title, version = get_version_info()
         query_band = "UTILITYNAME={};VERSION={};".format(title, version)
         self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
@@ -164,10 +165,10 @@ class TeradataMLoad(Connection):
         when loading from a file. Updates the exit code of the driver to
         reflect errors.
         """
-        try:
-            return self.mload.checkpoint()
-        except _tpt.error as error:
-            raise suppress_context(TeradataError(error))
+        #try:
+        return self.mload.checkpoint()
+        #except _tpt.error as error:
+            #raise suppress_context(TeradataError(error))
 
     def cleanup(self):
         """
@@ -178,8 +179,8 @@ class TeradataMLoad(Connection):
         """
         threads = []
         for i, table in enumerate(filter(lambda x: self.mload.exists(x), self.tables)):
-            if i == 1:
-                table = table + "lol"
+            #if i == 1:
+                #table = table + "lol"
             log.info("MLoad", "Dropping table '{}'...".format(table))
             t = threading.Thread(target=self.mload.drop_table, args=(table,))
             threads.append(t)
@@ -319,16 +320,14 @@ class TeradataMLoad(Connection):
                 #self.columns = f.header
 
             if isinstance(f, JSONReader):
-                print("ITS JSON")
                 self.encoding = "dict"
-                self.processor = lambda s: s
+                self.preprocessor = lambda s: s
             elif isinstance(f, FileReader):
                 self.encoding = "str"
-                #self.processor = lambda s: s.split(f.delimiter)
-                self.processor = lambda s: s
+                self.preprocessor = lambda s: s
             elif isinstance(f, ArchiveFileReader):
                 self.encoding = "archive"
-                self.processor = lambda s: s
+                self.preprocessor = lambda s: s
             self.null = null
             if delimiter is None:
                 delimiter = "|"
@@ -366,11 +365,10 @@ class TeradataMLoad(Connection):
         if not self.initiated:
             self.initiate()
         try:
-            data = self.processor(items)
-            try:
-                row_status = self.mload.put_row(data)
-            except _tpt.error as error:
-                raise suppress_context(MultiLoadError(error))
+            #try:
+            row_status = self.mload.put_row(self.preprocessor(items))
+            #except _tpt.error as error:
+                #raise suppress_context(MultiLoadError(error))
             self.applied_count += 1
         except GiraffeEncodeError as error:
             self.error_count += 1
@@ -378,18 +376,18 @@ class TeradataMLoad(Connection):
                 raise error
             log.info("MLoad", error)
 
-    #def release(self):
-        #"""
-        #Attempt release of target mload table.
+    def release(self):
+        """
+        Attempt release of target mload table.
 
-        #:raises `giraffez.errors.GiraffeError`: if table was not set by
-            #the constructor, the :code:`TeradataMLoad.table`, or
-            #:meth:`~giraffez.mload.TeradataMLoad.from_file`.
-        #"""
-        #if self.table is None:
-            #raise GiraffeError("Cannot release. Target table has not been set.")
-        #log.info("MLoad", "Attempting release for table {}".format(self.table))
-        #self.cmd.release_mload(self.table, silent=True)
+        :raises `giraffez.errors.GiraffeError`: if table was not set by
+            the constructor, the :code:`TeradataMLoad.table`, or
+            :meth:`~giraffez.mload.TeradataMLoad.from_file`.
+        """
+        if self.table is None:
+            raise GiraffeError("Cannot release. Target table has not been set.")
+        log.info("MLoad", "Attempting release for table {}".format(self.table))
+        self.mload.release(self.table)
 
     @property
     def status(self):
@@ -443,13 +441,6 @@ class TeradataMLoad(Connection):
         if self.initiated:
             raise GiraffeError("Cannot reuse MLoad context for more than one table")
         self._table_name = table_name
-        #try:
-            #log.info("MLoad", "Requesting column info for table '{}' ...".format(self.table))
-            #self._columns = self.cmd.get_columns(self.table, silent=True)
-        #except MultiLoadTableExists as error:
-            #log.info("MLoad", "Teradata PT request failed with code '{}'.".format(error.code))
-            #self.release()
-            #self._columns = self.cmd.get_columns(self.table, silent=True)
 
     @property
     def total_count(self):

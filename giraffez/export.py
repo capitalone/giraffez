@@ -109,12 +109,9 @@ class TeradataExport(Connection):
         self.query = query
 
     def _connect(self, host, username, password):
-        try:
-            self.export = _tpt.Export(host, username, password)
-            self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
-                *get_version_info()))
-        except _tpt.error as error:
-            raise suppress_context(TeradataError(error))
+        self.export = _tpt.Export(host, username, password)
+        self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
+            *get_version_info()))
 
     def close(self):
         log.info("Export", "Closing Teradata PT connection ...")
@@ -164,11 +161,8 @@ class TeradataExport(Connection):
 
     def initiate(self):
         log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
-        try:
-            self.export.initiate()
-            self.export.set_encoding(self.encoding, self.null, self.delimiter)
-        except _tpt.error as error:
-            raise suppress_context(TeradataError(error))
+        self.export.initiate()
+        self.export.set_encoding(self.encoding, self.null, self.delimiter)
         self.initiated = True
         log.info("Export", "Teradata PT request accepted.")
         # TODO: move this stuff?

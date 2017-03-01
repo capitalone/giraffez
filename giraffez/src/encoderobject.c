@@ -53,6 +53,7 @@ static int Encoder_init(Encoder *self, PyObject *args, PyObject *kwargs) {
         PyErr_SetString(PyExc_ValueError, "No columns found.");
         return -1;
     }
+    /*Py_INCREF(columns);*/
     self->encoder = encoder_new(columns, settings);
     if (self->encoder == NULL) {
         PyErr_SetString(PyExc_ValueError, "Could not create encoder. Bad settings. Bad person.");
@@ -77,8 +78,8 @@ static PyObject* Encoder_pack_row(Encoder *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O", &items)) {
         return NULL;
     }
-    /*char buf[64000];*/
-    unsigned char *buf = (unsigned char*)malloc(sizeof(unsigned char)*64000);
+    unsigned char buf[64000];
+    /*unsigned char *buf = (unsigned char*)malloc(sizeof(unsigned char)*64000);*/
     unsigned char *start = buf;
     uint16_t length = 0;
     if (self->encoder->PackRowFunc(self->encoder, items, &start, &length) == NULL) {
@@ -86,7 +87,7 @@ static PyObject* Encoder_pack_row(Encoder *self, PyObject *args) {
         return NULL;
     }
     PyObject *ret = PyBytes_FromStringAndSize((char*)buf, length);
-    free(buf);
+    /*free(buf);*/
     return ret;
 }
 
@@ -101,6 +102,21 @@ static PyObject* Encoder_set_encoding(Encoder *self, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);
         return NULL;
     }
+    Py_RETURN_NONE;
+}
+
+static PyObject* Encoder_set_columns(Encoder *self, PyObject *args) {
+    PyObject *obj;
+    GiraffeColumns *columns;
+    if (!PyArg_ParseTuple(args, "O", &obj)) {
+        return NULL;
+    }
+    columns = columns_to_giraffez_columns(obj);
+    if (columns == NULL) {
+        PyErr_SetString(PyExc_ValueError, "No columns found.");
+        return NULL;
+    }
+    self->encoder->Columns = columns;
     Py_RETURN_NONE;
 }
 
@@ -158,8 +174,9 @@ static PyObject* Encoder_unpack_stmt_info(PyObject *self, PyObject *args) {
 static PyMethodDef Encoder_methods[] = {
     {"count_rows", (PyCFunction)Encoder_count_rows, METH_STATIC|METH_VARARGS, ""},
     {"pack_row", (PyCFunction)Encoder_pack_row, METH_VARARGS, ""},
-    {"set_encoding", (PyCFunction)Encoder_set_encoding, METH_VARARGS, ""},
+    {"set_columns", (PyCFunction)Encoder_set_columns, METH_VARARGS, ""},
     {"set_delimiter", (PyCFunction)Encoder_set_delimiter, METH_VARARGS, ""},
+    {"set_encoding", (PyCFunction)Encoder_set_encoding, METH_VARARGS, ""},
     {"set_null", (PyCFunction)Encoder_set_null, METH_VARARGS, ""},
     {"unpack_row", (PyCFunction)Encoder_unpack_row, METH_VARARGS, ""},
     {"unpack_rows", (PyCFunction)Encoder_unpack_rows, METH_VARARGS, ""},

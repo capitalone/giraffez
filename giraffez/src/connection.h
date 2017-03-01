@@ -103,7 +103,7 @@ namespace Giraffez {
 
         PyObject* AddAttribute(PyObject *attrs) {
             if (!PyList_Check(attrs)) {
-                PyErr_Format(GiraffeError, "Expected list by received '%s'", Py_TYPE(attrs)->tp_name);
+                PyErr_Format(GiraffezError, "Expected list but received '%s'", Py_TYPE(attrs)->tp_name);
                 return NULL;
             }
             PyObject *obj;
@@ -151,7 +151,7 @@ namespace Giraffez {
 
         PyObject* Columns() {
             if (encoder == NULL || encoder->Columns == NULL) {
-                PyErr_Format(GiraffeError, "Columns not set");
+                PyErr_Format(GiraffezError, "Columns not set");
                 return NULL;
             }
             return giraffez_columns_from_columns(encoder->Columns);
@@ -255,7 +255,7 @@ namespace Giraffez {
             char *error_msg;
             TD_ErrorType error_type;
             Connection::GetErrorInfo(&error_msg, &error_type);
-            PyErr_Format(GiraffeError, "%d: %s", status, error_msg);
+            PyErr_Format(TeradataError, "%d: %s", status, error_msg);
             return NULL;
         }
 

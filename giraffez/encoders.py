@@ -22,6 +22,7 @@ try:
 except ImportError:
     import json
 
+from . import _encoder
 from .constants import *
 from .errors import *
 
@@ -33,7 +34,84 @@ from .utils import pipeline
 from ._compat import *
 
 
+
 FORMAT_LENGTH = {1: "b", 2: "h", 4: "i", 8 : "q", 16: "Qq"}
+
+
+class TeradataEncoder(object):
+    def __init__(self, columns=[], encoding=None):
+        self.encoding = ENCODER_SETTINGS_DEFAULT
+        self._columns = columns
+        self._delimiter = DEFAULT_DELIMITER
+        #self._null = DEFAULT_NULL
+        self._null = None
+        self.encoder = _encoder.Encoder(columns)
+        if encoding is not None:
+            self |= encoding
+
+    @property
+    def columns(self):
+        return self._columns
+
+    @columns.setter
+    def columns(self, value):
+        if not isinstance(value, Columns):
+            value = Columns(value)
+        self._columns = value
+        self.encoder.set_columns(self._columns)
+        #self.encoder = _encoder.Encoder(self._columns, self.encoding)
+        #self.encoder.set_delimiter(self._delimiter)
+        #self.encoder.set_null(self._null)
+
+    @property
+    def delimiter(self):
+        return self._delimiter
+
+    @delimiter.setter
+    def delimiter(self, value):
+        self._delimiter = value
+        self.encoder.set_delimiter(self._delimtier)
+
+    @property
+    def null(self):
+        return self._null
+
+    @null.setter
+    def null(self, value):
+        self._null = value
+        self.encoder.set_null(self._null)
+
+    def read(self, data):
+        return self.encoder.unpack_row(data)
+
+    def readbuffer(self, data):
+        return self.encoder.unpack_rows(data)
+
+    def serialize(self, data):
+        return self.encoder.pack_row(data)
+
+    def setdefaults(self):
+        self.encoding = ENCODER_SETTINGS_DEFAULT
+        self.encoder.set_encoding(self.encoding)
+
+    def __or__(self, other):
+        if other & ROW_RETURN_MASK:
+            self.encoding = self.encoding & ~ROW_RETURN_MASK | other
+        if other & DATETIME_RETURN_MASK:
+            self.encoding = self.encoding & ~DATETIME_RETURN_MASK | other
+        if other & DECIMAL_RETURN_MASK:
+            self.encoding = self.encoding & ~DECIMAL_RETURN_MASK | other
+        self.encoder.set_encoding(self.encoding)
+        self.encoder.set_delimiter(self._delimiter)
+        self.encoder.set_null(self._null)
+        return self
+
+    def __str__(self):
+        return "{}|{}|{}".format(
+            encoder_settings_map.get(self.encoding & ROW_RETURN_MASK, "Unknown"),
+            encoder_settings_map.get(self.encoding & DATETIME_RETURN_MASK, "Unknown"),
+            encoder_settings_map.get(self.encoding & DECIMAL_RETURN_MASK, "Unknown"),
+        )
 
 
 class Handler(object):
@@ -130,6 +208,48 @@ def text_to_strings(delimiter):
         _encoder = lambda s: s.strip("\r\n").split(delimiter)
     return _encoder
 
+def python_to_sql(table_name, columns, date_conversion=True):
+    if date_conversion:
+        def convert_date(s):
+            value = Date.from_string(s)
+            if value is None:
+                raise GiraffeEncodeError("Cannot convert date '{}'".format(s))
+            return value.to_string()
+
+        def convert_datetime(s, length):
+            if isinstance(s, datetime.date):
+                value = Timestamp.from_datetime(s)
+            else:
+                value = Timestamp.from_string(s)
+            if value is None:
+                raise GiraffeEncodeError("Cannot convert datetime '{}'".format(s))
+            return value.to_string(length)
+    else:
+        convert_date = lambda a: a
+        convert_datetime = lambda a, b: a
+    def _encoder(items):
+        check_input(columns, items)
+        values = []
+        for item, column in zip(items, columns):
+            if item is None:
+                continue
+            if column.type in CHAR_TYPES | VAR_TYPES:
+                value = quote_string(escape_quotes(item))
+            elif column.type in DATE_TYPES:
+                if isinstance(item, datetime.date):
+                    value = str(Date.from_datetime(item).to_integer())
+                else:
+                    value = quote_string(convert_date(escape_quotes(item)))
+            elif column.type in TIME_TYPES | TIMESTAMP_TYPES:
+                value = quote_string(convert_datetime(item, column.length))
+            else:
+                value = str(item)
+            values.append((column.name, value))
+        return "ins into {} ({}) values ({});".format(table_name,
+            ",".join(quote_string(x[0], '"') for x in values),
+            ",".join(x[1] for x in values))
+    return _encoder
+
 def teradata_to_python(columns):
     def _encoder(data):
         items = []
@@ -173,48 +293,6 @@ def teradata_to_python(columns):
                 value = None
             items.append(value)
         return items
-    return _encoder
-
-def python_to_sql(table_name, columns, date_conversion=True):
-    if date_conversion:
-        def convert_date(s):
-            value = Date.from_string(s)
-            if value is None:
-                raise GiraffeEncodeError("Cannot convert date '{}'".format(s))
-            return value.to_string()
-
-        def convert_datetime(s, length):
-            if isinstance(s, datetime.date):
-                value = Timestamp.from_datetime(s)
-            else:
-                value = Timestamp.from_string(s)
-            if value is None:
-                raise GiraffeEncodeError("Cannot convert datetime '{}'".format(s))
-            return value.to_string(length)
-    else:
-        convert_date = lambda a: a
-        convert_datetime = lambda a, b: a
-    def _encoder(items):
-        check_input(columns, items)
-        values = []
-        for item, column in zip(items, columns):
-            if item is None:
-                continue
-            if column.type in CHAR_TYPES | VAR_TYPES:
-                value = quote_string(escape_quotes(item))
-            elif column.type in DATE_TYPES:
-                if isinstance(item, datetime.date):
-                    value = str(Date.from_datetime(item).to_integer())
-                else:
-                    value = quote_string(convert_date(escape_quotes(item)))
-            elif column.type in TIME_TYPES | TIMESTAMP_TYPES:
-                value = quote_string(convert_datetime(item, column.length))
-            else:
-                value = str(item)
-            values.append((column.name, value))
-        return "ins into {} ({}) values ({});".format(table_name,
-            ",".join(quote_string(x[0], '"') for x in values),
-            ",".join(x[1] for x in values))
     return _encoder
 
 def python_to_teradata(columns, allow_precision_loss=False):
@@ -320,70 +398,3 @@ def unpack_from(fmt, data):
 
 def unpack_integer(s, length):
     return struct.unpack(FORMAT_LENGTH.get(length), s)[0]
-
-def unpack_stmt_info(data):
-    columns = []
-    while len(data) > 0:
-        ext_layout, ext_type, ext_len = struct.unpack("hhh", data[:6])
-        data = data[6:]
-        ext_data = data[:ext_len]
-        data = data[ext_len:]
-        if ext_layout != 1:
-            continue
-        db, ext_data = unpack_from("h", ext_data)
-        table, ext_data = unpack_from("h", ext_data)
-        column_name, ext_data = unpack_from("h", ext_data)
-        some_thang, ext_data = unpack("h", ext_data)
-        useless, ext_data = unpack_from("h", ext_data)
-        column_title, ext_data = unpack_from("h", ext_data)
-        column_format, ext_data = unpack_from("h", ext_data)
-        default_value, ext_data = unpack_from("h", ext_data)
-        identity_column, ext_data = unpack("s", ext_data)
-        mosdef_writable, ext_data = unpack("s", ext_data)
-        not_not_null, ext_data = unpack("s", ext_data)
-        can_ret_null, ext_data = unpack("s", ext_data)
-        permitted_where, ext_data = unpack("s", ext_data)
-        modifiable_column, ext_data = unpack("s", ext_data)
-        column_type, ext_data = unpack("h", ext_data)
-        user_def_type, ext_data = unpack("h", ext_data)
-        type_name, ext_data = unpack_from("h", ext_data)
-        data_type_misc_info, ext_data = unpack_from("h", ext_data)
-        column_length, ext_data = unpack("Q", ext_data) #total_bytes_might_ret
-        precision, ext_data = unpack("h", ext_data) #total_digits
-        interval_digits, ext_data = unpack("h", ext_data) # if termporal data type
-        scale, ext_data = unpack("h", ext_data) #fractional_digits
-        char_set_type, ext_data = unpack("b", ext_data)
-        total_bytes_ret, ext_data = unpack("Q", ext_data)
-        case_sensitive, ext_data = unpack("s", ext_data)
-        numeric_signed, ext_data = unpack("s", ext_data)
-        uniquely_desc_row, ext_data = unpack("s", ext_data)
-        column_only_member_uniq_index, ext_data = unpack("s", ext_data)
-        is_expression, ext_data = unpack("s", ext_data)
-        permitted_orderby, ext_data = unpack("s", ext_data)
-        if column_type in [DECIMAL_N, DECIMAL_NN]:
-            if precision <= 2:
-                column_length = 1
-            elif precision <= 4:
-                column_length = 2
-            elif precision <= 9:
-                column_length = 4
-            elif precision <= 18:
-                column_length = 8
-            else:
-                column_length = 16
-        else:
-            precision = 0
-            scale = 0
-        if column_name == "":
-            column_name = column_title
-        columns.append({
-            "name": column_name,
-            "type": column_type,
-            "length": column_length,
-            "precision": precision,
-            "scale": scale,
-            "nullable": can_ret_null,
-            "default": default_value,
-            "format": column_format
-        })
-    return columns

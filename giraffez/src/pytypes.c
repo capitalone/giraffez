@@ -22,6 +22,7 @@
 #include "_compat.h"
 
 #include "columns.h"
+#include "errors.h"
 
 
 // TODO: remove columns, result and row types
@@ -136,9 +137,6 @@ int giraffez_decimal_import() {
 // only some of the members and not cause undefined behavior. Some things
 // like export only ever set name, type, length, precision and scale for 
 // example.
-// TODO: the above definition is no longer the case since now the columns
-// are set via teradata_execute_p, so a lot of this stuff could probably
-// go away.
 PyObject* giraffez_columns_from_columns(GiraffeColumns *c) {
     size_t i;
     GiraffeColumn *column;
@@ -205,53 +203,53 @@ GiraffeColumns* columns_to_giraffez_columns(PyObject *columns_obj) {
         item = PyObject_GetAttrString(column_obj, "name");
         if (item != NULL && item != Py_None) {
             column->Name = strdup(PyUnicode_AsUTF8(item));
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "title");
         if (item != NULL && item != Py_None) {
             column->Title = strdup(PyUnicode_AsUTF8(item));
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "alias");
         if (item != NULL && item != Py_None) {
             column->Alias = strdup(PyUnicode_AsUTF8(item));
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "type");
         if (item != NULL && item != Py_None) {
             column->Type = (uint16_t)PyLong_AsLong(item);
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "length");
         if (item != NULL && item != Py_None) {
             column->Length = (uint16_t)PyLong_AsLong(item);
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "precision");
         if (item != NULL && item != Py_None) {
             column->Precision = (uint16_t)PyLong_AsLong(item);
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "scale");
         if (item != NULL && item != Py_None) {
             column->Scale = (uint16_t)PyLong_AsLong(item);
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "_nullable");
         if (item != NULL && item != Py_None) {
             column->Nullable = strdup(PyUnicode_AsUTF8(item));
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "_default");
         if (item != NULL && item != Py_None) {
             column->Default = strdup(PyUnicode_AsUTF8(item));
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         item = PyObject_GetAttrString(column_obj, "_format");
         if (item != NULL && item != Py_None) {
             column->Format = strdup(PyUnicode_AsUTF8(item));
-            Py_DECREF(item);
         }
+        Py_XDECREF(item);
         columns_append(columns, *column);
         Py_DECREF(column_obj);
     }

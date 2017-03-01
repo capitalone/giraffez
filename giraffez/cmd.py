@@ -79,11 +79,8 @@ class Cursor(object):
         return columns
 
     def _execute(self, statement):
-        try:
-            self.conn.execute(statement, prepare_only=self.prepare_only)
-            self.columns = self._columns()
-        except _cli.error as error:
-            raise suppress_context(TeradataError(error))
+        self.conn.execute(statement, prepare_only=self.prepare_only)
+        self.columns = self._columns()
 
     def _fetchone(self):
         try:
@@ -104,8 +101,8 @@ class Cursor(object):
             return self._fetchone()
         # TODO: should make errors in C work natively so no need
         # to continue wrapping with Python defined exception
-        except _cli.error as error:
-            raise suppress_context(TeradataError(error))
+        #except _cli.error as error:
+            #raise suppress_context(TeradataError(error))
 
     def readall(self):
         n = 0
@@ -190,11 +187,11 @@ class TeradataCmd(Connection):
         self.panic = panic
 
     def _connect(self, host, username, password):
-        try:
-            self.cmd = _cli.Cmd(host, username, password, encoder_settings=self.encoder_settings)
-        except _cli.error as error:
-            # TODO: make sure protect/lock connection work
-            raise TeradataError(error)
+        #try:
+        self.cmd = _cli.Cmd(host, username, password, encoder_settings=self.encoder_settings)
+        #except _cli.error as error:
+            ## TODO: make sure protect/lock connection work
+            #raise TeradataError(error)
 
     def close(self):
         if getattr(self, 'cmd', None):

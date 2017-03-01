@@ -25,9 +25,9 @@
 #include <parcel.h>
 
 
-TeradataError* tdcli_read_error(char *dataptr) {
-    TeradataError *err;
-    err = (TeradataError*)malloc(sizeof(TeradataError));
+TeradataErr* tdcli_read_error(char *dataptr) {
+    TeradataErr *err;
+    err = (TeradataErr*)malloc(sizeof(TeradataErr));
     struct CliErrorType *e;
     e = (struct CliErrorType*)dataptr;
     err->Code = e->Code;
@@ -36,9 +36,9 @@ TeradataError* tdcli_read_error(char *dataptr) {
 }
 
 /*TeradataFailure* tdcli_read_failure(char *dataptr) {*/
-TeradataError* tdcli_read_failure(char *dataptr) {
-    TeradataError *err;
-    err = (TeradataError*)malloc(sizeof(TeradataError));
+TeradataErr* tdcli_read_failure(char *dataptr) {
+    TeradataErr *err;
+    err = (TeradataErr*)malloc(sizeof(TeradataErr));
     struct CliFailureType *e;
     e = (struct CliFailureType*)dataptr;
     err->Code = e->Code;

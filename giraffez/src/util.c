@@ -103,14 +103,14 @@ void pack_float(unsigned char **data, double val) {
 
     u.d = val;
 
-    *((*data)++) = u.b[7];
-    *((*data)++) = u.b[6];
-    *((*data)++) = u.b[5];
-    *((*data)++) = u.b[4];
-    *((*data)++) = u.b[3];
-    *((*data)++) = u.b[2];
-    *((*data)++) = u.b[1];
     *((*data)++) = u.b[0];
+    *((*data)++) = u.b[1];
+    *((*data)++) = u.b[2];
+    *((*data)++) = u.b[3];
+    *((*data)++) = u.b[4];
+    *((*data)++) = u.b[5];
+    *((*data)++) = u.b[6];
+    *((*data)++) = u.b[7];
 }
 
 uint16_t pack_string(unsigned char **data, const char *str, const uint16_t length) {

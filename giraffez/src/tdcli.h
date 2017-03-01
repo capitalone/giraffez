@@ -58,10 +58,10 @@ typedef struct TeradataConnection {
     int request_status;
 } TeradataConnection;
 
-typedef struct TeradataError {
+typedef struct TeradataErr {
     int  Code;
     char *Msg;
-} TeradataError;
+} TeradataErr;
 
 typedef enum TeradataStatus {
     TD_SUCCESS = 0,
@@ -84,8 +84,8 @@ typedef enum TeradataStatus {
     TD_CALL_ENDACQ = 25000
 } TeradataStatus;
 
-TeradataError* tdcli_read_error(char *dataptr);
-TeradataError* tdcli_read_failure(char *dataptr);
+TeradataErr* tdcli_read_error(char *dataptr);
+TeradataErr* tdcli_read_failure(char *dataptr);
 TeradataConnection* tdcli_new();
 uint16_t tdcli_init(TeradataConnection *conn);
 uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *username, const char *password);
