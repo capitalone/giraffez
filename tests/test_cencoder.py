@@ -3,7 +3,9 @@
 import pytest
 
 
+import decimal
 import giraffez
+from giraffez._encoder import EncoderError
 from giraffez.constants import *
 from giraffez.encoders import *
 from giraffez.types import *
@@ -174,26 +176,6 @@ class TestCEncoder(object):
         expected_text = ("123456789012345678901234567890123456.07",)
         result_text = encoder.read(expected_bytes)
         assert result_text == expected_text
-
-    def test_decimal_extra_trailing_zeroes(self, encoder):
-        encoder.columns = [
-            ('col1', TD_DECIMAL, 4, 5, 2),
-            ('col2', TD_DECIMAL, 2, 2, 2),
-        ]
-        expected_bytes = b'\x00\x78\x00\x00\x00\x14\x00'
-        expected_text = ('1.20000','0.20')
-        result_bytes = encoder.serialize(expected_text)
-        assert result_bytes == expected_bytes
-
-    def test_decimal_scale_padding(self, encoder):
-        encoder.columns = [
-            ('col1', TD_DECIMAL, 4, 5, 2),
-            ('col2', TD_DECIMAL, 4, 5, 4),
-        ]
-        expected_bytes = b'\x00\x14\x00\x00\x00\xe0\x2e\x00\x00'
-        expected_text = ('0.2','1.20')
-        result_bytes = encoder.serialize(expected_text)
-        assert result_bytes == expected_bytes
 
     def test_decimal_overflow(self, encoder):
         """
@@ -382,6 +364,17 @@ class TestCEncoder(object):
         result_text = encoder.read(expected_bytes)
         assert result_text == expected_text
 
+    def test_unpack_stmt_info(self, encoder):
+        stmt_info = b"""\x03\x00\x07\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x07\x00\x00\x00\x01\x00\x02\x00[\x00\x00\x00\x00\x00\x04\x00col1\x00\x00\x04\x00col1\x04\x00col1\n\x00-------.99\x00\x00NNNNYN\xe4\x01\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00UYNUYYU\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02\x00U\x00\x00\x00\x00\x00\x04\x00col2\x00\x00\x04\x00col2\x04\x00col2\x04\x00X(2)\x00\x00NNNNYN\xc0\x01\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02\x00\x00\x00\x00\x00\x00\x00NUNUYYU\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x02\x00\x00\x00"""
+        result = encoder.parse_header(stmt_info)
+        expected_columns = Columns([
+            ("col1", TD_DECIMAL, 4, 8, 2, "N", None, "-------.99"),
+            ("col2", TD_VARCHAR, 6, 0, 0, "N", None, "X(2)"),
+        ])
+
+        assert(result[0] == expected_columns[0])
+        assert(result[1] == expected_columns[1])
+
 
 class TestSeralize(object):
     def test_python_to_teradata(self, encoder):
@@ -419,6 +412,87 @@ class TestSeralize(object):
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
+    #def test_decimal_overflow(self, encoder):
+        #encoder.columns = [
+            #('col1', TD_DECIMAL, 2, 2, 2),
+        #]
+        #expected_text = ('120000',)
+        #result_bytes = encoder.serialize(expected_text)
+
+    def test_decimal_64(self, encoder):
+        """
+        Decode/encode Teradata decimal type values < 18 digits.
+
+        col1
+        -----------
+        1234567890
+        """
+        encoder.columns = [
+            ('col1', TD_DECIMAL, 8, 16, 0),
+        ]
+        expected_bytes = b'\x00\xd2\x02\x96I\x00\x00\x00\x00'
+
+        # string
+        expected_text = ('1234567890',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+        # integer
+        expected_text = (1234567890,)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+        # float
+        #expected_text = (1234567890.0,)
+        #result_bytes = encoder.serialize(expected_text)
+        #assert result_bytes == expected_bytes
+
+        # actual decimal
+        expected_text = (decimal.Decimal('1234567890'),)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+        # invalid type
+        with pytest.raises(EncoderError):
+            expected_text = ([1.2,'bango'],)
+            result_bytes = encoder.serialize(expected_text)
+
+        with pytest.raises(EncoderError):
+            expected_text = ('bango',)
+            result_bytes = encoder.serialize(expected_text)
+
+    def test_decimal_64_negative(self, encoder):
+        """
+        Decode/encode Teradata decimal type values < 18 digits.
+
+        col1
+        -----------
+        -123456.7890
+        """
+        encoder.columns = [
+            ('col1', TD_DECIMAL, 8, 16, 4),
+        ]
+        expected_bytes = b'\x00.\xfdi\xb6\xff\xff\xff\xff'
+        expected_text = ('-123456.7890',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+    def test_decimal_64_with_scale(self, encoder):
+        """
+        Decode/encode Teradata decimal type values < 18 digits.
+
+        col1
+        -----------
+        123456.7890
+        """
+        encoder.columns = [
+            ('col1', TD_DECIMAL, 8, 16, 4),
+        ]
+        expected_bytes = b'\x00\xd2\x02\x96I\x00\x00\x00\x00'
+        expected_text = ('123456.7890',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
     def test_decimal_128(self, encoder):
         encoder.columns = [
             ('col1', TD_DECIMAL, 16, 20, 2),
@@ -437,25 +511,33 @@ class TestSeralize(object):
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
-    #def test_unpack_stmt_info(self):
-        #stmt_info = b"""\x03\x00\x07\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x07\x00\x00\x00\x01\x00\x02\x00[\x00\x00\x00\x00\x00\x04\x00col1\x00\x00\x04\x00col1\x04\x00col1\n\x00-------.99\x00\x00NNNNYN\xe4\x01\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x08\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00UYNUYYU\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x02\x00U\x00\x00\x00\x00\x00\x04\x00col2\x00\x00\x04\x00col2\x04\x00col2\x04\x00X(2)\x00\x00NNNNYN\xc0\x01\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x02\x00\x00\x00\x00\x00\x00\x00NUNUYYU\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x02\x00\x00\x00"""
-        #result = unpack_stmt_info(stmt_info)
-        #expected_results = [b"col1|4|484|8|2||-------.99|N", b"col2|6|448|0|0||X(2)|N"]
+    def test_decimal_extra_trailing_zeroes(self, encoder):
+        encoder.columns = [
+            ('col1', TD_DECIMAL, 4, 5, 2),
+            ('col2', TD_DECIMAL, 2, 2, 2),
+        ]
+        expected_bytes = b'\x00\x78\x00\x00\x00\x14\x00'
+        expected_text = ('1.20000','0.20')
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
 
-        #assert result[0]['name'] == b"col1"
-        #assert result[0]['length'] == 4
-        #assert result[0]['type'] == 484
-        #assert result[0]['precision'] == 8
-        #assert result[0]['scale'] == 2
-        #assert result[0]['default'] == b""
-        #assert result[0]['format'] == b"-------.99"
-        #assert result[0]['nullable'] == b"N"
+    def test_decimal_scale_padding(self, encoder):
+        encoder.columns = [
+            ('col1', TD_DECIMAL, 4, 5, 2),
+            ('col2', TD_DECIMAL, 4, 5, 4),
+        ]
+        expected_bytes = b'\x00\x14\x00\x00\x00\xe0\x2e\x00\x00'
+        expected_text = ('0.2','1.20')
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
 
-        #assert result[1]['name'] == b"col2"
-        #assert result[1]['length'] == 6
-        #assert result[1]['type'] == 448
-        #assert result[1]['precision'] == 0
-        #assert result[1]['scale'] == 0
-        #assert result[1]['default'] == b""
-        #assert result[1]['format'] == b"X(2)"
-        #assert result[1]['nullable'] == b"N"
+    # TODO: put a datetime in here
+    def test_date_formats(self, encoder):
+        encoder.columns = [
+            ('col1', TD_DATE, 4, 0, 0),
+            ('col2', TD_DATE, 4, 0, 0),
+        ]
+        expected_bytes = b'\x00\x8b\x90\x11\x00Na\xf8\xff'
+        expected_text = ('2015-11-15','1850-06-22')
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
