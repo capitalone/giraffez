@@ -37,6 +37,7 @@ void debug_printf(const char *fmt, ...) {
     s = PyUnicode_FromFormatV(fmt, vargs);
     va_end(vargs);
     fprintf(stderr, "DEBUG: %s\n", PyUnicode_AsUTF8(s));
+    Py_XDECREF(s);
 }
 
 static int TeradataError_init(TeradataErrorObject *self, PyObject *args, PyObject *kwds) {

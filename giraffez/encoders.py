@@ -81,6 +81,9 @@ class TeradataEncoder(object):
         self._null = value
         self.encoder.set_null(self._null)
 
+    def parse_header(self, data):
+        return self.encoder.unpack_stmt_info(data)
+
     def read(self, data):
         return self.encoder.unpack_row(data)
 

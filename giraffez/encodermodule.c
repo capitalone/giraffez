@@ -20,6 +20,7 @@
 
 #include "src/pytypes.h"
 #include "src/encoderobject.h"
+#include "src/errors.h"
 
 
 #ifdef __cplusplus
@@ -55,6 +56,10 @@ MOD_INIT(_encoder)
     giraffez_decimal_import();
 
     if (m == NULL) {
+        return MOD_ERROR_VAL;
+    }
+
+    if (define_exceptions(m) == NULL) {
         return MOD_ERROR_VAL;
     }
 

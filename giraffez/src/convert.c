@@ -508,7 +508,7 @@ PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, cons
     if (PyUnicode_Check(item)) {
         str = item;
         Py_INCREF(str);
-    } else if (PyFloat_Check(item) || PyLong_Check(item)) {
+    } else {
         if ((str = PyObject_Str(item)) == NULL) {
             return NULL;
         }
@@ -517,33 +517,24 @@ PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, cons
         return NULL;
     }
     Py_DECREF(dot);
-    Py_XDECREF(str);
+
     Py_ssize_t ll = PyList_Size(parts);
-    char *x = "", *y = "";
-    PyObject *a, *bb, *s;
+    const char *x = "", *y = "";
+    PyObject *a, *s;
     if (ll == 1) {
-        if ((a = PyList_GetItem(parts, 0)) == NULL) {
-            return NULL;
-        }
+        Py_RETURN_ERROR(a = PyList_GetItem(parts, 0));
         if ((x = PyUnicode_AsUTF8(a)) == NULL) {
+            Py_XDECREF(str);
             return NULL;
         }
         y = "";
     } else if (ll == 2) {
-        if ((a = PyList_GetItem(parts, 0)) == NULL) {
-            return NULL;
-        }
-        if ((bb = PyList_GetItem(parts, 1)) == NULL) {
-            return NULL;
-        }
-        x = PyUnicode_AsUTF8(a);
-        y = PyUnicode_AsUTF8(bb);
-    } else {
-        // TODO: set an error here
-        printf("WTF DUDE\n");
-        return NULL;
+        Py_RETURN_ERROR(a = PyList_GetItem(parts, 0));
+        Py_RETURN_ERROR(x = PyUnicode_AsUTF8(a));
+
+        Py_RETURN_ERROR(a = PyList_GetItem(parts, 1));
+        Py_RETURN_ERROR(y = PyUnicode_AsUTF8(a));
     }
-    Py_DECREF(parts);
 
     int x_length = strlen(x);
     int y_length = strlen(y);
@@ -558,26 +549,45 @@ PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, cons
         snprintf(dbuf+x_length, column_scale + 1, "%s", y);
     }
 
+    Py_DECREF(parts);
+
     if ((s = PyLong_FromString(dbuf, NULL, 10)) == NULL) {
+        PyErr_Clear();
+        PyErr_Format(EncoderError, "value is not a valid decimal: %R", str);
+        Py_XDECREF(str);
         return NULL;
     }
+    Py_XDECREF(str);
+
     PyObject *upper, *lower, *lower1, *shift;
     shift = PyLong_FromLong(64);
     switch (column_length) {
         case DECIMAL8:
             b = PyLong_AsLongLong(s);
+            if (PyErr_Occurred()) {
+                return NULL;
+            }
             pack_int8_t(buf, b);
             break;
         case DECIMAL16:
             h = PyLong_AsLongLong(s);
+            if (PyErr_Occurred()) {
+                return NULL;
+            }
             pack_int16_t(buf, h);
             break;
         case DECIMAL32:
             l = PyLong_AsLongLong(s);
+            if (PyErr_Occurred()) {
+                return NULL;
+            }
             pack_int32_t(buf, l);
             break;
         case DECIMAL64:
             q = PyLong_AsLongLong(s);
+            if (PyErr_Occurred()) {
+                return NULL;
+            }
             pack_int64_t(buf, q);
             break;
         case DECIMAL128:

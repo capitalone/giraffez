@@ -67,7 +67,7 @@ MOD_INIT(_cli)
     PyModule_AddObject(m, "RequestEnded", EndRequestError);
 
     if (define_exceptions(m) == NULL) {
-        return NULL;
+        return MOD_ERROR_VAL;
     }
 
     Py_INCREF(&CmdType);
