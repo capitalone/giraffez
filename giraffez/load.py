@@ -89,7 +89,10 @@ class TeradataLoad(TeradataCmd):
             preprocessor = null_handler(null)
             rows = (preprocessor(l) for l in f)
             if isinstance(f, CSVReader):
-                self.options("delimiter", f.reader.dialect.delimiter, 1)
+                delimiter = f.reader.dialect.delimiter
+                if delimiter = "\t":
+                    delimiter = "\\t"
+                self.options("delimiter", delimiter, 1)
                 self.options("quote char", f.reader.dialect.quotechar, 2)
             elif isinstance(f, JSONReader):
                 self.options("encoding", "json", 1)

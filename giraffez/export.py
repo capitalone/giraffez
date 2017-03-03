@@ -172,7 +172,10 @@ class TeradataExport(Connection):
             self.processor = identity
         self.options("encoding", self.encoding, 1)
         if self.encoding == "str":
-            self.options("delimiter", self.delimiter, 2)
+            delimiter = self.delimiter
+            if delimiter == "\t":
+                delimiter = "\\t"
+            self.options("delimiter", delimiter, 2)
             self.options("null", self.null, 3)
         log.info("Export", "Executing ...")
         log.info(self.options)
