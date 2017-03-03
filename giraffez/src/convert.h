@@ -83,16 +83,15 @@ PyObject* cstring_to_pyfloat(const char *buf, const int length);
 PyObject* pystring_from_cformat(const char* fmt, ...);
 
 // PACK
-PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len);
-PyObject* pystring_to_char(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *len);
-PyObject* pylong_to_byte(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
-PyObject* pylong_to_short(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
-PyObject* pylong_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
-PyObject* pylong_to_long(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
-PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
-PyObject* pydate_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
-PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length,
-    const uint16_t column_scale, unsigned char **buf, uint16_t *len);
+PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint16_t *len);
+PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* teradata_byte_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* teradata_short_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* teradata_long_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len);
+PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len);
 
 #ifdef __cplusplus
 }

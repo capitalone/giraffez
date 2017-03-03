@@ -333,7 +333,7 @@ PyObject* pystring_from_cformat(const char *fmt, ...) {
 
 
 // PACK
-PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint16_t *len) {
     Py_ssize_t length;
     PyObject *temp = NULL;
     char *str;
@@ -363,7 +363,7 @@ PyObject* pystring_to_vchar(PyObject *s, unsigned char **buf, uint16_t *len) {
     Py_RETURN_NONE;
 }
 
-PyObject* pystring_to_char(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     Py_ssize_t length;
     PyObject *temp = NULL;
     int fill, i;
@@ -390,7 +390,7 @@ PyObject* pystring_to_char(PyObject *s, const uint16_t column_length, unsigned c
     Py_RETURN_NONE;
 }
 
-PyObject* pylong_to_byte(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_byte_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     int8_t b;
     if (!PyLong_Check(item)) {
         return NULL;
@@ -404,7 +404,7 @@ PyObject* pylong_to_byte(PyObject *item, const uint16_t column_length, unsigned 
     Py_RETURN_NONE;
 }
 
-PyObject* pylong_to_short(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_short_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     int16_t h;
     if (!PyLong_Check(item)) {
         return NULL;
@@ -418,7 +418,7 @@ PyObject* pylong_to_short(PyObject *item, const uint16_t column_length, unsigned
     Py_RETURN_NONE;
 }
 
-PyObject* pylong_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     int32_t l;
     if (!PyLong_Check(item)) {
         return NULL;
@@ -432,7 +432,7 @@ PyObject* pylong_to_int(PyObject *item, const uint16_t column_length, unsigned c
     Py_RETURN_NONE;
 }
 
-PyObject* pylong_to_long(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_long_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     int64_t q;
     if (!PyLong_Check(item)) {
         return NULL;
@@ -446,7 +446,7 @@ PyObject* pylong_to_long(PyObject *item, const uint16_t column_length, unsigned 
     Py_RETURN_NONE;
 }
 
-PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     double d;
     PyObject *f;
     PyObject *s;
@@ -474,11 +474,13 @@ PyObject* pyfloat_to_float(PyObject *item, const uint16_t column_length, unsigne
     Py_RETURN_NONE;
 }
 
-PyObject* pydate_to_int(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
     // check unicode/string and datetime
     char *str;
     struct tm tm;
     int32_t l = 0;
+
+    // TODO: do we want to check for PyDate/PyDateTime etc here? if so we have to include datetime.h and do PyDateTime_IMPORT
     if ((str = PyUnicode_AsUTF8(item)) == NULL) {
         return NULL;
     }
@@ -498,7 +500,7 @@ PyObject* pydate_to_int(PyObject *item, const uint16_t column_length, unsigned c
 }
 
 
-PyObject* pystring_to_decimal(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len) {
     int8_t b; int16_t h; int32_t l; int64_t q; uint64_t Q;
     char dbuf[ITEM_BUFFER_SIZE];
     PyObject *str = NULL;

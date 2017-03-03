@@ -156,29 +156,29 @@ PyObject* teradata_item_from_pyobject(const TeradataEncoder *e, const GiraffeCol
         PyObject *item, unsigned char **data, uint16_t *length) {
     switch (column->GDType) {
         case GD_BYTEINT:
-            return pylong_to_byte(item, column->Length, data, length);
+            return teradata_byte_from_pylong(item, column->Length, data, length);
         case GD_SMALLINT:
-            return pylong_to_short(item, column->Length, data, length);
+            return teradata_short_from_pylong(item, column->Length, data, length);
         case GD_INTEGER:
-            return pylong_to_int(item, column->Length, data, length);
+            return teradata_int_from_pylong(item, column->Length, data, length);
         case GD_BIGINT:
-            return pylong_to_long(item, column->Length, data, length);
+            return teradata_long_from_pylong(item, column->Length, data, length);
         case GD_FLOAT:
-            return pyfloat_to_float(item, column->Length, data, length);
+            return teradata_float_from_pyfloat(item, column->Length, data, length);
         case GD_DECIMAL:
-            return pystring_to_decimal(item, column->Length, column->Scale, data, length);
+            return teradata_decimal_from_pystring(item, column->Length, column->Scale, data, length);
         case GD_CHAR:
-            return pystring_to_char(item, column->Length, data, length);
+            return teradata_char_from_pystring(item, column->Length, data, length);
         case GD_VARCHAR:
-            return pystring_to_vchar(item, data, length);
+            return teradata_varchar_from_pystring(item, data, length);
         case GD_DATE:
-            return pydate_to_int(item, column->Length, data, length);
+            return teradata_int_from_pydate(item, column->Length, data, length);
         case GD_TIME:
-            return pystring_to_char(item, column->Length, data, length);
+            return teradata_char_from_pystring(item, column->Length, data, length);
         case GD_TIMESTAMP:
-            return pystring_to_char(item, column->Length, data, length);
+            return teradata_char_from_pystring(item, column->Length, data, length);
         default:
-            return pystring_to_char(item, column->Length, data, length);
+            return teradata_char_from_pystring(item, column->Length, data, length);
     }
     return NULL;
 }
