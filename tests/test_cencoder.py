@@ -412,6 +412,29 @@ class TestSeralize(object):
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
+    def test_wrong_row_type(self, encoder):
+        encoder.columns = [
+            ("col1", TD_INTEGER, 4, 0, 0),
+        ]
+
+        expected_text = {"col1": 1}
+        with pytest.raises(EncoderError):
+            encoder.serialize(expected_text)
+
+        encoder |= ROW_ENCODING_DICT
+        expected_text = "1"
+        with pytest.raises(EncoderError):
+            encoder.serialize(expected_text)
+
+        expected_text = [1]
+        with pytest.raises(EncoderError):
+            encoder.serialize(expected_text)
+
+        encoder |= ROW_ENCODING_STRING
+        expected_text = [1]
+        with pytest.raises(EncoderError):
+            encoder.serialize(expected_text)
+
     #def test_decimal_overflow(self, encoder):
         #encoder.columns = [
             #('col1', TD_DECIMAL, 2, 2, 2),
@@ -531,8 +554,7 @@ class TestSeralize(object):
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
-    # TODO: put a datetime in here
-    def test_date_formats(self, encoder):
+    def test_date_string(self, encoder):
         encoder.columns = [
             ('col1', TD_DATE, 4, 0, 0),
             ('col2', TD_DATE, 4, 0, 0),
@@ -541,3 +563,141 @@ class TestSeralize(object):
         expected_text = ('2015-11-15','1850-06-22')
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
+
+    def test_date_from_pydatetime(self, encoder):
+        encoder.columns = [
+            ('col1', TD_DATE, 4, 0, 0),
+            ('col2', TD_DATE, 4, 0, 0),
+        ]
+        expected_bytes = b'\x00\x8b\x90\x11\x00Na\xf8\xff'
+        expected_text = (datetime.datetime(2015,11,15),datetime.datetime(1850,6,22))
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+    def test_date_from_pydate(self, encoder):
+        encoder.columns = [
+            ('col1', TD_DATE, 4, 0, 0),
+            ('col2', TD_DATE, 4, 0, 0),
+        ]
+        expected_bytes = b'\x00\x8b\x90\x11\x00Na\xf8\xff'
+        expected_text = (datetime.date(2015,11,15),datetime.date(1850,6,22))
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+    def test_date_from_invalid_type(self, encoder):
+        # TODO:
+        pass
+
+    def test_char(self, encoder):
+        encoder.columns = [
+            ('col1', TD_CHAR, 8, 0, 0),
+        ]
+
+        # needs padding
+        expected_bytes = b'\x00test01\x20\x20'
+        expected_text = ('test01',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+        # padding correct
+        expected_bytes = b'\x00test01\x20\x20'
+        expected_text = ('test01  ',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+        # unicode test
+        # TODO:
+        expected_bytes = b'\x00test01\x20\x20'
+        expected_text = ('test01  ',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+    #def test_char_bad_encoding(self, encoder):
+        #encoder.columns = [
+            #('col1', TD_CHAR, 8, 0, 0),
+        #]
+        #expected_text = ('漢字',)
+
+        ##with pytest.raises(EncoderError):
+        #result_bytes = encoder.serialize(expected_text)
+
+    def test_char_non_string_input(self, encoder):
+        encoder.columns = [
+            ('col1', TD_CHAR, 8, 0, 0),
+        ]
+        expected_text = (10000,)
+
+        with pytest.raises(EncoderError):
+            result_bytes = encoder.serialize(expected_text)
+
+        expected_text = (['test'],)
+
+        with pytest.raises(EncoderError):
+            result_bytes = encoder.serialize(expected_text)
+
+    def test_char_input_too_large(self, encoder):
+        encoder.columns = [
+            ('col1', TD_CHAR, 8, 0, 0),
+        ]
+        expected_text = ('123456789',)
+
+        with pytest.raises(EncoderError):
+            result_bytes = encoder.serialize(expected_text)
+
+        expected_text = (10000 * 'test01  ',)
+
+        with pytest.raises(EncoderError):
+            result_bytes = encoder.serialize(expected_text)
+
+    def test_varchar(self, encoder):
+        encoder.columns = [
+            ('col1', TD_VARCHAR, 8, 0, 0),
+        ]
+
+        expected_bytes = b'\x00\x00\x00'
+        expected_text = ('',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+        expected_bytes = b'\x00\x06\x00test01'
+        expected_text = ('test01',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+        # unicode test
+        #expected_bytes = b'\x00test01\x20\x20'
+        #expected_text = ('test01    ',)
+        #result_bytes = encoder.serialize(expected_text)
+        #assert result_bytes == expected_bytes
+
+    #def test_varchar_bad_encoding(self, encoder):
+        #encoder.columns = [
+            #('col1', TD_VARCHAR, 8, 0, 0),
+        #]
+        #expected_text = ('漢字',)
+
+        ##with pytest.raises(EncoderError):
+        #result_bytes = encoder.serialize(expected_text)
+
+    def test_varchar_non_string_input(self, encoder):
+        encoder.columns = [
+            ('col1', TD_VARCHAR, 8, 0, 0),
+        ]
+        expected_text = (10000,)
+
+        with pytest.raises(EncoderError):
+            result_bytes = encoder.serialize(expected_text)
+
+        expected_text = (['test'],)
+
+        with pytest.raises(EncoderError):
+            result_bytes = encoder.serialize(expected_text)
+
+    def test_varchar_input_too_large(self, encoder):
+        encoder.columns = [
+            ('col1', TD_VARCHAR, 8, 0, 0),
+        ]
+        expected_text = (10000 * 'test01  ',)
+
+        with pytest.raises(EncoderError):
+            result_bytes = encoder.serialize(expected_text)

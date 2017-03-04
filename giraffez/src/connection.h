@@ -37,6 +37,9 @@
 #include "_compat.h"
 
 
+#define ROW_BUFFER_SIZE 64000
+
+
 typedef teradata::client::API::Connection TConn;
 
 
@@ -46,6 +49,7 @@ namespace Giraffez {
         TeradataEncoder *encoder;
         std::string table_name;
         const char *host, *username, *password;
+        unsigned char *row_buffer;
     public:
         int status;
         bool connected;
@@ -54,6 +58,7 @@ namespace Giraffez {
             this->host = strdup(host);
             this->username = strdup(username);
             this->password = strdup(password);
+            this->row_buffer = (unsigned char *)malloc(sizeof(unsigned char)*ROW_BUFFER_SIZE);
             // XXX:
             encoder = NULL;
             encoder = encoder_new(NULL, 0);
@@ -63,6 +68,7 @@ namespace Giraffez {
                 encoder_free(encoder);
                 encoder = NULL;
             }
+            free(this->row_buffer);
         }
 
         PyObject* SetEncoding(uint32_t settings) {
@@ -199,13 +205,14 @@ namespace Giraffez {
         }
 
         PyObject* PutRow(PyObject *items) {
-            //TD_Length length;
             uint16_t length = 0;
-            unsigned char *data = (unsigned char*)malloc(sizeof(unsigned char)*64000);
-            unsigned char *buf = data;
-            encoder->PackRowFunc(encoder, items, &buf, &length);
-            //encoder->PackRowFunc(encoder, items, &data, &length);
-            if ((status = TConn::PutRow((char*)data, (TD_Length)length)) != TD_SUCCESS) {
+
+            // PackRowFunc advances the data pointer, save it as a separate variable
+            unsigned char *data = this->row_buffer;
+            if (encoder->PackRowFunc(encoder, items, &data, &length) == NULL) {
+                return NULL;
+            }
+            if ((status = TConn::PutRow((char*)this->row_buffer, (TD_Length)length)) != TD_SUCCESS) {
                 return this->HandleError();
             }
             Py_RETURN_NONE;

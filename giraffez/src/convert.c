@@ -326,71 +326,90 @@ PyObject* pystring_from_cformat(const char *fmt, ...) {
     char ss[1024];
     va_list vargs;
     va_start(vargs, fmt);
-    length = vsprintf(ss, fmt, vargs);
+    length = vsnprintf(ss, 1024, fmt, vargs);
     va_end(vargs);
     return PyUnicode_FromStringAndSize(ss, length);
 }
 
 
 // PACK
-PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint16_t *packed_length) {
     Py_ssize_t length;
     PyObject *temp = NULL;
     char *str;
-    // TODO: should check for max length?
+
     if (_PyUnicode_Check(s)) {
+        // TODO:
         if ((temp = PyUnicode_AsUTF8String(s)) == NULL) {
             if ((temp = PyUnicode_AsUTF8String(s)) == NULL) {
                 printf("OOOH NO\n");
                 return NULL;
             }
         }
-    } else if (PyBytes_Check(s)) {
-        temp = s;
-    } else {
-        // TODO:
-    }
-    // XXX:
-    if (temp == NULL) {
+        s = temp;
+    } else if (!PyBytes_Check(s)) {
+        // TODO: need a test for this case, ensure correct error wording
+        PyErr_Format(EncoderError, "VARCHAR field value must be a string or string-like.");
         return NULL;
     }
-    if ((str = PyBytes_AsString(temp)) == NULL) {
+
+    length = PyBytes_Size(s);
+    if (length > TD_ROW_MAX_SIZE) {
+        // TODO: need a test, ensure correct error wording
+        PyErr_Format(EncoderError, "VARCHAR field value length %d exceeds maximum allowed.", length);
         return NULL;
     }
-    length = PyBytes_Size(temp);
-    *len += pack_string(buf, str, length);
-    /*Py_DECREF(temp);*/
+
+    if ((str = PyBytes_AsString(s)) == NULL) {
+        return NULL;
+    }
+
+    *packed_length += pack_string(buf, str, length);
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     Py_ssize_t length;
-    PyObject *temp = NULL;
     int fill, i;
     char *str;
-    // TODO: should check for max length?
+
     if (_PyUnicode_Check(s)) {
-        temp = PyUnicode_AsASCIIString(s);
-    } else if (PyBytes_Check(s)) {
-        temp = s;
-    }
-    length = PyBytes_Size(temp);
-    if ((str = PyBytes_AsString(temp)) == NULL) {
+        // TODO: test this also
+        if ((s = PyUnicode_AsASCIIString(s)) == NULL) {
+            return NULL;
+        }
+    } else if (!PyBytes_Check(s)) {
+        // TODO: ensure correct error wording
+        PyErr_Format(EncoderError, "CHAR field value must be a string or string-like.");
         return NULL;
     }
+
+    length = PyBytes_Size(s);
+    if (length > TD_ROW_MAX_SIZE) {
+        // TODO: ensure correct error wording
+        PyErr_Format(EncoderError, "CHAR field value length %d exceeds maximum allowed.", length);
+        return NULL;
+    } else if (length > column_length) {
+        // TODO: ensure correct error wording
+        PyErr_Format(EncoderError, "CHAR field value length %d exceeds column length %d.", length, column_length);
+        return NULL;
+    }
+
+    if ((str = PyBytes_AsString(s)) == NULL) {
+        return NULL;
+    }
+
     memcpy(*buf, str, length);
     *buf += length;
     fill = column_length - length;
     for (i = 0; i < fill; i++) {
         *((*buf)++) = (unsigned char)0x20;
     }
-    /*printf("char cl: %d\n", column_length);*/
-    *len += column_length;
-    /*Py_DECREF(temp);*/
+    *packed_length += column_length;
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_byte_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_byte_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     int8_t b;
     if (!PyLong_Check(item)) {
         return NULL;
@@ -400,11 +419,11 @@ PyObject* teradata_byte_from_pylong(PyObject *item, const uint16_t column_length
         return NULL;
     }
     pack_int8_t(buf, b);
-    *len += column_length;
+    *packed_length += column_length;
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_short_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_short_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     int16_t h;
     if (!PyLong_Check(item)) {
         return NULL;
@@ -414,11 +433,11 @@ PyObject* teradata_short_from_pylong(PyObject *item, const uint16_t column_lengt
         return NULL;
     }
     pack_int16_t(buf, h);
-    *len += column_length;
+    *packed_length += column_length;
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     int32_t l;
     if (!PyLong_Check(item)) {
         return NULL;
@@ -428,11 +447,11 @@ PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length,
         return NULL;
     }
     pack_int32_t(buf, l);
-    *len += column_length;
+    *packed_length += column_length;
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_long_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_long_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     int64_t q;
     if (!PyLong_Check(item)) {
         return NULL;
@@ -442,11 +461,11 @@ PyObject* teradata_long_from_pylong(PyObject *item, const uint16_t column_length
         return NULL;
     }
     pack_int64_t(buf, q);
-    *len += column_length;
+    *packed_length += column_length;
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     double d;
     PyObject *f;
     PyObject *s;
@@ -470,37 +489,43 @@ PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_leng
         return NULL;
     }
     pack_float(buf, d);
-    *len += column_length;
+    *packed_length += column_length;
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     // check unicode/string and datetime
+    PyObject *temp;
     char *str;
     struct tm tm;
     int32_t l = 0;
 
-    // TODO: do we want to check for PyDate/PyDateTime etc here? if so we have to include datetime.h and do PyDateTime_IMPORT
-    if ((str = PyUnicode_AsUTF8(item)) == NULL) {
-        return NULL;
+    
+    if (_PyUnicode_Check(item)) {
+        Py_RETURN_ERROR((str = PyUnicode_AsUTF8(item)));
+    } else {
+        Py_RETURN_ERROR((temp = PyObject_Str(item)));
+        Py_RETURN_ERROR((str = PyUnicode_AsUTF8(temp)));
+        Py_DECREF(temp);
+        temp = NULL;
     }
+
     memset(&tm, '\0', sizeof(tm));
-    // TODO: while over format strings
     if (strptime(str, "%Y-%m-%d", &tm) == NULL) {
-        PyErr_Format(EncoderError, "Unable to parse date string '%s'", str);
+        PyErr_Format(EncoderError, "Unable to parse date string '%s'.", str);
         return NULL;
     }
     l += (tm.tm_year+1900) * 10000;
     l += (tm.tm_mon+1) * 100;
     l += tm.tm_mday;
-    l -= 19000000;
-    pack_int32_t(buf, l);
-    *len += 4;
+
+    pack_int32_t(buf, l - 19000000);
+    *packed_length += 4;
     Py_RETURN_NONE;
 }
 
 
-PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *len) {
+PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *packed_length) {
     int8_t b; int16_t h; int32_t l; int64_t q; uint64_t Q;
     char dbuf[ITEM_BUFFER_SIZE];
     PyObject *str = NULL;
@@ -619,6 +644,6 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
     }
     Py_DECREF(shift);
     Py_DECREF(s);
-    *len += column_length;
+    *packed_length += column_length;
     Py_RETURN_NONE;
 }

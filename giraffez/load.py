@@ -90,7 +90,7 @@ class TeradataLoad(TeradataCmd):
             rows = (preprocessor(l) for l in f)
             if isinstance(f, CSVReader):
                 delimiter = f.reader.dialect.delimiter
-                if delimiter = "\t":
+                if delimiter == "\t":
                     delimiter = "\\t"
                 self.options("delimiter", delimiter, 1)
                 self.options("quote char", f.reader.dialect.quotechar, 2)

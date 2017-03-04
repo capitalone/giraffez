@@ -20,6 +20,7 @@
 
 #define BUFFER_SIZE 8 * 1024
 #define ITEM_BUFFER_SIZE 1024
+#define TD_ROW_MAX_SIZE 64260
 
 
 #endif

@@ -73,6 +73,14 @@ PyObject* teradata_row_from_pybytes(const TeradataEncoder *e, PyObject *row, uns
 PyObject* teradata_row_from_pystring(const TeradataEncoder *e, PyObject *row, unsigned char **data,
         uint16_t *length) {
     PyObject *items;
+
+    // TODO: any other types acceptable here?
+    if (!(_PyUnicode_Check(row) || PyBytes_Check(row))) {
+        // TODO: better error given py2/3 types
+        PyErr_Format(EncoderError, "Expected row as a str or bytes, not '%s'.", row->ob_type->tp_name);
+        return NULL;
+    }
+
     if ((items = PyUnicode_Split(row, e->Delimiter, e->Columns->length-1)) == NULL) {
         return NULL;
     }
@@ -89,6 +97,8 @@ PyObject* teradata_row_from_pydict(const TeradataEncoder *e, PyObject *row, unsi
     size_t i;
     GiraffeColumn *column;
     if (!PyDict_Check(row)) {
+        // TODO: verify error text is accurate
+        PyErr_Format(EncoderError, "Expected row as a dict object, not '%s'.", row->ob_type->tp_name);
         return NULL;
     }
     items = PyList_New(e->Columns->length);
@@ -100,8 +110,6 @@ PyObject* teradata_row_from_pydict(const TeradataEncoder *e, PyObject *row, unsi
         Py_INCREF(item);
         PyList_SetItem(items, i, item);
     }
-    /*DEBUG_PRINTF("%R", items);*/
-    // TODO: check length?
     if (teradata_row_from_pytuple(e, items, data, length) == NULL) {
         return NULL;
     }
@@ -113,7 +121,13 @@ PyObject* teradata_row_from_pytuple(const TeradataEncoder *e, PyObject *row, uns
     PyObject *item = NULL;
     GiraffeColumn *column;
     Py_ssize_t i, slength;
-    // TODO: check if tuple, list, etc
+
+    // TODO: any other types acceptable here?
+    if (!(PyList_Check(row) || PyTuple_Check(row))) {
+        PyErr_Format(EncoderError, "Expected row as a tuple or list object, not '%s'.", row->ob_type->tp_name);
+        return NULL;
+    }
+
     if ((slength = PySequence_Size(row)) == -1) {
         return NULL;
     }
