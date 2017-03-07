@@ -307,15 +307,13 @@ class Columns(object):
     # TODO: make v2 format with extra data and checksums?
     def serialize(self):
         """
-        Serializes the columns into the giraffez archive header v2
-        binary format. The following format is distinct from the 
-        previous legacy (v1) format in that it adds a Version
-        field::
+        Serializes the columns into the giraffez archive header
+        binary format::
 
-            0      1      2      3      4 
+            0      1      2
             +------+------+------+------+------+------+------+------+
-            | Version     | Header      | Header Data               |
-            |             | Length      |                           |
+            | Header      | Header Data                             |
+            | Length      |                                         |
             +------+------+------+------+------+------+------+------+
 
                        giraffez Archive Header Format

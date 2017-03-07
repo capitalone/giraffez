@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-#include "mloadobject.h"
+#include <Python.h>
+#include <sstream>
 
 // Teradata Parallel Transporter API
 #include <connection.h>
 #include <schema.h>
 #include <DMLGroup.h>
 
-#include <sstream>
+#include "giraffez.h"
+#include "connection.h"
 
-#include "cmdobject.h"
-#include "errors.h"
-#include "pytypes.h"
-#include "tdcli.h"
 
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
-
+typedef struct {
+    PyObject_HEAD
+    Giraffez::Connection *conn;
+} MLoad;
 
 static void MLoad_dealloc(MLoad *self) {
     delete self->conn;

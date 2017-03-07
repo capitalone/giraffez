@@ -16,11 +16,7 @@
 
 #include <Python.h>
 
-#include "_compat.h"
-
-#include "src/cmdobject.h"
-#include "src/errors.h"
-#include "src/pytypes.h"
+#include "src/giraffez.h"
 
 
 #ifdef __cplusplus
@@ -53,9 +49,7 @@ MOD_INIT(_cli)
     m = Py_InitModule("_cli", module_methods);
 #endif
 
-    giraffez_columns_import();
-    giraffez_datetime_import();
-    giraffez_decimal_import();
+    giraffez_types_import();
 
     if (m == NULL) {
         return MOD_ERROR_VAL;

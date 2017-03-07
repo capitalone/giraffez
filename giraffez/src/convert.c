@@ -15,25 +15,172 @@
  */
 
 #include "convert.h"
-
-#include <Python.h>
-#if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
-#else
-#include <stdint.h>
-#endif
-#include <stdlib.h>
-
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
-
-#include "config.h"
-#include "errors.h"
-#include "pytypes.h"
-#include "util.h"
+#include "giraffez.h"
 
 
-static char buffer[BUFFER_SIZE];
+void pack_int8_t(unsigned char **data, int8_t val) {
+    *((*data)++) = val;
+}
+
+void pack_int16_t(unsigned char **data, int16_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+}
+
+void pack_uint16_t(unsigned char **data, uint16_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+}
+
+void pack_int32_t(unsigned char **data, int32_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+    *((*data)++) = val >> 16;
+    *((*data)++) = val >> 24;
+}
+
+void pack_uint32_t(unsigned char **data, uint32_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+    *((*data)++) = val >> 16;
+    *((*data)++) = val >> 24;
+}
+
+void pack_int64_t(unsigned char **data, int64_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+    *((*data)++) = val >> 16;
+    *((*data)++) = val >> 24;
+    *((*data)++) = val >> 32;
+    *((*data)++) = val >> 40;
+    *((*data)++) = val >> 48;
+    *((*data)++) = val >> 56;
+}
+
+void pack_uint64_t(unsigned char **data, uint64_t val) {
+    *((*data)++) = val;
+    *((*data)++) = val >> 8;
+    *((*data)++) = val >> 16;
+    *((*data)++) = val >> 24;
+    *((*data)++) = val >> 32;
+    *((*data)++) = val >> 40;
+    *((*data)++) = val >> 48;
+    *((*data)++) = val >> 56;
+}
+
+void pack_float(unsigned char **data, double val) {
+    dsplit_t u;
+
+    u.d = val;
+
+    *((*data)++) = u.b[0];
+    *((*data)++) = u.b[1];
+    *((*data)++) = u.b[2];
+    *((*data)++) = u.b[3];
+    *((*data)++) = u.b[4];
+    *((*data)++) = u.b[5];
+    *((*data)++) = u.b[6];
+    *((*data)++) = u.b[7];
+}
+
+uint16_t pack_string(unsigned char **data, const char *str, const uint16_t length) {
+    pack_uint16_t(data, length);
+    if (length > 0) {
+        memcpy(*data, str, sizeof(unsigned char)*length);
+        *data += length;
+        return length + 2;
+    }
+    return 2;
+}
+
+void unpack_int8_t(unsigned char **data, int8_t *dst) {
+    *dst = *((*data)++);
+}
+
+void unpack_int16_t(unsigned char **data, int16_t *dst) {
+    *dst = *((*data)++);
+    *dst |= (*((*data)++) & 0xffLL) << 8;
+}
+
+void unpack_uint16_t(unsigned char **data, uint16_t *dst) {
+    *dst = *((*data)++);
+    *dst |= (*((*data)++) & 0xffULL) << 8;
+}
+
+void unpack_int32_t(unsigned char **data, int32_t *dst) {
+    *dst = *((*data)++);
+    *dst |= (*((*data)++) & 0xffLL) << 8;
+    *dst |= (*((*data)++) & 0xffLL) << 16;
+    *dst |= (*((*data)++) & 0xffLL) << 24;
+}
+
+void unpack_int64_t(unsigned char **data, int64_t *dst) {
+    *dst = *((*data)++);
+    *dst |= (*((*data)++) & 0xffLL) << 8;
+    *dst |= (*((*data)++) & 0xffLL) << 16;
+    *dst |= (*((*data)++) & 0xffLL) << 24;
+    *dst |= (*((*data)++) & 0xffLL) << 32;
+    *dst |= (*((*data)++) & 0xffLL) << 40;
+    *dst |= (*((*data)++) & 0xffLL) << 48;
+    *dst |= (*((*data)++) & 0xffLL) << 56;
+}
+
+void unpack_uint64_t(unsigned char **data, uint64_t *dst) {
+    *dst = *((*data)++);
+    *dst |= (*((*data)++) & 0xffULL) << 8;
+    *dst |= (*((*data)++) & 0xffULL) << 16;
+    *dst |= (*((*data)++) & 0xffULL) << 24;
+    *dst |= (*((*data)++) & 0xffULL) << 32;
+    *dst |= (*((*data)++) & 0xffULL) << 40;
+    *dst |= (*((*data)++) & 0xffULL) << 48;
+    *dst |= (*((*data)++) & 0xffULL) << 56;
+}
+
+void unpack_float(unsigned char **data, double *dst) {
+    dsplit_t u;
+
+    u.b[0] = *((*data)++);
+    u.b[1] = *((*data)++);
+    u.b[2] = *((*data)++);
+    u.b[3] = *((*data)++);
+    u.b[4] = *((*data)++);
+    u.b[5] = *((*data)++);
+    u.b[6] = *((*data)++);
+    u.b[7] = *((*data)++);
+    *dst = u.d;
+}
+
+void unpack_char(unsigned char **data, char **str) {
+    char *dest = (char*)malloc(sizeof(char)+1);
+    memcpy(dest, (char*)*data, 1);
+    dest[1] = '\0';
+    *str = dest;
+    *data += 1;
+}
+
+void unpack_uchar(unsigned char **data, unsigned char **str) {
+    unsigned char* dest = (unsigned char*)malloc(sizeof(unsigned char)+1);
+    memcpy(dest, (unsigned char*)*data, 1);
+    dest[1] = '\0';
+    *str = dest;
+    *data += 1;
+}
+
+uint16_t unpack_string(unsigned char **data, char **str) {
+    uint16_t len = 0;
+    unpack_uint16_t(data, &len);
+    if (len > 0) {
+        char *dst = (char*)malloc(len+1);
+        memcpy(dst, (char*)*data, len);
+        dst[len] = '\0';
+        *str = dst;
+        *data += len;
+    } else {
+        *str = (char*)malloc(1);
+        (*str)[0] = 0;
+    }
+    return len;
+}
 
 // Character types
 PyObject* teradata_char_to_pystring(unsigned char **data, const uint64_t column_length) {
@@ -97,8 +244,7 @@ PyObject* teradata_bigint_to_pylong(unsigned char **data) {
 PyObject* teradata_bigint_to_pystring(unsigned char **data) {
     int64_t q;
     unpack_int64_t(data, &q);
-    // TODO: this might not be enough.
-    return PyUnicode_FromFormat("%ld", q);
+    return pystring_from_cformat("%lld", q);
 }
 
 PyObject* teradata_float_to_pyfloat(unsigned char **data) {
@@ -153,6 +299,7 @@ PyObject* teradata_date_to_pystring(unsigned char **data) {
 // or maybe not.  could just allow passing a date format like pandas
 PyObject* teradata_time_to_giraffez_time(unsigned char **data, const uint64_t column_length) {
     struct tm tm;
+    char buffer[BUFFER_STRPTIME_SIZE];
     memset(&tm, '\0', sizeof(tm));
     memcpy(buffer, (char*)*data, column_length);
     buffer[column_length] = '\0';
@@ -165,6 +312,7 @@ PyObject* teradata_time_to_giraffez_time(unsigned char **data, const uint64_t co
 
 PyObject* teradata_ts_to_giraffez_ts(unsigned char **data, const uint64_t column_length) {
     struct tm tm;
+    char buffer[BUFFER_STRPTIME_SIZE];
     memset(&tm, '\0', sizeof(tm));
     memcpy(buffer, (char*)*data, column_length);
     buffer[column_length] = '\0';
@@ -321,12 +469,10 @@ inline PyObject* cstring_to_pystring(const char *buf, const int length) {
 
 PyObject* pystring_from_cformat(const char *fmt, ...) {
     int length;
-    // TODO: is this better than using malloc like before and does it 
-    // need to be this big.
-    char ss[1024];
+    char ss[BUFFER_ITEM_SIZE];
     va_list vargs;
     va_start(vargs, fmt);
-    length = vsnprintf(ss, 1024, fmt, vargs);
+    length = vsnprintf(ss, BUFFER_ITEM_SIZE, fmt, vargs);
     va_end(vargs);
     return PyUnicode_FromStringAndSize(ss, length);
 }
@@ -338,29 +484,24 @@ PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint1
     PyObject *temp = NULL;
     char *str;
 
-    if (_PyUnicode_Check(s)) {
-        // TODO:
-        if ((temp = PyUnicode_AsUTF8String(s)) == NULL) {
-            if ((temp = PyUnicode_AsUTF8String(s)) == NULL) {
-                printf("OOOH NO\n");
-                return NULL;
-            }
+    if (PyBytes_Check(s)) {
+        if ((temp = PyUnicode_FromEncodedObject(s, NULL, NULL)) == NULL) {
+            return NULL;
         }
         s = temp;
-    } else if (!PyBytes_Check(s)) {
-        // TODO: need a test for this case, ensure correct error wording
-        PyErr_Format(EncoderError, "VARCHAR field value must be a string or string-like.");
+    } else if (!_PyUnicode_Check(s)) {
+        PyErr_Format(EncoderError, "Expected string type and received '%s'", Py_TYPE(s)->tp_name);
         return NULL;
     }
 
-    length = PyBytes_Size(s);
+    if ((str = PyUnicode_AsUTF8AndSize(s, &length)) == NULL) {
+            printf("2\n");
+        return NULL;
+    }
+    Py_XDECREF(temp);
+
     if (length > TD_ROW_MAX_SIZE) {
-        // TODO: need a test, ensure correct error wording
         PyErr_Format(EncoderError, "VARCHAR field value length %d exceeds maximum allowed.", length);
-        return NULL;
-    }
-
-    if ((str = PyBytes_AsString(s)) == NULL) {
         return NULL;
     }
 
@@ -370,41 +511,37 @@ PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint1
 
 PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     Py_ssize_t length;
-    int fill, i;
+    PyObject *temp = NULL;
+    int fill;
     char *str;
 
-    if (_PyUnicode_Check(s)) {
-        // TODO: test this also
-        if ((s = PyUnicode_AsASCIIString(s)) == NULL) {
+    if (PyBytes_Check(s)) {
+        if ((temp = PyUnicode_FromEncodedObject(s, NULL, NULL)) == NULL) {
             return NULL;
         }
-    } else if (!PyBytes_Check(s)) {
-        // TODO: ensure correct error wording
-        PyErr_Format(EncoderError, "CHAR field value must be a string or string-like.");
+        s = temp;
+    } else if (!_PyUnicode_Check(s)) {
+        PyErr_Format(EncoderError, "Expected string type and received '%s'", Py_TYPE(s)->tp_name);
         return NULL;
     }
-
-    length = PyBytes_Size(s);
+    if ((str = PyUnicode_AsUTF8AndSize(s, &length)) == NULL) {
+            printf("2\n");
+        return NULL;
+    }
+    Py_XDECREF(temp);
     if (length > TD_ROW_MAX_SIZE) {
-        // TODO: ensure correct error wording
         PyErr_Format(EncoderError, "CHAR field value length %d exceeds maximum allowed.", length);
         return NULL;
     } else if (length > column_length) {
-        // TODO: ensure correct error wording
         PyErr_Format(EncoderError, "CHAR field value length %d exceeds column length %d.", length, column_length);
-        return NULL;
-    }
-
-    if ((str = PyBytes_AsString(s)) == NULL) {
         return NULL;
     }
 
     memcpy(*buf, str, length);
     *buf += length;
     fill = column_length - length;
-    for (i = 0; i < fill; i++) {
-        *((*buf)++) = (unsigned char)0x20;
-    }
+    memset(*buf, 0x20, fill);
+    *buf += fill;
     *packed_length += column_length;
     Py_RETURN_NONE;
 }
@@ -494,12 +631,10 @@ PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_leng
 }
 
 PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
-    // check unicode/string and datetime
     PyObject *temp;
     char *str;
     struct tm tm;
     int32_t l = 0;
-
     
     if (_PyUnicode_Check(item)) {
         Py_RETURN_ERROR((str = PyUnicode_AsUTF8(item)));
@@ -507,7 +642,6 @@ PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length,
         Py_RETURN_ERROR((temp = PyObject_Str(item)));
         Py_RETURN_ERROR((str = PyUnicode_AsUTF8(temp)));
         Py_DECREF(temp);
-        temp = NULL;
     }
 
     memset(&tm, '\0', sizeof(tm));
@@ -527,10 +661,9 @@ PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length,
 
 PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *packed_length) {
     int8_t b; int16_t h; int32_t l; int64_t q; uint64_t Q;
-    char dbuf[ITEM_BUFFER_SIZE];
+    char decbuf[BUFFER_ITEM_SIZE];
     PyObject *str = NULL;
     PyObject *dot = PyUnicode_FromString(".");
-    // CheckUnicode/String
     PyObject *parts;
     if (PyUnicode_Check(item)) {
         str = item;
@@ -549,36 +682,45 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
     const char *x = "", *y = "";
     PyObject *a, *s;
     if (ll == 1) {
-        Py_RETURN_ERROR(a = PyList_GetItem(parts, 0));
+        if ((a = PyList_GetItem(parts, 0)) == NULL) {
+            Py_XDECREF(str);
+            return NULL;
+        }
         if ((x = PyUnicode_AsUTF8(a)) == NULL) {
             Py_XDECREF(str);
             return NULL;
         }
-        y = "";
     } else if (ll == 2) {
-        Py_RETURN_ERROR(a = PyList_GetItem(parts, 0));
-        Py_RETURN_ERROR(x = PyUnicode_AsUTF8(a));
-
-        Py_RETURN_ERROR(a = PyList_GetItem(parts, 1));
-        Py_RETURN_ERROR(y = PyUnicode_AsUTF8(a));
+        if ((a = PyList_GetItem(parts, 0)) == NULL) {
+            Py_XDECREF(str);
+            return NULL;
+        }
+        if ((x = PyUnicode_AsUTF8(a)) == NULL) {
+            Py_XDECREF(str);
+            return NULL;
+        }
+        if ((a = PyList_GetItem(parts, 1)) == NULL) {
+            Py_XDECREF(str);
+            return NULL;
+        }
+        if ((y = PyUnicode_AsUTF8(a)) == NULL) {
+            Py_XDECREF(str);
+            return NULL;
+        }
     }
 
-    int x_length = strlen(x);
-    int y_length = strlen(y);
-    int padding_needed = column_scale - y_length;
-
-    memcpy(dbuf, x, x_length);
-    if (padding_needed > 0) {
-        memcpy(dbuf+x_length, y, y_length);
-        memset(dbuf+x_length+y_length, '0', padding_needed);
-        dbuf[x_length+column_scale] = '\0';
+    memcpy(decbuf, x, strlen(x));
+    if (column_scale > strlen(y)) {
+        memcpy(decbuf+strlen(x), y, strlen(y));
+        memset(decbuf+strlen(x)+strlen(y), '0', column_scale - strlen(y));
+        decbuf[strlen(x)+column_scale] = '\0';
     } else {
-        snprintf(dbuf+x_length, column_scale + 1, "%s", y);
+        snprintf(decbuf+strlen(x), column_scale + 1, "%s", y);
     }
 
     Py_DECREF(parts);
 
-    if ((s = PyLong_FromString(dbuf, NULL, 10)) == NULL) {
+    if ((s = PyLong_FromString(decbuf, NULL, 10)) == NULL) {
         PyErr_Clear();
         PyErr_Format(EncoderError, "value is not a valid decimal: %R", str);
         Py_XDECREF(str);
@@ -591,28 +733,28 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
     switch (column_length) {
         case DECIMAL8:
             b = PyLong_AsLongLong(s);
-            if (PyErr_Occurred()) {
+            if (b == -1 && PyErr_Occurred()) {
                 return NULL;
             }
             pack_int8_t(buf, b);
             break;
         case DECIMAL16:
             h = PyLong_AsLongLong(s);
-            if (PyErr_Occurred()) {
+            if (h == -1 && PyErr_Occurred()) {
                 return NULL;
             }
             pack_int16_t(buf, h);
             break;
         case DECIMAL32:
             l = PyLong_AsLongLong(s);
-            if (PyErr_Occurred()) {
+            if (l == -1 && PyErr_Occurred()) {
                 return NULL;
             }
             pack_int32_t(buf, l);
             break;
         case DECIMAL64:
             q = PyLong_AsLongLong(s);
-            if (PyErr_Occurred()) {
+            if (q == -1 && PyErr_Occurred()) {
                 return NULL;
             }
             pack_int64_t(buf, q);
@@ -632,7 +774,7 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
                 return NULL;
             }
             q = PyLong_AsLongLong(upper);
-            if (PyErr_Occurred()) {
+            if (q == -1 && PyErr_Occurred()) {
                 return NULL;
             }
             pack_uint64_t(buf, Q);

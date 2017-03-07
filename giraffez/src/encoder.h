@@ -22,24 +22,9 @@ extern "C" {
 #endif
 
 #include <Python.h>
-#if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
-#else
-#include <stdint.h>
-#endif
-
+#include "common.h"
 #include "columns.h"
 
-
-#define DEFAULT_DELIMITER PyUnicode_FromString("|")
-#define DEFAULT_NULLVALUE Py_None
-#define DEFAULT_NULLVALUE_STR PyUnicode_FromString("NULL")
-#define ENCODER_BUFFER_SIZE 64260
-
-// TODO: is good?
-#define ENCODER_SETTINGS_DEFAULT (ROW_ENCODING_LIST|DATETIME_AS_STRING|DECIMAL_AS_FLOAT)
-#define ENCODER_SETTINGS_STRING  (ROW_ENCODING_STRING|DATETIME_AS_STRING|DECIMAL_AS_STRING)
-#define ENCODER_SETTINGS_JSON  (ROW_ENCODING_DICT|DATETIME_AS_STRING|DECIMAL_AS_FLOAT)
 
 enum RowEncodingType {
     ROW_ENCODING_INVALID  = 0x00,
@@ -47,7 +32,7 @@ enum RowEncodingType {
     ROW_ENCODING_DICT     = 0x02,
     ROW_ENCODING_LIST     = 0x04,
     ROW_ENCODING_RAW      = 0x08,
-    ROW_ENCODING_MASK     = 0xff,
+    ROW_RETURN_MASK       = 0xff,
 };
 
 enum DateTimeReturnType {

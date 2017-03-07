@@ -15,14 +15,15 @@
  */
 
 
-#include "tdcli.h"
-
-#include <stdio.h>
+#include "teradata.h"
 
 // Teradata CLIv2
 #include <coperr.h>
 #include <dbcarea.h>
 #include <parcel.h>
+
+#include <Python.h>
+#include "common.h"
 
 
 TeradataErr* tdcli_read_error(char *dataptr) {
@@ -35,7 +36,6 @@ TeradataErr* tdcli_read_error(char *dataptr) {
     return err;
 }
 
-/*TeradataFailure* tdcli_read_failure(char *dataptr) {*/
 TeradataErr* tdcli_read_failure(char *dataptr) {
     TeradataErr *err;
     err = (TeradataErr*)malloc(sizeof(TeradataErr));
@@ -62,7 +62,8 @@ uint16_t tdcli_init(TeradataConnection *conn) {
     return conn->result;
 }
 
-uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *username, const char *password) {
+uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *username,
+        const char *password) {
     conn->dbc->change_opts = 'Y';
     conn->dbc->resp_mode = 'I';
     conn->dbc->use_presence_bits = 'N';
@@ -83,11 +84,10 @@ uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *u
     conn->dbc->maximum_parcel = 'H';
     conn->dbc->max_decimal_returned = 38;
     conn->dbc->charset_type = 'N';
-    // TODO: should this be in ANSI or Teradata mode? The default on the current system is Teradata
-    /*conn->dbc->tx_semantics = 'T';*/
-    /*conn->dbc->tx_semantics = 'A';*/
+    conn->dbc->tx_semantics = 'T';
     conn->dbc->consider_APH_resps = 'Y';
-    snprintf(conn->session_charset, 32, "%-30s", "UTF8");
+    snprintf(conn->session_charset, sizeof(conn->session_charset), "%-*s",
+        (int)(sizeof(conn->session_charset)-strlen(TERADATA_CHARSET)), TERADATA_CHARSET);
     conn->dbc->inter_ptr = conn->session_charset;
     sprintf(conn->logonstr, "%s/%s,%s", host, username, password);
     conn->dbc->logon_ptr = conn->logonstr;
@@ -107,9 +107,6 @@ uint16_t tdcli_fetch(TeradataConnection *conn) {
     return tdcli_fetch_record(conn);
 }
 
-// TODO: Py_BEGIN_ALLOW_THREADS should maybe be moved so that
-// this file can be free of depedency on Python
-// TODO: or should it???
 uint16_t tdcli_fetch_record(TeradataConnection *conn) {
     Py_BEGIN_ALLOW_THREADS
     DBCHCL(&conn->result, conn->cnta, conn->dbc);

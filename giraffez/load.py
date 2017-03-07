@@ -121,7 +121,7 @@ class TeradataLoad(TeradataCmd):
             if table_name in _columns_cache:
                 columns = _columns_cache[table_name]
             else:
-                columns = self.get_columns(table_name, silent=False)
+                columns = self.fetch_columns(table_name, silent=False)
                 _columns_cache[table_name] = columns
         if fields is None:
             fields = columns.safe_names

@@ -187,9 +187,7 @@ class EncoderExtension(Extension):
         "giraffez/src/errors.c",
         "giraffez/src/pack.c",
         "giraffez/src/pytypes.c",
-        "giraffez/src/types.c",
         "giraffez/src/unpack.c",
-        "giraffez/src/util.c",
         "giraffez/src/encoderobject.c",
         "giraffez/encodermodule.c",
     ]
@@ -198,14 +196,6 @@ class EncoderExtension(Extension):
         "giraffez/src/columns.h",
         "giraffez/src/convert.h",
         "giraffez/src/encoder.h",
-        "giraffez/src/errors.h",
-        "giraffez/src/pack.h",
-        "giraffez/src/pytypes.h",
-        "giraffez/src/types.h",
-        "giraffez/src/types.h",
-        "giraffez/src/unpack.h",
-        "giraffez/src/util.h",
-        "giraffez/src/encoderobject.h",
         "giraffez/encodermodule.c",
     ]
 
@@ -216,14 +206,11 @@ class CLIExtension(Extension):
     sources = [
         "giraffez/src/cmdobject.c",
         "giraffez/src/errors.c",
-        "giraffez/src/tdcli.c",
+        "giraffez/src/teradata.c",
         "giraffez/climodule.c",
     ]
 
     depends = [
-        "giraffez/src/cmdobject.h",
-        "giraffez/src/errors.h",
-        "giraffez/src/tdcli.h",
         "giraffez/climodule.c",
     ]
 
@@ -291,9 +278,6 @@ class TPTExtension(Extension):
     ]
 
     depends = [
-        "giraffez/src/errors.h",
-        "giraffez/src/exportobject.h",
-        "giraffez/src/mloadobject.h",
         "giraffez/tptmodule.cc",
     ]
 
@@ -313,8 +297,8 @@ class TPTExtension(Extension):
             else:
                 tptapi_inc = os.path.join(TERADATA_HOME, "Teradata Parallel Transporter/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "Teradata Parallel Transporter/bin")
-                if not os.path.isdir(tptapi_lib):
-                    tptapi_lib = os.path.join(TERADATA_HOME, "bin")
+            if not os.path.isdir(tptapi_lib):
+                tptapi_lib = os.path.join(TERADATA_HOME, "bin")
         elif platform.system() == 'Linux':
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")

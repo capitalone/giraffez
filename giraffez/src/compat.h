@@ -45,7 +45,6 @@
   #define PyUnicode_AsUTF8 PyString_AsString
   #define PyNumber_FloorDivide PyNumber_Divide
   #define PyBytes_FromStringAndSize PyString_FromStringAndSize
-  #define PyFloat_FromString(str) PyFloat_FromString(str, NULL)
   #define _PyUnicode_Check(ob) PyString_Check(ob) || PyUnicode_Check(ob)
   #define _PyFloat_FromString(ob) PyFloat_FromString(ob, NULL)
 

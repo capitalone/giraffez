@@ -19,7 +19,7 @@ class TestLoad(object):
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
 
-        mock_columns = mocker.patch("giraffez.Cmd.get_columns")
+        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
 
         mock_columns.return_value = columns
 
@@ -45,7 +45,7 @@ class TestLoad(object):
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
 
-        mock_columns = mocker.patch("giraffez.Cmd.get_columns")
+        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
 
         mock_columns.return_value = columns
 
@@ -72,7 +72,7 @@ class TestLoad(object):
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
 
-        mock_columns = mocker.patch("giraffez.Cmd.get_columns")
+        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
 
         mock_columns.return_value = columns
 
@@ -100,7 +100,7 @@ class TestLoad(object):
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
 
-        mock_columns = mocker.patch("giraffez.Cmd.get_columns")
+        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
 
         mock_columns.return_value = columns
 
@@ -128,7 +128,7 @@ class TestLoad(object):
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
 
-        mock_columns = mocker.patch("giraffez.Cmd.get_columns")
+        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
 
         mock_columns.return_value = columns
 
@@ -151,7 +151,7 @@ class TestLoad(object):
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
 
-        mock_columns = mocker.patch("giraffez.Cmd.get_columns")
+        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
 
         mock_columns.return_value = columns
 
@@ -177,7 +177,7 @@ class TestLoad(object):
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
 
-        mock_columns = mocker.patch("giraffez.Cmd.get_columns")
+        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
 
         mock_columns.return_value = columns
 
@@ -230,7 +230,7 @@ class TestLoad(object):
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
 
-        mock_columns = mocker.patch("giraffez.Cmd.get_columns")
+        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
 
         mock_columns.return_value = columns
 

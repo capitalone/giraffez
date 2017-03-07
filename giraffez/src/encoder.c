@@ -15,21 +15,7 @@
  */
 
 #include "encoder.h"
-
-#if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
-#else
-#include <stdint.h>
-#endif
-
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
-
-#include "columns.h"
-#include "convert.h"
-#include "pack.h"
-#include "types.h"
-#include "unpack.h"
+#include "giraffez.h"
 
 
 TeradataEncoder* encoder_new(GiraffeColumns *columns, uint32_t settings) {
@@ -46,7 +32,7 @@ TeradataEncoder* encoder_new(GiraffeColumns *columns, uint32_t settings) {
     e->NullValueStr = NULL;
     e->DelimiterStrLen = 0;
     e->NullValueStrLen = 0;
-    e->buffer = buffer_new(ENCODER_BUFFER_SIZE);
+    e->buffer = buffer_new(TD_ROW_MAX_SIZE);
     e->PackRowFunc = NULL;
     e->UnpackStmtInfoFunc = unpack_stmt_info_to_columns;
     e->UnpackRowsFunc = NULL;
@@ -63,15 +49,12 @@ TeradataEncoder* encoder_new(GiraffeColumns *columns, uint32_t settings) {
 
 int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
     // to switch on the value we just mask the particular byte
-    switch (settings & ROW_ENCODING_MASK) {
+    switch (settings & ROW_RETURN_MASK) {
         case ROW_ENCODING_STRING:
             e->UnpackRowsFunc = teradata_buffer_to_pylist;
             e->UnpackRowFunc = teradata_row_to_pystring;
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pystring;
-            // TODO: maybe just assert here or something that null is pystring
-            // type rather than setting it potentially multiple times (or also
-            // possibly overwriting it)
             encoder_set_delimiter(e, DEFAULT_DELIMITER);
             encoder_set_null(e, DEFAULT_NULLVALUE_STR);
             break;
@@ -92,7 +75,6 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
         case ROW_ENCODING_RAW:
             e->UnpackRowsFunc = teradata_buffer_to_pybytes;
             e->UnpackRowFunc = teradata_row_to_pybytes;
-            // TODO: 
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pybytes;
             break;

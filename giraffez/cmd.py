@@ -24,6 +24,7 @@ except ImportError:
 TDCLI_NOT_FOUND = False
 try:
     from . import _cli
+    from ._cli import RequestEnded, StatementEnded, TeradataError
 except ImportError:
     TDCLI_NOT_FOUND = True
 
@@ -41,29 +42,36 @@ from .utils import suppress_context
 __all__ = ['TeradataCmd']
 
 
-# TODO: i put this here to not forget something and then forget why it's here ...
-def read_sql():
-    pass
+def read_sql(s, config=None, key_file=None, panic=True, log_level=None):
+    stats = []
+    with TeradataCmd(config=config, key_file=key_file, log_level=log_level) as cmd:
+        statements = parse_statement(s)
+        for statement in statements:
+            try:
+                cmd.execute(statement)
+                stats.append((statement, None))
+            except TeradataError as error:
+                stats.append((statement, error))
+                if panic:
+                    raise error
 
 
 class Cursor(object):
     def __init__(self, conn, command, multi_statement=False, prepare_only=False,
-            encoder_settings=ENCODER_SETTINGS_DEFAULT, coerce_floats=True, parse_dates=[],
-            parse_decimals=[]):
+            coerce_floats=True, parse_dates=False):
         self.conn = conn
         self.command = command
         self.multi_statement = multi_statement
         self.prepare_only = prepare_only
+        self.coerce_floats = coerce_floats
+        self.parse_dates = parse_dates
+        if not self.coerce_floats:
+            self.conn.set_encoding(DECIMAL_AS_STRING)
+        if self.parse_dates:
+            self.conn.set_encoding(DATETIME_AS_GIRAFFE_TYPES)
         self.columns = None
-        if encoder_settings & ROW_ENCODING_STRING:
-            self.processor = lambda x, y: y
-        elif encoder_settings & ROW_ENCODING_DICT:
-            self.processor = lambda x, y: y
-        elif encoder_settings & ROW_ENCODING_LIST:
-            self.processor = lambda x, y: Row(x, y)
-        else:
-            # TODO: better error handling
-            raise "help me"
+        if parse_dates:
+            self.postprocessor = DateHandler()
         if self.multi_statement:
             self.statements = [command]
         else:
@@ -72,7 +80,7 @@ class Cursor(object):
         self._execute(self.statements.pop())
 
     def _columns(self):
-        columns = Columns(self.conn.columns())
+        columns = self.conn.columns()
         log.debug(self.conn.columns(debug=True))
         for column in columns:
             log.verbose("Debug[1]", repr(column))
@@ -85,24 +93,20 @@ class Cursor(object):
     def _fetchone(self):
         try:
             return self.conn.fetchone()
-        except _cli.StatementEnded:
+        except StatementEnded:
             # Multi-statement requests still emit the StatementEnded parcel
             # and therefore must be continually read until the RequestEnded
             # parcel is received.
             if self.multi_statement:
                 try:
                     return self._fetchone()
-                except _cli.RequestEnded:
+                except RequestEnded:
                     raise StopIteration
             if not self.statements:
                 raise StopIteration
             self.columns = None
             self._execute(self.statements.pop())
             return self._fetchone()
-        # TODO: should make errors in C work natively so no need
-        # to continue wrapping with Python defined exception
-        #except _cli.error as error:
-            #raise suppress_context(TeradataError(error))
 
     def readall(self):
         n = 0
@@ -111,7 +115,13 @@ class Cursor(object):
         return n
 
     def items(self):
-        # set 'dict'
+        self.conn.set_encoding(ROW_ENCODING_DICT)
+        self.processor = lambda x, y: y
+        return self
+
+    def values(self):
+        self.conn.set_encoding(ROW_ENCODING_LIST)
+        self.processor = lambda x, y: Row(x, y)
         return self
 
     def next(self):
@@ -119,9 +129,6 @@ class Cursor(object):
 
     def __iter__(self):
         return self
-
-    def next(self):
-        return self.__next__()
 
     def __next__(self):
         if self.prepare_only:
@@ -178,65 +185,20 @@ class TeradataCmd(Connection):
     """
 
     def __init__(self, host=None, username=None, password=None, log_level=INFO, panic=False,
-            config=None, key_file=None, dsn=None, protect=False, mload_session=False, encoder_settings=ENCODER_SETTINGS_DEFAULT):
+            config=None, key_file=None, dsn=None, protect=False, encoder_settings=ENCODER_SETTINGS_DEFAULT):
         if TDCLI_NOT_FOUND:
             raise TeradataCLIv2NotFound(TeradataCLIv2NotFound.__doc__.rstrip())
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
-            dsn, protect, mload_session, encoder_settings)
+            dsn, protect, encoder_settings)
 
         self.panic = panic
 
     def _connect(self, host, username, password):
-        #try:
         self.cmd = _cli.Cmd(host, username, password, encoder_settings=self.encoder_settings)
-        #except _cli.error as error:
-            ## TODO: make sure protect/lock connection work
-            #raise TeradataError(error)
 
     def close(self):
         if getattr(self, 'cmd', None):
             self.cmd.close()
-
-    def collect_stats(self, table_name, predicate="", silent=False):
-        """
-        Collect statistics on the table :code:`table_name` using the given :code:`predicate` if present
-
-        :param str table_name: The name of the table to collect statistics on
-        :param str predicate: The predicate of the collect statistics statement, which follows the table name
-        :param bool silent: Silence console logging (within this function only)
-        :return: The result of the collect statistics statement
-        :rtype: None or :class:`~giraffez.types.Result`
-        :raises `giraffez.errors.TeradataError`: if statistic cannot be collected for :code:`table_name`
-        :raises `giraffez.errors.ObjectDoesNotExist`: if the given :code:`table_name` does not exist
-        """
-        self.execute("collect statistics on {} {}".format(table_name, predicate), silent=silent)
-
-    def count_table(self, table_name, silent=False):
-        """
-        Return the row count of :code:`table_name`
-
-        :param str table_name: The name of the table to be counted
-        :param bool silent: Silence console logging (within this function only)
-        :return: The number of rows in :code:`table_name`
-        :rtype: int
-        """
-        return self.execute("select count(*) from {}".format(table_name), silent=silent).first()[0]
-
-    def drop_table(self, table_name, silent=False):
-        """
-        Execute the statement :code:`drop table table_name`
-
-        :param str table_name: The name of the table to be dropped
-        :param bool silent: Silence console logging (within this function only)
-        :return: :code:`None` if :code:`table_name` does not exist, otherwise the result of
-            the statement
-        :rtype: None or :class:`~giraffez.types.Result`
-        """
-        try:
-            result = self.execute("drop table {}".format(table_name), silent=silent)
-        except ObjectDoesNotExist as error:
-            return None
-        return result
 
     def execute(self, command, sanitize=True, multi_statement=False, prepare_only=False,
             silent=False):
@@ -270,6 +232,7 @@ class TeradataCmd(Connection):
         if sanitize:
             command = prepare_statement(command) # accounts for comments and newlines
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
+        self.cmd.set_encoding(ENCODER_SETTINGS_DEFAULT)
         return Cursor(self.cmd, command, multi_statement=multi_statement,
             prepare_only=prepare_only)
 
@@ -286,13 +249,18 @@ class TeradataCmd(Connection):
         try:
             self.execute("show table {}".format(object_name), silent=silent)
             return True
-        except ObjectNotTable as error:
+        except TeradataError as error:
+            if error.code != TD_ERROR_OBJECT_NOT_TABLE:
+                return False
+        try:
             self.execute("show view {}".format(object_name), silent=silent)
             return True
-        except (ObjectNotView, ObjectDoesNotExist) as error:
-            return False
+        except TeradataError as error:
+            if error.code not in [TD_ERROR_OBJECT_NOT_VIEW, TD_ERROR_OBJECT_NOT_EXIST]:
+                    return True
+        return False
 
-    def get_columns(self, table_name, silent=False):
+    def fetch_columns(self, table_name, silent=False):
         """
         Return the column information for :code:`table_name` by executing a :code:`select top 1 * from table_name` query.
 
@@ -302,19 +270,3 @@ class TeradataCmd(Connection):
         :rtype: :class:`~giraffez.types.Columns`
         """
         return self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True).columns;
-
-    def release_mload(self, table_name, silent=False):
-        """
-        Release an MLoad lock on :code:`table_name` by executing the statement :code:`release mload table_name`
-        followed by the statement :code:`release mload table_name in apply` if the lock cannot be released
-
-        :param str table_name: The name of the table to be dropped
-        :param bool silent: Silence console logging (within this function only)
-        :return: :code:`None` if :code:`table_name` does not exist, otherwise the result of 
-            the statement
-        :rtype: None or :class:`~giraffez.types.Result`
-        """
-        try:
-            return self.execute("release mload {}".format(table_name), silent=silent)
-        except CannotReleaseMultiLoad as error:
-            return self.execute("release mload {} in apply".format(table_name), silent=silent)

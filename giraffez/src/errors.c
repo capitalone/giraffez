@@ -14,21 +14,21 @@
  * limitations under the License.
  */
 
-#include "errors.h"
+#include "giraffez.h"
 
-#include <Python.h>
-#include <string.h>
-#include "pyerrors.h"
-#include "structmember.h"
-#include "util.h"
 
+typedef struct {
+    PyException_HEAD
+    PyObject *message;
+    PyObject *code;
+} TeradataErrorObject;
 
 PyObject *GiraffezError;
 PyObject *EncoderError;
 
 // Teradata errors
 PyObject *TeradataError;
-PyObject *InvalidCredentialsError; // 8017
+PyObject *InvalidCredentialsError;
 
 void debug_printf(const char *fmt, ...) {
     PyObject *s;

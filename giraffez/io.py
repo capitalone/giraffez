@@ -124,10 +124,10 @@ class CSVReader(FileReader):
 
     def __init__(self, path, delimiter=None, quotechar='"'):
         super(CSVReader, self).__init__(path)
-        delimiter = file_delimiter(path)
-        if delimiter is None:
+        self.delimiter = file_delimiter(path)
+        if self.delimiter is None:
             raise GiraffeError("Delimiter could not be inferred.")
-        self.reader = csv.reader(self.fd, delimiter=delimiter, quotechar=quotechar)
+        self.reader = csv.reader(self.fd, delimiter=self.delimiter, quotechar=quotechar)
         self._header = next(self.reader)
 
     def readline(self):
@@ -159,7 +159,7 @@ class ArchiveFileReader(BaseReader):
         super(ArchiveFileReader, self).__init__(path, 'rb')
         if self.fd.tell() != 0:
             raise GiraffeError("Cannot read columns, file descriptor must be at 0.")
-        self.fd.read(len(GIRAFFE_MAGIC) + 2)
+        self.fd.read(len(GIRAFFE_MAGIC))
         self.columns = Columns.deserialize(self.readline())
 
     @property
@@ -178,7 +178,6 @@ class Reader(object):
     def __new__(cls, path, **kwargs):
         data = FileReader.read_header(path)
         if data[0:3] == GIRAFFE_MAGIC:
-            #if data[3:5] == b'\x00\x02':
             return ArchiveFileReader(path)
         with open(path) as f:
             data = f.readline().strip()
@@ -214,7 +213,7 @@ class Writer(object):
                 _open = lambda p, m: io.open(p, m)
             self.fd = _open(abspath, "w{}".format(mode))
             if archive:
-                self.write(GIRAFFE_MAGIC + b'\x00\x02')
+                self.write(GIRAFFE_MAGIC)
                 self.writen = self.write
 
     @property

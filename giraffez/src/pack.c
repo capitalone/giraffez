@@ -14,29 +14,10 @@
  * limitations under the License.
  */
 
-#include "pack.h"
-
-#include <Python.h>
-#if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
-#else
-#include <stdint.h>
-#endif
-#include <stdlib.h>
-
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
-
-#include "columns.h"
-#include "convert.h"
-#include "encoder.h"
-#include "errors.h"
-#include "pytypes.h"
-#include "types.h"
-#include "util.h"
+#include "giraffez.h"
 
 
-static PyObject* pack_none(const GiraffeColumn *column, unsigned char **buf, uint16_t *len) {
+static inline PyObject* pack_none(const GiraffeColumn *column, unsigned char **buf, uint16_t *len) {
     switch (column->GDType) {
         case GD_VARCHAR:
             memset(*buf, 0, 2);

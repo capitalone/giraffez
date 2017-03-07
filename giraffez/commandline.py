@@ -21,6 +21,8 @@ import argparse
 import itertools
 import subprocess
 import shlex
+import re
+import io
 
 import yaml
 
@@ -34,7 +36,7 @@ from .errors import *
 
 from .config import Config
 from .cmd import TeradataCmd
-from .encoders import null_handler, python_to_strings, strings_to_text
+from .encoders import null_handler, TeradataEncoder
 from .encrypt import create_key_file
 from .export import TeradataExport
 from .fmt import format_table, replace_cr
@@ -288,8 +290,9 @@ class FmtCommand(Command):
 
     arguments = [
         Argument("input_file", help="Input to be transformed"),
-        Argument("-d", "--delimiter", help="Transform delimiter"),
-        Argument("-n", "--null", help="Transform null ex. 'None to NULL'"),
+        #Argument("-d", "--delimiter", help="Transform delimiter"),
+        #Argument("-n", "--null", help="Transform null ex. 'None to NULL'"),
+        Argument("-r", "--regex", help="search and replace (regex)"),
         Argument("--head", const=9, nargs="?", type=int, help="Only output N rows"),
         Argument("--header", default=False, help="Output table header"),
         Argument("--count", default=False, help="Count the table")
@@ -298,43 +301,39 @@ class FmtCommand(Command):
     @timer
     def run(self, args):
         with Reader(args.input_file) as f:
-            log.verbose("Debug[1]", "File type: ", f)
-            if isinstance(f, ArchiveFileReader):
-                columns = f.columns
-            else:
-                columns = f.header
-            for column in columns:
-                log.verbose("Debug[1]", repr(column))
             if args.count:
+                log.verbose("Debug[1]", "File type: ", f)
+                if isinstance(f, ArchiveFileReader):
+                    columns = f.columns
+                else:
+                    columns = f.header
+                for column in columns:
+                    log.verbose("Debug[1]", repr(column))
                 i = 0
                 for i, line in enumerate(f, 1):
                     pass
                 log.info("Lines: ", i)
-            else:
-                # TODO: should change this to just use regex
-                processors = []
-                dst_delimiter = DEFAULT_DELIMITER
-                if args.delimiter:
-                    dst_delimiter = unescape_string(args.delimiter)
-                if isinstance(f, ArchiveFileReader):
-                    encoder = _encoder.Encoder(columns)
-                    processors.append(encoder.unpack_row)
-                if args.null:
-                    src_null, dst_null = args.null.split(" to ", 1)
-                    processors.append(null_handler(src_null))
-                else:
-                    dst_null = DEFAULT_NULL
-                processors.append(python_to_strings(dst_null))
-                processors.append(strings_to_text(dst_delimiter))
-                processor = pipeline(processors)
-                if args.header:
-                    print(dst_delimiter.join(f.header))
-                i = 0
+                return
+            elif args.head:
                 for i, line in enumerate(f, 1):
-                    if args.head and args.head < i:
+                    if args.head < i:
                         break
-                    new_line = processor(line)
-                    print(new_line)
+                    sys.stdout.write(line)
+                return
+        with io.open(args.input_file) as f:
+            if args.header:
+                print(f.header)
+            if args.regex:
+                parts = args.regex.split('/')
+                if len(parts) < 3 or parts[0] != "s":
+                    raise GiraffeError("Regex pattern '{}' not recoginzed.".format(args.regex))
+                pattern = re.compile(parts[1])
+                processor = lambda line: pattern.sub(parts[2], line)
+            i = 0
+            for i, line in enumerate(f, 1):
+                if args.head and args.head < i:
+                    break
+                sys.stdout.write(processor(line))
 
 
 class LoadCommand(Command):

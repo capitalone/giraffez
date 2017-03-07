@@ -26,18 +26,7 @@
 
 #include <sstream>
 
-#include "cmdobject.h"
-#include "encoder.h"
-#include "errors.h"
-#include "pytypes.h"
-#include "tdcli.h"
-#include "util.h"
-
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
-
-
-#define ROW_BUFFER_SIZE 64000
+#include "giraffez.h"
 
 
 typedef teradata::client::API::Connection TConn;
@@ -58,9 +47,7 @@ namespace Giraffez {
             this->host = strdup(host);
             this->username = strdup(username);
             this->password = strdup(password);
-            this->row_buffer = (unsigned char *)malloc(sizeof(unsigned char)*ROW_BUFFER_SIZE);
-            // XXX:
-            encoder = NULL;
+            this->row_buffer = (unsigned char*)malloc(sizeof(unsigned char)*TD_ROW_MAX_SIZE);
             encoder = encoder_new(NULL, 0);
         }
         ~Connection() {
@@ -160,7 +147,7 @@ namespace Giraffez {
                 PyErr_Format(GiraffezError, "Columns not set");
                 return NULL;
             }
-            return giraffez_columns_from_columns(encoder->Columns);
+            return giraffez_columns_to_pyobject(encoder->Columns);
         }
 
         PyObject* EndAcquisition() {
@@ -206,7 +193,6 @@ namespace Giraffez {
 
         PyObject* PutRow(PyObject *items) {
             uint16_t length = 0;
-
             // PackRowFunc advances the data pointer, save it as a separate variable
             unsigned char *data = this->row_buffer;
             if (encoder->PackRowFunc(encoder, items, &data, &length) == NULL) {

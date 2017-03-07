@@ -604,22 +604,26 @@ class TestSeralize(object):
         expected_text = ('test01  ',)
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
-
-        # unicode test
-        # TODO:
-        expected_bytes = b'\x00test01\x20\x20'
-        expected_text = ('test01  ',)
+        expected_bytes = b'\x00test0123'
+        expected_text = ('test0123',)
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
-    #def test_char_bad_encoding(self, encoder):
-        #encoder.columns = [
-            #('col1', TD_CHAR, 8, 0, 0),
-        #]
-        #expected_text = ('漢字',)
+        # unicode test
+        # TODO: is length defined by column based upon word size or character length?
+        expected_bytes = b'\x00\xe2\x98\x83\x20\x20\x20\x20\x20'
+        expected_text = ('☃',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
 
-        ##with pytest.raises(EncoderError):
-        #result_bytes = encoder.serialize(expected_text)
+    def test_char_bad_encoding(self, encoder):
+        encoder.columns = [
+            ('col1', TD_CHAR, 8, 0, 0),
+        ]
+        expected_text = (b'\xc3\x28',)
+
+        with pytest.raises(UnicodeDecodeError):
+            result_bytes = encoder.serialize(expected_text)
 
     def test_char_non_string_input(self, encoder):
         encoder.columns = [
@@ -664,20 +668,15 @@ class TestSeralize(object):
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
-        # unicode test
-        #expected_bytes = b'\x00test01\x20\x20'
-        #expected_text = ('test01    ',)
-        #result_bytes = encoder.serialize(expected_text)
-        #assert result_bytes == expected_bytes
+    def test_varchar_bad_encoding(self, encoder):
+        encoder.columns = [
+            ('col1', TD_VARCHAR, 8, 0, 0),
+        ]
+        expected_text = (b'\xc3\x28',)
 
-    #def test_varchar_bad_encoding(self, encoder):
-        #encoder.columns = [
-            #('col1', TD_VARCHAR, 8, 0, 0),
-        #]
-        #expected_text = ('漢字',)
-
-        ##with pytest.raises(EncoderError):
-        #result_bytes = encoder.serialize(expected_text)
+        with pytest.raises(UnicodeDecodeError):
+            result_bytes = encoder.serialize(expected_text)
+            print(result_bytes)
 
     def test_varchar_non_string_input(self, encoder):
         encoder.columns = [
@@ -701,3 +700,13 @@ class TestSeralize(object):
 
         with pytest.raises(EncoderError):
             result_bytes = encoder.serialize(expected_text)
+
+    def test_build_a_snowman(self, encoder):
+        encoder.columns = [
+            ('col1', TD_VARCHAR, 8, 0, 0),
+        ]
+
+        expected_bytes = b'\x00\x03\x00\xe2\x98\x83'
+        expected_text = ('☃',)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes

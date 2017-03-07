@@ -17,7 +17,7 @@
 #include <Python.h>
 #include <signal.h>
 
-#include "_compat.h"
+#include "src/compat.h"
 
 
 #ifdef __cplusplus

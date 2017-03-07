@@ -56,7 +56,7 @@ class TestExport(object):
         query = "select * from db1.info"
         export = giraffez.Export()
         export.export = mocker.MagicMock()
-        export.export.status.return_value = CLI_ERR_INVALID_USER
+        export.export.status.return_value = TD_ERROR_INVALID_USER
         export.export.initiate.side_effect = InvalidCredentialsError("...")
         with pytest.raises(InvalidCredentialsError):
             export.query = query

@@ -14,192 +14,116 @@
  * limitations under the License.
  */
 
-#include "pytypes.h"
+#include "giraffez.h"
 
-#include <Python.h>
-
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
-
-#include "columns.h"
-#include "errors.h"
-
-
-// TODO: remove columns, result and row types
-// TODO: return errors better
-// TODO: cleanup unused
 
 static PyObject *ColumnsType;
 static PyObject *DecimalType;
 static PyObject *DateType;
-static PyObject *RowType;
 static PyObject *TimeType;
 static PyObject *TimestampType;
 
-static PyObject* column_to_pydict(GiraffeColumn *column) {
+
+int giraffez_types_import() {
+    PyObject *mod;
+    mod = PyImport_ImportModule("giraffez.types");
+    if (!mod) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import module giraffez.types");
+        return -1;
+    }
+    if ((ColumnsType = PyObject_GetAttrString(mod, "Columns")) == NULL) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Columns");
+        return -1;
+
+    }
+    if ((DateType = PyObject_GetAttrString(mod, "Date")) == NULL) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Date");
+        return -1;
+
+    };
+    if ((TimeType = PyObject_GetAttrString(mod, "Time")) == NULL) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Time");
+        return -1;
+
+    }
+    if ((TimestampType = PyObject_GetAttrString(mod, "Timestamp")) == NULL) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Timestamp");
+        return -1;
+
+    }
+    if ((DecimalType = PyObject_GetAttrString(mod, "Decimal")) == NULL) {
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Decimal");
+        return -1;
+    }
+    Py_DECREF(mod);
+    return 0;
+}
+
+static PyObject* giraffez_column_to_pydict(GiraffeColumn *column) {
     PyObject *column_dict, *item;
     column_dict = PyDict_New();
-    if ((item = PyUnicode_FromString(column->Name)) == NULL) {
-        return NULL;
-    }
+    Py_RETURN_ERROR(item = PyUnicode_FromString(column->Name));
     PyDict_SetItemString(column_dict, "name", item);
     Py_DECREF(item);
-    item = PyUnicode_FromString(column->Title);
+    Py_RETURN_ERROR(item = PyUnicode_FromString(column->Title));
     PyDict_SetItemString(column_dict, "title", item);
     Py_DECREF(item);
-    item = PyUnicode_FromString(column->Alias);
+    Py_RETURN_ERROR(item = PyUnicode_FromString(column->Alias));
     PyDict_SetItemString(column_dict, "alias", item);
     Py_DECREF(item);
-    item = PyLong_FromLong((long)column->Type);
+    Py_RETURN_ERROR(item = PyLong_FromLong(column->Type));
     PyDict_SetItemString(column_dict, "type", item);
     Py_DECREF(item);
-    item = PyLong_FromUnsignedLongLong(column->Length);
+    Py_RETURN_ERROR(item = PyLong_FromUnsignedLongLong(column->Length));
     PyDict_SetItemString(column_dict, "length", item);
     Py_DECREF(item);
-    item = PyLong_FromLong((long)column->Precision);
+    Py_RETURN_ERROR(item = PyLong_FromLong(column->Precision));
     PyDict_SetItemString(column_dict, "precision", item);
     Py_DECREF(item);
-    item = PyLong_FromLong((long)column->Scale);
+    Py_RETURN_ERROR(item = PyLong_FromLong(column->Scale));
     PyDict_SetItemString(column_dict, "scale", item);
     Py_DECREF(item);
-    item = PyUnicode_FromString(column->Nullable);
+    Py_RETURN_ERROR(item = PyUnicode_FromString(column->Nullable));
     PyDict_SetItemString(column_dict, "nullable", item);
     Py_DECREF(item);
-    item = PyUnicode_FromString(column->Default);
+    Py_RETURN_ERROR(item = PyUnicode_FromString(column->Default));
     PyDict_SetItemString(column_dict, "default", item);
     Py_DECREF(item);
-    item = PyUnicode_FromString(column->Format);
+    Py_RETURN_ERROR(item = PyUnicode_FromString(column->Format));
     PyDict_SetItemString(column_dict, "format", item);
     Py_DECREF(item);
     return column_dict;
 }
 
-PyObject* columns_to_pylist(GiraffeColumns *columns) {
+PyObject* giraffez_columns_to_pyobject(GiraffeColumns *columns) {
     size_t i;
     GiraffeColumn *column;
-    PyObject *column_dict, *columns_list;
+    PyObject *column_dict, *columns_list, *obj;
     columns_list = PyList_New(columns->length);
     for (i=0; i<columns->length; i++) {
         column = &columns->array[i];
-        if ((column_dict = column_to_pydict(column)) == NULL) {
+        if ((column_dict = giraffez_column_to_pydict(column)) == NULL) {
             return NULL;
         }
         PyList_SetItem(columns_list, i, column_dict);
     }
-    return columns_list;
-}
-
-int giraffez_columns_import() {
-    PyObject *mod;
-    mod = PyImport_ImportModule("giraffez.types");
-    if (!mod) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import module giraffez.types");
-        return -1;
-    }
-    ColumnsType = PyObject_GetAttrString(mod, "Columns");
-    RowType = PyObject_GetAttrString(mod, "Row");
-    Py_DECREF(mod);
-    return 0;
-}
-
-int giraffez_datetime_import() {
-    PyObject *mod;
-    mod = PyImport_ImportModule("giraffez.types");
-    if (!mod) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import module giraffez.types");
-        return -1;
-    }
-    DateType = PyObject_GetAttrString(mod, "Date");
-    TimeType = PyObject_GetAttrString(mod, "Time");
-    TimestampType = PyObject_GetAttrString(mod, "Timestamp");
-    Py_DECREF(mod);
-    return 0;
-}
-
-int giraffez_decimal_import() {
-    PyObject *decimalmod;
-    decimalmod = PyImport_ImportModule("giraffez.types");
-    if (!decimalmod) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import decimal");
-        return -1;
-    }
-    DecimalType = PyObject_GetAttrString(decimalmod, "Decimal");
-    Py_DECREF(decimalmod);
-    if (DecimalType == NULL) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import decimal.Decimal");
-        return -1;
-    }
-    return 0;
-}
-
-// TODO: determine how best GiraffeColumn members should be initialized
-// to ensure that GiraffeColumns can be passed to this function with
-// only some of the members and not cause undefined behavior. Some things
-// like export only ever set name, type, length, precision and scale for 
-// example.
-PyObject* giraffez_columns_from_columns(GiraffeColumns *c) {
-    size_t i;
-    GiraffeColumn *column;
-    PyObject *d;
-    PyObject *obj;
-    PyObject *columns;
-    PyObject *item;
-    columns = PyList_New(c->length);
-    for (i=0; i<c->length; i++) {
-        column = &c->array[i];
-        d = PyDict_New();
-        item = PyUnicode_FromString(column->Name);
-        PyDict_SetItemString(d, "name", item);
-        Py_DECREF(item);
-        item = PyUnicode_FromString(column->Title);
-        PyDict_SetItemString(d, "title", item);
-        Py_DECREF(item);
-        item = PyUnicode_FromString(column->Alias);
-        PyDict_SetItemString(d, "alias", item);
-        Py_DECREF(item);
-        item = PyLong_FromLong((long)column->Type);
-        PyDict_SetItemString(d, "type", item);
-        Py_DECREF(item);
-        item = PyLong_FromLong((long)column->Length);
-        PyDict_SetItemString(d, "length", item);
-        Py_DECREF(item);
-        item = PyLong_FromLong((long)column->Precision);
-        PyDict_SetItemString(d, "precision", item);
-        Py_DECREF(item);
-        item = PyLong_FromLong((long)column->Scale);
-        PyDict_SetItemString(d, "scale", item);
-        Py_DECREF(item);
-        item = PyUnicode_FromString(column->Nullable);
-        PyDict_SetItemString(d, "nullable", item);
-        Py_DECREF(item);
-        item = PyUnicode_FromString(column->Default);
-        PyDict_SetItemString(d, "default", item);
-        Py_DECREF(item);
-        item = PyUnicode_FromString(column->Format);
-        PyDict_SetItemString(d, "format", item);
-        Py_DECREF(item);
-        PyList_SetItem(columns, i, d);
-    }
-    obj =  PyObject_CallFunction(ColumnsType, "O", columns);
-    Py_DECREF(columns);
+    obj =  PyObject_CallFunction(ColumnsType, "O", columns_list);
+    Py_DECREF(columns_list);
     return obj;
 }
 
 // TODO: Add PyUnicode_Check and other checks just in case
-GiraffeColumns* columns_to_giraffez_columns(PyObject *columns_obj) {
-    PyObject *item;
-    PyObject *column_obj;
-    PyObject *iterator;
+GiraffeColumns* giraffez_columns_from_pyobject(PyObject *columns_obj) {
+    PyObject *item, *column_obj, *iterator;
     GiraffeColumn *column;
     GiraffeColumns *columns;
     columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
     columns_init(columns, 1);
-    iterator = PyObject_GetIter(columns_obj);
-    if (iterator == NULL) {
+    if ((iterator = PyObject_GetIter(columns_obj)) == NULL) {
         return NULL;
     }
     while ((column_obj = PyIter_Next(iterator))) {
-        column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
+        column = column_new();
         item = PyObject_GetAttrString(column_obj, "name");
         if (item != NULL && item != Py_None) {
             column->Name = strdup(PyUnicode_AsUTF8(item));
@@ -277,12 +201,5 @@ PyObject* giraffez_decimal_from_pystring(PyObject *s) {
     PyObject *obj;
     obj = PyObject_CallFunction(DecimalType, "O", s);
     Py_DECREF(s);
-    return obj;
-}
-
-PyObject* giraffez_row_from_list(PyObject* columns, PyObject* row) {
-    PyObject* obj;
-    obj = PyObject_CallFunction(RowType, "OO", columns, row);
-    Py_DECREF(row);
     return obj;
 }

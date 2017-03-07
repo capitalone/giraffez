@@ -131,18 +131,12 @@ class TeradataMLoad(Connection):
 
     def _end_acquisition(self):
         log.info("MLoad", "Ending acquisition phase ...")
-        #try:
         self.mload.end_acquisition()
-        #except _tpt.error as error:
-            #raise suppress_context(TeradataError(error))
         self.end_acquisition = True
         log.info("MLoad", "Acquisition phase ended.")
 
     def _connect(self, host, username, password):
-        #try:
         self.mload = _tpt.MLoad(host, username, password)
-        #except _tpt.error as error:
-            #raise suppress_context(TeradataError(error))
         title, version = get_version_info()
         query_band = "UTILITYNAME={};VERSION={};".format(title, version)
         self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
@@ -153,7 +147,6 @@ class TeradataMLoad(Connection):
         if self.initiated:
             raise GiraffeError("Already initiated connection.")
         log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
-        #self.mload.initiate(self.table, column_list=self._columns)
         self.mload.initiate(self.table, self.encoding, self.null, self.delimiter)
         log.info("MLoad", "Teradata PT request accepted.")
         self._columns = self.mload.columns()
@@ -165,10 +158,7 @@ class TeradataMLoad(Connection):
         when loading from a file. Updates the exit code of the driver to
         reflect errors.
         """
-        #try:
         return self.mload.checkpoint()
-        #except _tpt.error as error:
-            #raise suppress_context(TeradataError(error))
 
     def cleanup(self):
         """
@@ -195,7 +185,6 @@ class TeradataMLoad(Connection):
             log.info("MLoad", "Acquisition phase was not called before closing.")
             self._end_acquisition()
         self.mload.close()
-        #self.cmd.close()
         log.info("MLoad", "Teradata PT request complete.")
 
     @property
@@ -365,10 +354,7 @@ class TeradataMLoad(Connection):
         if not self.initiated:
             self.initiate()
         try:
-            #try:
             row_status = self.mload.put_row(self.preprocessor(items))
-            #except _tpt.error as error:
-                #raise suppress_context(MultiLoadError(error))
             self.applied_count += 1
         except GiraffeEncodeError as error:
             self.error_count += 1

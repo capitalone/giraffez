@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-#include "exportobject.h"
+#include <Python.h>
 
 // Teradata Parallel Transporter API
 #include <connection.h>
 #include <schema.h>
 
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
+#include "common.h"
+#include "connection.h"
 
+
+typedef struct {
+    PyObject_HEAD
+    Giraffez::Connection *conn;
+} Export;
 
 static void Export_dealloc(Export *self) {
     delete self->conn;
@@ -58,12 +63,12 @@ static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
     // Charset is set to prefer UTF8.  There may need to be changes to
     // the encoder if UTF8 is for whatever reason not supported, and
     // may cause unexpected behavior.
-    self->conn->AddAttribute(TD_CHARSET, "UTF8");
+    self->conn->AddAttribute(TD_CHARSET, TERADATA_CHARSET);
     self->conn->AddAttribute(TD_BUFFER_MODE, "YES");
     self->conn->AddAttribute(TD_BLOCK_SIZE, 64330);
     self->conn->AddAttribute(TD_BUFFER_HEADER_SIZE, 2);
     self->conn->AddAttribute(TD_BUFFER_LENGTH_SIZE, 2);
-    self->conn->AddAttribute(TD_BUFFER_MAX_SIZE, 64260);
+    self->conn->AddAttribute(TD_BUFFER_MAX_SIZE, TD_ROW_MAX_SIZE);
     self->conn->AddAttribute(TD_BUFFER_TRAILER_SIZE, 0);
 
     // NoSpool sets the preferred spoolmode to attempt pulling the data

@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
+#include "giraffez.h"
 
-#include "cmdobject.h"
-
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
-
-#include "errors.h"
-#include "tdcli.h"
-#include "columns.h"
-#include "pytypes.h"
-#include "unpack.h"
-#include "util.h"
-
-
-#define MAX_PARCEL_ATTEMPTS 5
 
 // CLIv2 control flow exceptions
 PyObject *EndStatementError;
 PyObject *EndRequestError;
+
+typedef struct {
+    PyObject_HEAD
+    TeradataConnection *conn;
+    TeradataEncoder *encoder;
+} Cmd;
 
 
 PyObject* check_parcel_error(TeradataConnection *conn) {
@@ -283,7 +276,7 @@ static PyObject* Cmd_columns(Cmd *self, PyObject *args, PyObject *kwargs) {
         RawStatementInfo *raw = self->encoder->Columns->raw;
         return PyBytes_FromStringAndSize(raw->data, raw->length);
     }
-    return columns_to_pylist(self->encoder->Columns);
+    return giraffez_columns_to_pyobject(self->encoder->Columns);
 }
 
 static PyObject* Cmd_execute(Cmd *self, PyObject *args, PyObject *kwargs) {
@@ -323,11 +316,32 @@ static PyObject* Cmd_fetchone(Cmd *self) {
     return check_error(self->conn);
 }
 
+static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
+    uint32_t settings;
+
+    if (!PyArg_ParseTuple(args, "i", &settings)) {
+        return NULL;
+    }
+
+    if (settings & ROW_RETURN_MASK) {
+        self->encoder->Settings = (self->encoder->Settings & ~ROW_RETURN_MASK) | settings;
+    }
+    if (settings & DATETIME_RETURN_MASK) {
+        self->encoder->Settings = (self->encoder->Settings & ~DATETIME_RETURN_MASK) | settings;
+    }
+    if (settings & DECIMAL_RETURN_MASK) {
+        self->encoder->Settings = (self->encoder->Settings & ~DECIMAL_RETURN_MASK) | settings;
+    }
+
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef Cmd_methods[] = {
     {"close", (PyCFunction)Cmd_close, METH_NOARGS, ""},
     {"columns", (PyCFunction)Cmd_columns, METH_VARARGS|METH_KEYWORDS, ""},
     {"execute", (PyCFunction)Cmd_execute, METH_VARARGS|METH_KEYWORDS, ""},
     {"fetchone", (PyCFunction)Cmd_fetchone, METH_NOARGS, ""},
+    {"set_encoding", (PyCFunction)Cmd_set_encoding, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };
 

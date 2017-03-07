@@ -14,27 +14,7 @@
  * limitations under the License.
  */
 
-#include "unpack.h"
-
-#include <Python.h>
-#if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
-#else
-#include <stdint.h>
-#endif
-#include <stdlib.h>
-
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
-
-#include "columns.h"
-#include "config.h"
-#include "convert.h"
-#include "errors.h"
-#include "encoder.h"
-#include "pytypes.h"
-#include "types.h"
-#include "util.h"
+#include "giraffez.h"
 
 
 uint32_t teradata_buffer_count_rows(unsigned char *data, const uint32_t length) {
@@ -83,8 +63,6 @@ PyObject* teradata_row_to_pydict(const TeradataEncoder *e, unsigned char **data,
         column = &e->Columns->array[i];
         if (indicator_read(e->Columns->buffer, i)) {
             *data += column->NullLength;
-            // TODO:
-            Py_INCREF(e->NullValue);
             PyDict_SetItemString(row, column->Name, e->NullValue);
             continue;
         }
@@ -117,7 +95,6 @@ PyObject* teradata_row_to_pytuple(const TeradataEncoder *e, unsigned char **data
 }
 
 PyObject* teradata_row_to_pybytes(const TeradataEncoder *e, unsigned char **data, const uint16_t length) {
-    // TODO: check error
     PyObject *s = PyBytes_FromStringAndSize((char*)*data, length);
     *data += length;
     return s;
@@ -128,7 +105,7 @@ PyObject* teradata_row_to_pystring(const TeradataEncoder *e, unsigned char **dat
     GiraffeColumn *column;
     size_t i;
     int n;
-    char item[ITEM_BUFFER_SIZE];
+    char item[BUFFER_ITEM_SIZE];
     int8_t b; int16_t h; int32_t l; int64_t q; double d; uint16_t H;
     indicator_set(e->Columns, data);
     buffer_reset(e->buffer, 0);
@@ -199,7 +176,7 @@ PyObject* teradata_row_to_pystring(const TeradataEncoder *e, unsigned char **dat
 PyObject* teradata_item_to_pyobject(const TeradataEncoder *e, unsigned char **data,
         const GiraffeColumn *column) {
     int n;
-    char item[ITEM_BUFFER_SIZE];
+    char item[BUFFER_ITEM_SIZE];
     switch (column->GDType) {
         case GD_BYTEINT:
             return teradata_byteint_to_pylong(data);

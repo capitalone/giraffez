@@ -21,17 +21,29 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
-#if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
-#else
-#include <stdint.h>
-#endif
+#include <Python.h>
+#include "common.h"
+
 
 typedef struct {
     uint32_t length;
     char *data;
 } RawStatementInfo;
+
+typedef enum GiraffeTypes {
+    GD_DEFAULT = 0,
+    GD_BYTEINT,
+    GD_SMALLINT,
+    GD_INTEGER,
+    GD_BIGINT,
+    GD_FLOAT,
+    GD_DECIMAL,
+    GD_CHAR,
+    GD_VARCHAR,
+    GD_DATE,
+    GD_TIME,
+    GD_TIMESTAMP
+} GiraffeTypes;
 
 typedef struct {
     char *Database;
@@ -122,8 +134,12 @@ void indicator_write(unsigned char **ind, size_t pos, int value);
 void stmt_info_init(StatementInfo *s, size_t initial_size);
 void stmt_info_append(StatementInfo *s, StatementInfoColumn element);
 void stmt_info_free(StatementInfo *s);
+char* safe_name(const char *name);
 GiraffeColumns* unpack_stmt_info_to_columns(unsigned char **data, const uint32_t length);
 void unpack_stmt_info(unsigned char **data, StatementInfo *s, const uint32_t length);
+uint16_t teradata_type_to_tpt_type(uint16_t t);
+uint16_t tpt_type_to_teradata_type(uint16_t t);
+uint16_t teradata_type_to_giraffez_type(uint16_t t);
 
 #ifdef __cplusplus
 }

@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-#include "encoderobject.h"
+#include "giraffez.h"
 
-// Python 2/3 C API and Windows compatibility
-#include "_compat.h"
 
-#include "encoder.h"
-#include "pytypes.h"
-#include "unpack.h"
-
+typedef struct {
+    PyObject_HEAD
+    TeradataEncoder *encoder;
+} Encoder;
 
 static void Encoder_dealloc(Encoder *self) {
     if (self->encoder != NULL) {
@@ -48,7 +46,7 @@ static int Encoder_init(Encoder *self, PyObject *args, PyObject *kwargs) {
         return -1;
     }
 
-    columns = columns_to_giraffez_columns(columns_obj);
+    columns = giraffez_columns_from_pyobject(columns_obj);
     if (columns == NULL) {
         PyErr_SetString(PyExc_ValueError, "No columns found.");
         return -1;
@@ -111,7 +109,7 @@ static PyObject* Encoder_set_columns(Encoder *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O", &obj)) {
         return NULL;
     }
-    columns = columns_to_giraffez_columns(obj);
+    columns = giraffez_columns_from_pyobject(obj);
     if (columns == NULL) {
         PyErr_SetString(PyExc_ValueError, "No columns found.");
         return NULL;
@@ -168,7 +166,7 @@ static PyObject* Encoder_unpack_stmt_info(PyObject *self, PyObject *args) {
     }
     columns = unpack_stmt_info_to_columns((unsigned char**)&buffer.buf, buffer.len);
     PyBuffer_Release(&buffer);
-    return giraffez_columns_from_columns(columns);
+    return giraffez_columns_to_pyobject(columns);
 }
 
 static PyMethodDef Encoder_methods[] = {
