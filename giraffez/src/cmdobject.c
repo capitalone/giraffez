@@ -238,7 +238,7 @@ static PyObject* Cmd_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
 
 static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
     char *host=NULL, *username=NULL, *password=NULL;
-    uint32_t settings;
+    uint32_t settings = 0;
 
     static char *kwlist[] = {"host", "username", "password", "encoder_settings", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sss|i", kwlist, &host, &username, &password,
@@ -317,6 +317,7 @@ static PyObject* Cmd_fetchone(Cmd *self) {
 }
 
 static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
+    uint32_t new_settings = 0;
     uint32_t settings;
 
     if (!PyArg_ParseTuple(args, "i", &settings)) {
@@ -324,13 +325,18 @@ static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
     }
 
     if (settings & ROW_RETURN_MASK) {
-        self->encoder->Settings = (self->encoder->Settings & ~ROW_RETURN_MASK) | settings;
+        new_settings = (self->encoder->Settings & ~ROW_RETURN_MASK) | settings;
     }
     if (settings & DATETIME_RETURN_MASK) {
-        self->encoder->Settings = (self->encoder->Settings & ~DATETIME_RETURN_MASK) | settings;
+        new_settings = (self->encoder->Settings & ~DATETIME_RETURN_MASK) | settings;
     }
     if (settings & DECIMAL_RETURN_MASK) {
-        self->encoder->Settings = (self->encoder->Settings & ~DECIMAL_RETURN_MASK) | settings;
+        new_settings = (self->encoder->Settings & ~DECIMAL_RETURN_MASK) | settings;
+    }
+
+    if (encoder_set_encoding(self->encoder, new_settings) != 0) {
+        PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);
+        return NULL;
     }
 
     Py_RETURN_NONE;

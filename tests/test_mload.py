@@ -28,6 +28,7 @@ class TestMLoad(object):
         mload.mload = mocker.MagicMock()
         mload.mload.status.return_value = 0
         mload.mload.put_row.return_value = 0
+        mload.mload.exists.return_value = False
         mload.mload.checkpoint.return_value = 0
         mload.mload.get_event.side_effect = [
             b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80',

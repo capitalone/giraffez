@@ -175,6 +175,12 @@ def dict_to_json(record):
 
 def python_to_sql(table_name, columns, date_conversion=True):
     if date_conversion:
+        def convert_time(s):
+            value = Time.from_string(s)
+            if value is None:
+                raise GiraffeEncodeError("Cannot convert time '{}'".format(s))
+            return value.to_string()
+
         def convert_date(s):
             value = Date.from_string(s)
             if value is None:
@@ -205,7 +211,9 @@ def python_to_sql(table_name, columns, date_conversion=True):
                     value = str(Date.from_datetime(item).to_integer())
                 else:
                     value = quote_string(convert_date(escape_quotes(item)))
-            elif column.type in TIME_TYPES | TIMESTAMP_TYPES:
+            elif column.type in TIME_TYPES:
+                value = quote_string(convert_time(item))
+            elif column.type in TIMESTAMP_TYPES:
                 value = quote_string(convert_datetime(item, column.length))
             else:
                 value = str(item)

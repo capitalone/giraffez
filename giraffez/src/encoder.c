@@ -48,6 +48,7 @@ TeradataEncoder* encoder_new(GiraffeColumns *columns, uint32_t settings) {
 }
 
 int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
+    e->Settings = settings;
     // to switch on the value we just mask the particular byte
     switch (settings & ROW_RETURN_MASK) {
         case ROW_ENCODING_STRING:

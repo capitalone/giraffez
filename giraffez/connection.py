@@ -36,8 +36,7 @@ __all__ = ['Connection']
 
 class Connection(object):
     def __init__(self, host=None, username=None, password=None, log_level=INFO, config=None,
-            key_file=None, dsn=None, protect=False, mload_session=False,
-            encoder_settings=0):
+            key_file=None, dsn=None, protect=False, mload_session=False):
         if GIRAFFE_NOT_FOUND:
             raise GiraffeNotFound("giraffez module was not compiled with package")
         #: Log level initially set to SILENCE to ensure that using the
@@ -56,8 +55,6 @@ class Connection(object):
         #: Attribute identifies mload sessions to suppress duplicate log
         #: output since mload requires two Connection objects
         self.mload_session = mload_session
-
-        self.encoder_settings = encoder_settings
 
         if host is None or username is None or password is None:
             if host or username or password:

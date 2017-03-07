@@ -547,8 +547,7 @@ class Row(object):
 
 class Time(datetime.time):
     """
-    Represents Teradata date/time data types such as TIME(0). Currently,
-    does not keep microsecond for other types like TIME(n).
+    Represents Teradata time data types such as TIME(n).
     """
 
     @classmethod
@@ -561,6 +560,13 @@ class Time(datetime.time):
             except ValueError as error:
                 log.debug("GiraffeTime: ", error)
         return None
+
+    def to_string(self, length=None):
+        hms = "{0:02}:{1:02}:{2:02}".format(self.hour, self.minute, self.second)
+        if length is not None and length > 8:
+            ms = "{:06}".format(self.microsecond)[:length - 9]
+            return "{0}.{1}".format(hms, ms)
+        return hms
 
 
 class Timestamp(Date):

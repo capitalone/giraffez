@@ -65,13 +65,12 @@ class Cursor(object):
         self.prepare_only = prepare_only
         self.coerce_floats = coerce_floats
         self.parse_dates = parse_dates
+        self.processor = lambda x, y: Row(x, y)
         if not self.coerce_floats:
             self.conn.set_encoding(DECIMAL_AS_STRING)
         if self.parse_dates:
             self.conn.set_encoding(DATETIME_AS_GIRAFFE_TYPES)
         self.columns = None
-        if parse_dates:
-            self.postprocessor = DateHandler()
         if self.multi_statement:
             self.statements = [command]
         else:
@@ -137,8 +136,8 @@ class Cursor(object):
         return self.processor(self.columns, data)
 
     def __repr__(self):
-        return "Cursor(n_stmts={}, multi={}, prepare={})".format(len(self.statements),
-            self.multi_statement, self.prepare_only)
+        return "Cursor(n_stmts={}, multi={}, prepare={}, coerce_floats={}, parse_dates={})".format(len(self.statements),
+            self.multi_statement, self.prepare_only, self.coerce_floats, self.parse_dates)
 
 
 class TeradataCmd(Connection):
@@ -185,23 +184,23 @@ class TeradataCmd(Connection):
     """
 
     def __init__(self, host=None, username=None, password=None, log_level=INFO, panic=False,
-            config=None, key_file=None, dsn=None, protect=False, encoder_settings=ENCODER_SETTINGS_DEFAULT):
+            config=None, key_file=None, dsn=None, protect=False):
         if TDCLI_NOT_FOUND:
             raise TeradataCLIv2NotFound(TeradataCLIv2NotFound.__doc__.rstrip())
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
-            dsn, protect, encoder_settings)
+            dsn, protect)
 
         self.panic = panic
 
     def _connect(self, host, username, password):
-        self.cmd = _cli.Cmd(host, username, password, encoder_settings=self.encoder_settings)
+        self.cmd = _cli.Cmd(host, username, password)
 
     def close(self):
         if getattr(self, 'cmd', None):
             self.cmd.close()
 
     def execute(self, command, sanitize=True, multi_statement=False, prepare_only=False,
-            silent=False):
+            silent=False, coerce_floats=True, parse_dates=False):
         # TODO: Improve/fix this docstring
         """
         Execute commands using CLIv2.
@@ -218,10 +217,7 @@ class TeradataCmd(Connection):
         """
         # TODO: self.options needs thread lock?
         self.options("panic", self.panic)
-        if multi_statement:
-            self.options("multi-statement mode", True, 3)
-        else:
-            self.options("multi-stmtement mode", False, 3)
+        self.options("multi-statement mode", multi_statement, 3)
         if log.level >= VERBOSE:
             self.options("query", command, 2)
         else:
@@ -234,7 +230,7 @@ class TeradataCmd(Connection):
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
         self.cmd.set_encoding(ENCODER_SETTINGS_DEFAULT)
         return Cursor(self.cmd, command, multi_statement=multi_statement,
-            prepare_only=prepare_only)
+            prepare_only=prepare_only, coerce_floats=coerce_floats, parse_dates=parse_dates)
 
     def exists(self, object_name, silent=False):
         """

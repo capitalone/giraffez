@@ -20,6 +20,7 @@ import threading
 TPT_NOT_FOUND = False
 try:
     from . import _tpt
+    from ._tpt import TeradataError, EncoderError
 except ImportError:
     TPT_NOT_FOUND = True
 from . import _encoder
@@ -77,7 +78,7 @@ class TeradataMLoad(Connection):
     _valid_encodings = {"str", "archive", "dict"}
 
     def __init__(self, table=None, host=None, username=None, password=None, log_level=INFO,
-            config=None, key_file=None, dsn=None, protect=False):
+            config=None, key_file=None, dsn=None, protect=False, cleanup=False):
         if TPT_NOT_FOUND:
             raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
         super(TeradataMLoad, self).__init__(host, username, password, log_level, config, key_file,
@@ -92,6 +93,7 @@ class TeradataMLoad(Connection):
         #: that the job is shutdown smoothly (if possible).
         self.initiated = False
         self.end_acquisition = False
+        self.perform_cleanup = cleanup
 
         self.applied_count = 0
         self.error_count = 0
@@ -146,6 +148,10 @@ class TeradataMLoad(Connection):
             raise GiraffeError("Table must be set prior to initiating.")
         if self.initiated:
             raise GiraffeError("Already initiated connection.")
+        if self.perform_cleanup:
+            self.cleanup()
+        elif any(filter(lambda x: self.mload.exists(x), self.tables)):
+            raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
         log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
         self.mload.initiate(self.table, self.encoding, self.null, self.delimiter)
         log.info("MLoad", "Teradata PT request accepted.")
@@ -356,7 +362,7 @@ class TeradataMLoad(Connection):
         try:
             row_status = self.mload.put_row(self.preprocessor(items))
             self.applied_count += 1
-        except GiraffeEncodeError as error:
+        except (TeradataError, EncoderError) as error:
             self.error_count += 1
             if panic:
                 raise error

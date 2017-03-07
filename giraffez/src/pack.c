@@ -41,6 +41,8 @@ PyObject* teradata_row_from_pybytes(const TeradataEncoder *e, PyObject *row, uns
     char *str;
     int len;
     if (!PyBytes_Check(row)) {
+        // TODO: better error given py2/3 types
+        PyErr_Format(EncoderError, "Expected row as a str or bytes, not '%s'.", row->ob_type->tp_name);
         return NULL;
     }
     if ((str = PyBytes_AsString(row)) == NULL) {
@@ -86,7 +88,7 @@ PyObject* teradata_row_from_pydict(const TeradataEncoder *e, PyObject *row, unsi
     for (i=0; i<e->Columns->length; i++) {
         column = &e->Columns->array[i];
         if ((item = PyDict_GetItemString(row, column->Name)) == NULL) {
-            return NULL;
+            item = Py_None;
         }
         Py_INCREF(item);
         PyList_SetItem(items, i, item);

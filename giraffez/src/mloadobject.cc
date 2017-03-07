@@ -117,7 +117,6 @@ static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
     }
 
     uint32_t settings = 0; // zero so we have defaults for the else case below
-    DEBUG_PRINTF("%s", encoding);
     if (strcmp(encoding, "archive") == 0) {
         // TODO: idk
         settings = ROW_ENCODING_RAW | DATETIME_AS_STRING | DECIMAL_AS_STRING;

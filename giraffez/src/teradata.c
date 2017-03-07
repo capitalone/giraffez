@@ -93,10 +93,7 @@ uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *u
     conn->dbc->logon_ptr = conn->logonstr;
     conn->dbc->logon_len = (UInt32)strlen(conn->logonstr);
     conn->dbc->func = DBFCON;
-    // TODO: may cause weird race condition? not sure just happened once
-    Py_BEGIN_ALLOW_THREADS
     DBCHCL(&conn->result, conn->cnta, conn->dbc);
-    Py_END_ALLOW_THREADS
     return conn->result;
 }
 
