@@ -36,7 +36,7 @@ __all__ = ['Connection']
 
 class Connection(object):
     def __init__(self, host=None, username=None, password=None, log_level=INFO, config=None,
-            key_file=None, dsn=None, protect=False, mload_session=False):
+            key_file=None, dsn=None, protect=False):
         if GIRAFFE_NOT_FOUND:
             raise GiraffeNotFound("giraffez module was not compiled with package")
         #: Log level initially set to SILENCE to ensure that using the
@@ -51,10 +51,6 @@ class Connection(object):
 
         #: Stores options for log output
         self.options = ConnectionOptions()
-
-        #: Attribute identifies mload sessions to suppress duplicate log
-        #: output since mload requires two Connection objects
-        self.mload_session = mload_session
 
         if host is None or username is None or password is None:
             if host or username or password:
@@ -73,11 +69,9 @@ class Connection(object):
             if password is None:
                 raise suppress_context(ConfigurationError("Connection '{}' missing password value".format(self.dsn)))
         try:
-            if not self.mload_session:
-                log.info("Connection", "Connecting to data source '{}' ...".format(self.dsn))
+            log.info("Connection", "Connecting to data source '{}' ...".format(self.dsn))
             self._connect(host, username, password)
-            if not self.mload_session:
-                log.info("Connection", "Connection to '{}' established successfully.".format(self.dsn))
+            log.info("Connection", "Connection to '{}' established successfully.".format(self.dsn))
         except InvalidCredentialsError as error:
             if self.protect:
                 Config.lock_connection(self.config, self.dsn)
@@ -93,11 +87,9 @@ class Connection(object):
         return self
 
     def __exit__(self, exc_type, exc, exc_tb):
-        if not self.mload_session:
-            log.info("Connection", "Closing Teradata connection ...")
+        log.info("Connection", "Closing Teradata connection ...")
         self.close()
-        if not self.mload_session:
-            log.info("Connection", "Connection to '{}' closed.".format(self.dsn))
+        log.info("Connection", "Connection to '{}' closed.".format(self.dsn))
 
 
 class ConnectionOptions(object):

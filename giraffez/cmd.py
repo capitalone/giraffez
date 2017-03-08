@@ -136,8 +136,9 @@ class Cursor(object):
         return self.processor(self.columns, data)
 
     def __repr__(self):
-        return "Cursor(n_stmts={}, multi={}, prepare={}, coerce_floats={}, parse_dates={})".format(len(self.statements),
-            self.multi_statement, self.prepare_only, self.coerce_floats, self.parse_dates)
+        return "Cursor(n_stmts={}, multi={}, prepare={}, coerce_floats={}, parse_dates={})".format(
+            len(self.statements), self.multi_statement, self.prepare_only, self.coerce_floats,
+            self.parse_dates)
 
 
 class TeradataCmd(Connection):

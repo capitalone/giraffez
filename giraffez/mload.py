@@ -82,7 +82,7 @@ class TeradataMLoad(Connection):
         if TPT_NOT_FOUND:
             raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
         super(TeradataMLoad, self).__init__(host, username, password, log_level, config, key_file,
-            dsn, protect, mload_session=False)
+            dsn, protect)
 
         #: Attributes used with property getter/setters
         self._columns = None
