@@ -22,7 +22,7 @@ try:
 except ImportError:
     import json
 
-from . import _encoder
+from ._encoder import Encoder
 from .constants import *
 from .errors import *
 
@@ -41,7 +41,7 @@ class TeradataEncoder(object):
         self._columns = columns
         self._delimiter = DEFAULT_DELIMITER
         self._null = None
-        self.encoder = _encoder.Encoder(columns)
+        self.encoder = Encoder(columns)
         if encoding is not None:
             self |= encoding
 

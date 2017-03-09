@@ -103,22 +103,24 @@ inline PyObject* cstring_to_pystring(const char *buf, const int length);
 PyObject* cstring_to_giraffez_decimal(const char *buf, const int length);
 PyObject* cstring_to_pyfloat(const char *buf, const int length);
 PyObject* pystring_from_cformat(const char* fmt, ...);
+PyObject* pystring_to_pylong(PyObject *s);
+PyObject* pystring_to_pyfloat(PyObject *s);
 
 // PACK
 PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint16_t *len);
 PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length,
     unsigned char **buf, uint16_t *len);
-PyObject* teradata_byte_from_pylong(PyObject *item, const uint16_t column_length,
+PyObject* teradata_byteint_from_pylong(PyObject *item, const uint16_t column_length,
     unsigned char **buf, uint16_t *len);
-PyObject* teradata_short_from_pylong(PyObject *item, const uint16_t column_length,
+PyObject* teradata_smallint_from_pylong(PyObject *item, const uint16_t column_length,
     unsigned char **buf, uint16_t *len);
 PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length,
     unsigned char **buf, uint16_t *len);
-PyObject* teradata_long_from_pylong(PyObject *item, const uint16_t column_length,
+PyObject* teradata_bigint_from_pylong(PyObject *item, const uint16_t column_length,
     unsigned char **buf, uint16_t *len);
 PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_length,
     unsigned char **buf, uint16_t *len);
-PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length,
+PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_length,
     unsigned char **buf, uint16_t *len);
 PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_length,
     const uint16_t column_scale, unsigned char **buf, uint16_t *len);

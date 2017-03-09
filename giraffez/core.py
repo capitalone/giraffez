@@ -16,24 +16,6 @@
 
 import sys
 
-GIRAFFE_NOT_FOUND = False
-TDCLI_NOT_FOUND = False
-TPT_NOT_FOUND = False
-try:
-    from . import _encoder
-    try:
-        from ._cli import Cmd
-    except ImportError:
-        TDCLI_NOT_FOUND = True
-    try:
-        from ._tpt import Export
-        from ._tpt import Load
-    except ImportError:
-        TPT_NOT_FOUND = True
-except ImportError:
-    GIRAFFE_NOT_FOUND = True
-
-
 from .constants import *
 from .errors import *
 
@@ -43,9 +25,6 @@ from .io import home_file
 from .logging import colors, log
 from .parser import Argument, Command
 from .utils import prompt_bool
-
-
-__all__ = ['GIRAFFE_NOT_FOUND', 'MainCommand', 'TDCLI_NOT_FOUND', 'TPT_NOT_FOUND']
 
 
 class MainCommand(Command):

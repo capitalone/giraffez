@@ -140,7 +140,7 @@ PyObject* teradata_row_to_pystring(const TeradataEncoder *e, unsigned char **dat
                 break;
             case GD_DECIMAL:
                 if ((n = teradata_decimal_to_cstring(data, column->Length, column->Scale, item)) < 0) {
-                    // TODO: set error
+                    PyErr_SetString(EncoderError, "Unexpected error while converting decimal");
                     return NULL;
                 }
                 buffer_write(e->buffer, item, n);
@@ -156,7 +156,7 @@ PyObject* teradata_row_to_pystring(const TeradataEncoder *e, unsigned char **dat
                 break;
             case GD_DATE:
                 if ((n = teradata_date_to_cstring(data, item)) < 0) {
-                    // TODO: set error
+                    PyErr_SetString(EncoderError, "Unexpected error while converting date");
                     return NULL;
                 }
                 buffer_write(e->buffer, item, n);

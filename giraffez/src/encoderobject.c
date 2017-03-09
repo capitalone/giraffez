@@ -40,18 +40,15 @@ static int Encoder_init(Encoder *self, PyObject *args, PyObject *kwargs) {
     PyObject *columns_obj;
     GiraffeColumns *columns;
     uint32_t settings = ENCODER_SETTINGS_DEFAULT;
-
     static char *kwlist[] = {"columns_obj", "settings", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|i", kwlist, &columns_obj, &settings)) {
         return -1;
     }
-
     columns = giraffez_columns_from_pyobject(columns_obj);
     if (columns == NULL) {
         PyErr_SetString(PyExc_ValueError, "No columns found.");
         return -1;
     }
-    /*Py_INCREF(columns);*/
     self->encoder = encoder_new(columns, settings);
     if (self->encoder == NULL) {
         PyErr_SetString(PyExc_ValueError, "Could not create encoder. Bad settings. Bad person.");
@@ -76,26 +73,18 @@ static PyObject* Encoder_pack_row(Encoder *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O", &items)) {
         return NULL;
     }
-    unsigned char buf[64000];
-    /*unsigned char *buf = (unsigned char*)malloc(sizeof(unsigned char)*64000);*/
-    unsigned char *start = buf;
+    buffer_reset(self->encoder->buffer, 0);
+    unsigned char *data = (unsigned char*)self->encoder->buffer->data;
     uint16_t length = 0;
-    if (self->encoder->PackRowFunc(self->encoder, items, &start, &length) == NULL) {
-        /*PyErr_Format(PyExc_ValueError, "Encoder pack_row failed");*/
-        return NULL;
-    }
-    PyObject *ret = PyBytes_FromStringAndSize((char*)buf, length);
-    /*free(buf);*/
-    return ret;
+    Py_RETURN_ERROR(self->encoder->PackRowFunc(self->encoder, items, &data, &length));
+    return PyBytes_FromStringAndSize((char*)self->encoder->buffer->data, length);
 }
 
 static PyObject* Encoder_set_encoding(Encoder *self, PyObject *args) {
     uint32_t settings;
-
     if (!PyArg_ParseTuple(args, "i", &settings)) {
         return NULL;
     }
-
     if (encoder_set_encoding(self->encoder, settings) != 0) {
         PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);
         return NULL;

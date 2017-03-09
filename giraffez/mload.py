@@ -17,13 +17,7 @@
 import struct
 import threading
 
-TPT_NOT_FOUND = False
-try:
-    from . import _tpt
-    from ._tpt import TeradataError, EncoderError
-except ImportError:
-    TPT_NOT_FOUND = True
-from . import _encoder
+from ._tpt import MLoad, TeradataError, EncoderError
 
 from .constants import *
 from .errors import *
@@ -79,8 +73,6 @@ class TeradataMLoad(Connection):
 
     def __init__(self, table=None, host=None, username=None, password=None, log_level=INFO,
             config=None, key_file=None, dsn=None, protect=False, cleanup=False):
-        if TPT_NOT_FOUND:
-            raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
         super(TeradataMLoad, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 
@@ -100,11 +92,10 @@ class TeradataMLoad(Connection):
         self.preprocessor = lambda s: s
 
         self.allow_precision_loss = False
-        self.encoding = DEFAULT_ENCODING
-        self.delimiter = DEFAULT_DELIMITER
-        self.null = DEFAULT_NULL
         if table is not None:
             self.table = table
+        self._delimiter = DEFAULT_DELIMITER
+        self._null = DEFAULT_NULL
 
     def _apply_rows(self):
         log.info("MLoad", "Beginning apply phase ...")
@@ -138,7 +129,7 @@ class TeradataMLoad(Connection):
         log.info("MLoad", "Acquisition phase ended.")
 
     def _connect(self, host, username, password):
-        self.mload = _tpt.MLoad(host, username, password)
+        self.mload = MLoad(host, username, password)
         title, version = get_version_info()
         query_band = "UTILITYNAME={};VERSION={};".format(title, version)
         self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
@@ -153,7 +144,9 @@ class TeradataMLoad(Connection):
         elif any(filter(lambda x: self.mload.exists(x), self.tables)):
             raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
         log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
-        self.mload.initiate(self.table, self.encoding, self.null, self.delimiter)
+        self.mload.initiate(self.table)
+        self.mload.set_delimiter(self.delimiter)
+        self.mload.set_null(self.null)
         log.info("MLoad", "Teradata PT request accepted.")
         self._columns = self.mload.columns()
         self.initiated = True
@@ -175,15 +168,12 @@ class TeradataMLoad(Connection):
         """
         threads = []
         for i, table in enumerate(filter(lambda x: self.mload.exists(x), self.tables)):
-            #if i == 1:
-                #table = table + "lol"
             log.info("MLoad", "Dropping table '{}'...".format(table))
             t = threading.Thread(target=self.mload.drop_table, args=(table,))
             threads.append(t)
             t.start()
         for t in threads:
             t.join()
-            #self.mload.drop_table(table)
 
     def close(self):
         log.info("MLoad", "Closing Teradata PT connection ...")
@@ -222,31 +212,49 @@ class TeradataMLoad(Connection):
             raise GiraffeError("Table name not set")
         self._columns.set_filter(field_names)
 
+    @property
+    def delimiter(self):
+        return self._delimiter
+
+    @delimiter.setter
+    def delimiter(self, value):
+        self._delimiter = value
+        self.mload.set_delimiter(self._delimiter)
+
+    @property
+    def null(self):
+        return self._null
+
+    @null.setter
+    def null(self, value):
+        self._null = value
+        self.mload.set_null(self._null)
+
     # TODO: could probably make getters/setters part of the base class
     # for things like columns and encoding
     # TODO: encoding might not be a good word for what this is considering
     # the problems that people have had with file encoding (utf-8, latin-1, etc)
-    @property
-    def encoding(self):
-        """
-        The encoding of the file being loaded.
+    #@property
+    #def encoding(self):
+        #"""
+        #The encoding of the file being loaded.
 
-        :getter: Returns the name of the encoding being used.
-        :setter: Set the encoding of the input file if not specified to the
-            constructor of the instance. Accepted values are :code:`'text'`
-            or :code:`'archive'`.
+        #:getter: Returns the name of the encoding being used.
+        #:setter: Set the encoding of the input file if not specified to the
+            #constructor of the instance. Accepted values are :code:`'text'`
+            #or :code:`'archive'`.
 
-            Raises :class:`~giraffez.errors.GiraffeError` if :code:`enc` is not one
-            of the above.
-        :type: str
-        """
-        return self._encoding
+            #Raises :class:`~giraffez.errors.GiraffeError` if :code:`enc` is not one
+            #of the above.
+        #:type: str
+        #"""
+        #return self._encoding
 
-    @encoding.setter
-    def encoding(self, value):
-        if value not in self._valid_encodings:
-            raise GiraffeError("{} is not a valid encoding type".format(value))
-        self._encoding = value
+    #@encoding.setter
+    #def encoding(self, value):
+        #if value not in self._valid_encodings:
+            #raise GiraffeError("{} is not a valid encoding type".format(value))
+        #self._encoding = value
 
     @property
     def exit_code(self):

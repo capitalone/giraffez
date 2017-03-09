@@ -35,11 +35,11 @@ typedef teradata::client::API::Connection TConn;
 namespace Giraffez {
     class Connection : public TConn {
     private:
-        TeradataEncoder *encoder;
         std::string table_name;
         const char *host, *username, *password;
         unsigned char *row_buffer;
     public:
+        TeradataEncoder *encoder;
         int status;
         bool connected;
 
@@ -64,11 +64,11 @@ namespace Giraffez {
         }
 
         PyObject* SetEncoding(uint32_t settings, PyObject *null, PyObject *delimiter) {
-            if (!_PyUnicode_Check(delimiter)) {
+            if (null != NULL && !_PyUnicode_Check(delimiter)) {
                 PyErr_SetString(PyExc_TypeError, "Delimiter must be string");
                 return NULL;
             }
-            if (!(_PyUnicode_Check(null) || null == Py_None)) {
+            if (null != NULL && !(_PyUnicode_Check(null) || null == Py_None)) {
                 PyErr_SetString(PyExc_TypeError, "Null must be string or NoneType");
                 return NULL;
             }

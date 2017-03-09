@@ -14,15 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-TPT_NOT_FOUND = False
-try:
-    from . import _tpt
-except ImportError:
-    TPT_NOT_FOUND = True
-
-from . import _encoder
-import struct
-from collections import defaultdict
+from ._tpt import Export
 
 from .constants import *
 from .errors import *
@@ -89,29 +81,30 @@ class TeradataExport(Connection):
     """
 
     def __init__(self, query=None, host=None, username=None, password=None,
-            delimiter=DEFAULT_DELIMITER, null=DEFAULT_NULL, encoding=DEFAULT_ENCODING,
-            log_level=INFO, config=None, key_file=None, dsn=None, protect=False):
-        if TPT_NOT_FOUND:
-            raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
+            log_level=INFO, config=None, key_file=None, dsn=None, protect=False,
+            delimiter="|", null=None, coerce_floats=True):
         super(TeradataExport, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 
         #: Attributes used with property getter/setters
         self._query = None
         self._encoding = None
+        self._delimiter = delimiter
+        self._null = null
 
-        self.delimiter = delimiter
-        self.null = null
-        self.encoding = encoding
+        self.coerce_floats = coerce_floats
+
         self.initiated = False
 
         #: Attributes set via property getter/setters
         self.query = query
 
     def _connect(self, host, username, password):
-        self.export = _tpt.Export(host, username, password)
+        self.export = Export(host, username, password)
         self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
             *get_version_info()))
+        self.delimiter = DEFAULT_DELIMITER
+        self.null = DEFAULT_NULL
 
     def close(self):
         log.info("Export", "Closing Teradata PT connection ...")
@@ -128,17 +121,21 @@ class TeradataExport(Connection):
         return self.export.columns()
 
     @property
-    def encoding(self):
-        return self._encoding
+    def delimiter(self):
+        return self._delimiter
 
-    @encoding.setter
-    def encoding(self, value):
-        # TODO: should set as 'enum' from string value by lookup?
-        if value == self._encoding:
-            return
-        else:
-            self._encoding = value
-        self.initiated = False
+    @delimiter.setter
+    def delimiter(self, value):
+        self._delimiter = value
+
+    @property
+    def null(self):
+        return self._null
+
+    @null.setter
+    def null(self, value):
+        self._null = value
+        self.export.set_null(self._null)
     
     @property
     def header(self):
@@ -155,28 +152,15 @@ class TeradataExport(Connection):
         """
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
-        if self.encoding == "archive":
-            return self.columns.serialize()
         return self.delimiter.join(self.columns.names)
 
     def initiate(self):
         log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
         self.export.initiate()
-        self.export.set_encoding(self.encoding, self.null, self.delimiter)
         self.initiated = True
         log.info("Export", "Teradata PT request accepted.")
-        # TODO: move this stuff?
-        if self.encoding == "json":
-            self.processor = dict_to_json
-        else:
-            self.processor = identity
-        self.options("encoding", self.encoding, 1)
-        if self.encoding == "str":
-            delimiter = self.delimiter
-            if delimiter == "\t":
-                delimiter = "\\t"
-            self.options("delimiter", delimiter, 2)
-            self.options("null", self.null, 3)
+        self.options("delimiter", escape_string(self.delimiter), 2)
+        self.options("null", self.null, 3)
         log.info("Export", "Executing ...")
         log.info(self.options)
 
@@ -220,34 +204,39 @@ class TeradataExport(Connection):
         self.initiated = False
         self.export.set_query(statement)
 
-    # TODO: should the return type be implicit to the method called? like dict
-    # when calling items, and then with iterating over the Export instance
-    # returning a list or str?
+    def archive(self, writer):
+        if 'b' not in writer.mode:
+            raise GiraffeError("Archive writer must be in binary mode")
+        self.export.set_encoding(ROW_ENCODING_RAW)
+        writer.write(GIRAFFE_MAGIC)
+        writer.write(self.columns.serialize())
+        for line in self.fetchall():
+            writer.write(line)
+
+    def json(self):
+        self.processor = dict_to_json
+        return self.items()
+
     def items(self):
-        self.encoding = "dict"
-        self.export.set_encoding(self.encoding)
-        return self
-        # set row encoding 'dict'
+        self.processor = identity
+        self.export.set_encoding(ROW_ENCODING_DICT)
+        if self.coerce_floats:
+            self.export.set_encoding(DECIMAL_AS_FLOAT)
+        return self.fetchall()
 
-    # TODO: if this were host you returned it as a list would it then need to be
-    # setup in a way it works like Python3's views? I'm thinking no
+    def strings(self):
+        self.processor = identity
+        self.export.set_encoding(ROW_ENCODING_STRING|DATETIME_AS_STRING|DECIMAL_AS_STRING)
+        return self.fetchall()
+
     def values(self):
-        self.encoding = "list"
-        self.export.set_encoding(self.encoding)
-        return self
+        self.processor = identity
+        self.export.set_encoding(ROW_ENCODING_LIST)
+        if self.coerce_floats:
+            self.export.set_encoding(DECIMAL_AS_FLOAT)
+        return self.fetchall()
 
-    # TODO: what should this method be called?
-    def values_as_str(self):
-        # set row encoding 'str'
-        # this encoding setting doesn't allow setting options
-        # like coerce_floats, or use giraffez.types
-        #self.export.set_encoding(ENCODER_SETTINGS_STRING)
-        self.encoding = "str"
-        self.export.set_encoding(self.encoding)
-        return self
-
-    # TODO: rename?
-    def __iter__(self):
+    def fetchall(self):
         """
         Generates and yields row results as they are returned from
         Teradata and processed. 

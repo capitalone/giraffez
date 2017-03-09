@@ -417,23 +417,25 @@ class TestSeralize(object):
             ("col1", TD_INTEGER, 4, 0, 0),
         ]
 
+
+        expected_bytes = b'\x00\x01\x00\x00\x00'
         expected_text = {"col1": 1}
-        with pytest.raises(EncoderError):
-            encoder.serialize(expected_text)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
 
         encoder |= ROW_ENCODING_DICT
         expected_text = "1"
-        with pytest.raises(EncoderError):
-            encoder.serialize(expected_text)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
 
         expected_text = [1]
-        with pytest.raises(EncoderError):
-            encoder.serialize(expected_text)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
 
         encoder |= ROW_ENCODING_STRING
         expected_text = [1]
-        with pytest.raises(EncoderError):
-            encoder.serialize(expected_text)
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
 
     #def test_decimal_overflow(self, encoder):
         #encoder.columns = [
@@ -540,7 +542,7 @@ class TestSeralize(object):
             ('col2', TD_DECIMAL, 2, 2, 2),
         ]
         expected_bytes = b'\x00\x78\x00\x00\x00\x14\x00'
-        expected_text = ('1.20000','0.20')
+        expected_text = ('1.20000', '0.20')
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
@@ -550,7 +552,7 @@ class TestSeralize(object):
             ('col2', TD_DECIMAL, 4, 5, 4),
         ]
         expected_bytes = b'\x00\x14\x00\x00\x00\xe0\x2e\x00\x00'
-        expected_text = ('0.2','1.20')
+        expected_text = ('0.2', '1.20')
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
@@ -560,7 +562,7 @@ class TestSeralize(object):
             ('col2', TD_DATE, 4, 0, 0),
         ]
         expected_bytes = b'\x00\x8b\x90\x11\x00Na\xf8\xff'
-        expected_text = ('2015-11-15','1850-06-22')
+        expected_text = ('2015-11-15', '1850-06-22')
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
@@ -570,7 +572,7 @@ class TestSeralize(object):
             ('col2', TD_DATE, 4, 0, 0),
         ]
         expected_bytes = b'\x00\x8b\x90\x11\x00Na\xf8\xff'
-        expected_text = (datetime.datetime(2015,11,15),datetime.datetime(1850,6,22))
+        expected_text = (datetime.datetime(2015,11,15), datetime.datetime(1850,6,22))
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
@@ -580,13 +582,22 @@ class TestSeralize(object):
             ('col2', TD_DATE, 4, 0, 0),
         ]
         expected_bytes = b'\x00\x8b\x90\x11\x00Na\xf8\xff'
-        expected_text = (datetime.date(2015,11,15),datetime.date(1850,6,22))
+        expected_text = (datetime.date(2015,11,15), datetime.date(1850,6,22))
+        result_bytes = encoder.serialize(expected_text)
+        assert result_bytes == expected_bytes
+
+        expected_bytes = b'\x00\x8b\x90\x11\x00Na\xf8\xff'
+        expected_text = (datetime.datetime(2015,11,15,10,12,55), datetime.datetime(1850,6,22,10,12,55))
         result_bytes = encoder.serialize(expected_text)
         assert result_bytes == expected_bytes
 
     def test_date_from_invalid_type(self, encoder):
-        # TODO:
-        pass
+        encoder.columns = [
+            ('col1', TD_DATE, 4, 0, 0),
+        ]
+        expected_text = (1489062458.3881698,)
+        with pytest.raises(EncoderError):
+            result_bytes = encoder.serialize(expected_text)
 
     def test_char(self, encoder):
         encoder.columns = [

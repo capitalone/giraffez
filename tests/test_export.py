@@ -45,12 +45,6 @@ class TestExport(object):
         #assert export.export.get_buffer.call_count == 2
         assert export.export.close.called == True
 
-    def test_giraffez_not_found(self, mocker):
-        with pytest.raises(GiraffeNotFound):
-            giraffez.export.TPT_NOT_FOUND = True
-            export = giraffez.Export()
-        giraffez.export.TPT_NOT_FOUND = False
-
     def test_invalid_credentials(self, mocker):
         connect_mock = mocker.patch('giraffez.Export._connect')
         query = "select * from db1.info"

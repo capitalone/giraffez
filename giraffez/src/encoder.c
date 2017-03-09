@@ -34,6 +34,7 @@ TeradataEncoder* encoder_new(GiraffeColumns *columns, uint32_t settings) {
     e->NullValueStrLen = 0;
     e->buffer = buffer_new(TD_ROW_MAX_SIZE);
     e->PackRowFunc = NULL;
+    e->PackItemFunc = NULL;
     e->UnpackStmtInfoFunc = unpack_stmt_info_to_columns;
     e->UnpackRowsFunc = NULL;
     e->UnpackRowFunc = NULL;
@@ -56,6 +57,7 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
             e->UnpackRowFunc = teradata_row_to_pystring;
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pystring;
+            e->PackItemFunc = teradata_item_from_pyobject;
             encoder_set_delimiter(e, DEFAULT_DELIMITER);
             encoder_set_null(e, DEFAULT_NULLVALUE_STR);
             break;
@@ -64,6 +66,7 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
             e->UnpackRowFunc = teradata_row_to_pydict;
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pydict;
+            e->PackItemFunc = teradata_item_from_pyobject;
             encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
         case ROW_ENCODING_LIST:
@@ -71,6 +74,7 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
             e->UnpackRowFunc = teradata_row_to_pytuple;
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pytuple;
+            e->PackItemFunc = teradata_item_from_pyobject;
             encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
         case ROW_ENCODING_RAW:
@@ -78,6 +82,7 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
             e->UnpackRowFunc = teradata_row_to_pybytes;
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pybytes;
+            e->PackItemFunc = teradata_item_from_pyobject;
             break;
         default:
             return -1;
@@ -113,6 +118,9 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
 }
 
 PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
+    if (obj == NULL) {
+        Py_RETURN_NONE;
+    }
     Py_XDECREF(e->Delimiter);
     Py_INCREF(obj);
     e->Delimiter = obj;
@@ -144,6 +152,9 @@ PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
 }
 
 PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
+    if (obj == NULL) {
+        Py_RETURN_NONE;
+    }
     Py_XDECREF(e->NullValue);
     Py_INCREF(obj);
     e->NullValue = obj;

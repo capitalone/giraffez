@@ -304,7 +304,6 @@ class Columns(object):
     def __repr__(self):
         return "\n".join([repr(c) for c in self.columns])
 
-    # TODO: make v2 format with extra data and checksums?
     def serialize(self):
         """
         Serializes the columns into the giraffez archive header

@@ -74,6 +74,7 @@ typedef struct TeradataEncoder {
 
     GiraffeColumns* (*UnpackStmtInfoFunc)(unsigned char**,const uint32_t);
     PyObject* (*PackRowFunc)(const struct TeradataEncoder*,PyObject*,unsigned char**,uint16_t*);
+    PyObject* (*PackItemFunc)(const struct TeradataEncoder*,const GiraffeColumn*,PyObject*,unsigned char**,uint16_t*);
     PyObject* (*UnpackRowsFunc)(const struct TeradataEncoder*,unsigned char**,const uint32_t);
     PyObject* (*UnpackRowFunc)(const struct TeradataEncoder*,unsigned char**,const uint16_t);
     PyObject* (*UnpackItemFunc)(const struct TeradataEncoder*,unsigned char**,const GiraffeColumn*);

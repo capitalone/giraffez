@@ -319,8 +319,9 @@ static PyObject* Cmd_fetchone(Cmd *self) {
 static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
     uint32_t new_settings = 0;
     uint32_t settings;
+    PyObject *null = NULL, *delimiter = NULL;
 
-    if (!PyArg_ParseTuple(args, "i", &settings)) {
+    if (!PyArg_ParseTuple(args, "i|OO", &settings, &null, &delimiter)) {
         return NULL;
     }
 
@@ -338,6 +339,8 @@ static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);
         return NULL;
     }
+    Py_RETURN_ERROR(encoder_set_null(self->encoder, null));
+    Py_RETURN_ERROR(encoder_set_delimiter(self->encoder, delimiter));
 
     Py_RETURN_NONE;
 }

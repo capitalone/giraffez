@@ -35,6 +35,24 @@ __license__ = 'Apache 2.0'
 __all__     = ['Export', 'MLoad', 'Load', 'Cmd', 'Config', 'Secret']
 
 
+try:
+    from . import _cli
+    from . import _encoder
+    from . import _tpt
+except ImportError as error:
+    raise Exception("""{}.  This indicates that either the
+giraffez C extensions did not compile correctly, or more likely,
+there is an issue with the environment or installation of the
+Teradata dependencies. Both the Teradata Call-Level Interface Version 2
+and Teradata Parallel Transporter API require several environment
+variables to be set to find the shared library files and error message
+catalog.
+
+For more information, refer to this section in the giraffez
+documentation:
+    http://www.capitalone.io/giraffez/intro.html#environment.
+""".format(error.msg))
+
 from .cmd import TeradataCmd as Cmd
 from .config import Config
 from .constants import SILENCE, VERBOSE, DEBUG, INFO

@@ -14,19 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# XXX: still necessary?
-GIRAFFE_NOT_FOUND = False
-try:
-    from . import _encoder
-except ImportError:
-    GIRAFFE_NOT_FOUND = True
-
-TDCLI_NOT_FOUND = False
-try:
-    from . import _cli
-    from ._cli import RequestEnded, StatementEnded, TeradataError
-except ImportError:
-    TDCLI_NOT_FOUND = True
+from ._cli import Cmd, RequestEnded, StatementEnded, TeradataError
 
 from .constants import *
 from .errors import *
@@ -186,15 +174,13 @@ class TeradataCmd(Connection):
 
     def __init__(self, host=None, username=None, password=None, log_level=INFO, panic=False,
             config=None, key_file=None, dsn=None, protect=False):
-        if TDCLI_NOT_FOUND:
-            raise TeradataCLIv2NotFound(TeradataCLIv2NotFound.__doc__.rstrip())
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 
         self.panic = panic
 
     def _connect(self, host, username, password):
-        self.cmd = _cli.Cmd(host, username, password)
+        self.cmd = Cmd(host, username, password)
 
     def close(self):
         if getattr(self, 'cmd', None):
@@ -216,7 +202,6 @@ class TeradataCmd(Connection):
         :raises `giraffez.errors.TeradataError`: if the query is invalid
         :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
         """
-        # TODO: self.options needs thread lock?
         self.options("panic", self.panic)
         self.options("multi-statement mode", multi_statement, 3)
         if log.level >= VERBOSE:

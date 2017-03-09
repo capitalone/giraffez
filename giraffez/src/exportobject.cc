@@ -113,38 +113,43 @@ static PyObject* Export_get_buffer(Export *self) {
     return self->conn->GetBuffer();
 }
 
-static PyObject* Export_set_encoding(Export *self, PyObject *args, PyObject *kwargs) {
-    char *encoding;
-    PyObject *null, *delimiter;
-    // TODO: better default handling here for null/delimiter. ensure there
-    // isn't a way to set this that will create undefined behavior
-    if (!PyArg_ParseTuple(args, "s|OO", &encoding, &null, &delimiter)) {
+static PyObject* Export_set_encoding(Export *self, PyObject *args) {
+    uint32_t new_settings = 0;
+    uint32_t settings;
+    if (!PyArg_ParseTuple(args, "i", &settings)) {
         return NULL;
     }
-    // TODO: create presets
-    // TODO: move before initiate?
-    uint32_t settings = 0; // zero so we have defaults for the else case below
-    if (strcmp(encoding, "archive") == 0) {
-        // TODO: idk
-        settings = ROW_ENCODING_RAW | DATETIME_AS_STRING | DECIMAL_AS_STRING;
-        if (self->conn->SetEncoding(settings) == NULL) {
-            return NULL;
-        }
-    } else if (strcmp(encoding, "dict") == 0 || strcmp(encoding, "json") == 0) {
-        settings = ENCODER_SETTINGS_JSON;
-        if (self->conn->SetEncoding(settings) == NULL) {
-            return NULL;
-        }
-    } else if (strcmp(encoding, "str") == 0) {
-        settings = ENCODER_SETTINGS_STRING;
-        if (self->conn->SetEncoding(settings, null, delimiter) == NULL) {
-            return NULL;
-        }
-    } else {
-        if (self->conn->SetEncoding(settings) == NULL) {
-            return NULL;
-        }
+    if (settings & ROW_RETURN_MASK) {
+        new_settings = (self->conn->encoder->Settings & ~ROW_RETURN_MASK) | settings;
     }
+    if (settings & DATETIME_RETURN_MASK) {
+        new_settings = (self->conn->encoder->Settings & ~DATETIME_RETURN_MASK) | settings;
+    }
+    if (settings & DECIMAL_RETURN_MASK) {
+        new_settings = (self->conn->encoder->Settings & ~DECIMAL_RETURN_MASK) | settings;
+    }
+    if (encoder_set_encoding(self->conn->encoder, new_settings) != 0) {
+        PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject* Export_set_null(Export *self, PyObject *args) {
+    PyObject *null = NULL;
+    if (!PyArg_ParseTuple(args, "O", &null)) {
+        return NULL;
+    }
+    Py_RETURN_ERROR(encoder_set_null(self->conn->encoder, null));
+    Py_RETURN_NONE;
+}
+
+static PyObject* Export_set_delimiter(Export *self, PyObject *args) {
+    PyObject *delimiter = NULL;
+    if (!PyArg_ParseTuple(args, "O", &delimiter)) {
+        return NULL;
+    }
+    Py_RETURN_ERROR(encoder_set_delimiter(self->conn->encoder, delimiter));
     Py_RETURN_NONE;
 }
 
@@ -172,6 +177,8 @@ static PyMethodDef Export_methods[] = {
     {"get_buffer", (PyCFunction)Export_get_buffer, METH_NOARGS, ""},
     {"initiate", (PyCFunction)Export_initiate, METH_NOARGS, ""},
     {"set_encoding", (PyCFunction)Export_set_encoding, METH_VARARGS, ""},
+    {"set_null", (PyCFunction)Export_set_null, METH_VARARGS, ""},
+    {"set_delimiter", (PyCFunction)Export_set_delimiter, METH_VARARGS, ""},
     {"set_query", (PyCFunction)Export_set_query, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };

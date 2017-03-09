@@ -456,14 +456,14 @@ int teradata_decimal128_to_cstring(unsigned char **data, const uint16_t column_s
 }
 
 PyObject* cstring_to_pyfloat(const char *buf, const int length) {
-    return PyFloat_FromString(cstring_to_pystring(buf, length));
+    return _PyFloat_FromString(cstring_to_pystring(buf, length));
 }
 
 PyObject* cstring_to_giraffez_decimal(const char *buf, const int length) {
     return giraffez_decimal_from_pystring(cstring_to_pystring(buf, length));
 }
 
-inline PyObject* cstring_to_pystring(const char *buf, const int length) {
+PyObject* cstring_to_pystring(const char *buf, const int length) {
     return PyUnicode_FromStringAndSize(buf, length);
 }
 
@@ -483,7 +483,6 @@ PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint1
     Py_ssize_t length;
     PyObject *temp = NULL;
     char *str;
-
     if (PyBytes_Check(s)) {
         if ((temp = PyUnicode_FromEncodedObject(s, NULL, NULL)) == NULL) {
             return NULL;
@@ -499,12 +498,10 @@ PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint1
         return NULL;
     }
     Py_XDECREF(temp);
-
     if (length > TD_ROW_MAX_SIZE) {
         PyErr_Format(EncoderError, "VARCHAR field value length %d exceeds maximum allowed.", length);
         return NULL;
     }
-
     *packed_length += pack_string(buf, str, length);
     Py_RETURN_NONE;
 }
@@ -514,7 +511,6 @@ PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length,
     PyObject *temp = NULL;
     int fill;
     char *str;
-
     if (PyBytes_Check(s)) {
         if ((temp = PyUnicode_FromEncodedObject(s, NULL, NULL)) == NULL) {
             return NULL;
@@ -525,7 +521,6 @@ PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length,
         return NULL;
     }
     if ((str = PyUnicode_AsUTF8AndSize(s, &length)) == NULL) {
-            printf("2\n");
         return NULL;
     }
     Py_XDECREF(temp);
@@ -536,7 +531,6 @@ PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length,
         PyErr_Format(EncoderError, "CHAR field value length %d exceeds column length %d.", length, column_length);
         return NULL;
     }
-
     memcpy(*buf, str, length);
     *buf += length;
     fill = column_length - length;
@@ -546,59 +540,95 @@ PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length,
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_byte_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+PyObject* teradata_byteint_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+    PyObject *temp = NULL;
     int8_t b;
     if (!PyLong_Check(item)) {
-        return NULL;
+        if (!PyUnicode_Check(item)) {
+            PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
+            return NULL;
+        }
+        Py_RETURN_ERROR(temp = PyLong_FromUnicodeObject(item, 10));
+    } else {
+        temp = item;
+        Py_INCREF(temp);
     }
-    b = PyLong_AsLong(item);
+    b = PyLong_AsLong(temp);
     if (b == (long)-1 && PyErr_Occurred()) {
         return NULL;
     }
     pack_int8_t(buf, b);
     *packed_length += column_length;
+    Py_DECREF(temp);
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_short_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+PyObject* teradata_smallint_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+    PyObject *temp = NULL;
     int16_t h;
     if (!PyLong_Check(item)) {
-        return NULL;
+        if (!PyUnicode_Check(item)) {
+            PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
+            return NULL;
+        }
+        Py_RETURN_ERROR(temp = PyLong_FromUnicodeObject(item, 10));
+    } else {
+        temp = item;
+        Py_INCREF(temp);
     }
-    h = PyLong_AsLong(item);
+    h = PyLong_AsLong(temp);
     if (h == (long)-1 && PyErr_Occurred()) {
         return NULL;
     }
     pack_int16_t(buf, h);
     *packed_length += column_length;
+    Py_DECREF(temp);
     Py_RETURN_NONE;
 }
 
 PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+    PyObject *temp = NULL;
     int32_t l;
     if (!PyLong_Check(item)) {
-        return NULL;
+        if (!PyUnicode_Check(item)) {
+            PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
+            return NULL;
+        }
+        Py_RETURN_ERROR(temp = PyLong_FromUnicodeObject(item, 10));
+    } else {
+        temp = item;
+        Py_INCREF(temp);
     }
-    l = PyLong_AsLong(item);
+    l = PyLong_AsLong(temp);
     if (l == (long)-1 && PyErr_Occurred()) {
         return NULL;
     }
     pack_int32_t(buf, l);
     *packed_length += column_length;
+    Py_DECREF(temp);
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_long_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+PyObject* teradata_bigint_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+    PyObject *temp = NULL;
     int64_t q;
     if (!PyLong_Check(item)) {
-        return NULL;
+        if (!PyUnicode_Check(item)) {
+            PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
+            return NULL;
+        }
+        Py_RETURN_ERROR(temp = PyLong_FromUnicodeObject(item, 10));
+    } else {
+        temp = item;
+        Py_INCREF(temp);
     }
-    q = PyLong_AsLong(item);
+    q = PyLong_AsLongLong(temp);
     if (q == (long)-1 && PyErr_Occurred()) {
         return NULL;
     }
     pack_int64_t(buf, q);
     *packed_length += column_length;
+    Py_DECREF(temp);
     Py_RETURN_NONE;
 }
 
@@ -614,7 +644,6 @@ PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_leng
         } else {
             return NULL;
         }
-
         if ((f = _PyFloat_FromString(s)) == NULL) {
             return NULL;
         }
@@ -630,7 +659,7 @@ PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_leng
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     PyObject *temp;
     char *str;
     struct tm tm;
@@ -657,7 +686,6 @@ PyObject* teradata_int_from_pydate(PyObject *item, const uint16_t column_length,
     *packed_length += 4;
     Py_RETURN_NONE;
 }
-
 
 PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_length, const uint16_t column_scale, unsigned char **buf, uint16_t *packed_length) {
     int8_t b; int16_t h; int32_t l; int64_t q; uint64_t Q;

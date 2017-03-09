@@ -14,13 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# XXX: still necessary?
-GIRAFFE_NOT_FOUND = False
-try:
-    from . import _encoder
-except ImportError:
-    GIRAFFE_NOT_FOUND = True
-
 import collections
 
 from .constants import *
@@ -37,8 +30,6 @@ __all__ = ['Connection']
 class Connection(object):
     def __init__(self, host=None, username=None, password=None, log_level=INFO, config=None,
             key_file=None, dsn=None, protect=False):
-        if GIRAFFE_NOT_FOUND:
-            raise GiraffeNotFound("giraffez module was not compiled with package")
         #: Log level initially set to SILENCE to ensure that using the
         #: Python API does not produce log output unless expressly set
         log.level = log_level

@@ -191,7 +191,7 @@ class Reader(object):
 
 
 class Writer(object):
-    def __init__(self, path=None, mode='', archive=False, use_gzip=False):
+    def __init__(self, path=None, mode='wt', use_gzip=False):
         if path is None:
             self.name = "stdout"
             if 'b' in mode:
@@ -203,18 +203,11 @@ class Writer(object):
             abspath = os.path.abspath(path)
             if not os.path.exists(os.path.dirname(abspath)):
                 os.makedirs(os.path.dirname(abspath))
-            if archive:
-                mode = 'b'
-            else:
-                mode = 't'
             if use_gzip:
                 _open = lambda p, m: io.BufferedWriter(gzip.open(p, m))
             else:
                 _open = lambda p, m: io.open(p, m)
-            self.fd = _open(abspath, "w{}".format(mode))
-            if archive:
-                self.write(GIRAFFE_MAGIC)
-                self.writen = self.write
+            self.fd = _open(abspath, mode)
 
     @property
     def is_stdout(self):

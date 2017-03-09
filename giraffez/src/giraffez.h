@@ -85,6 +85,8 @@ PyObject* teradata_row_to_pytuple(const TeradataEncoder *e, unsigned char **data
 
 PyObject* teradata_item_to_pyobject(const TeradataEncoder *e, unsigned char **data,
     const GiraffeColumn *column);
+PyObject* teradata_item_from_pystring(const TeradataEncoder *e, const GiraffeColumn *column,
+    PyObject *item, unsigned char **data, uint16_t *length);
 
 #ifdef __cplusplus
 }
