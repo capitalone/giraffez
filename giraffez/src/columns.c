@@ -53,6 +53,9 @@ void columns_init(GiraffeColumns *c, size_t initial_size) {
 
 void columns_append(GiraffeColumns *c, GiraffeColumn element) {
     if (c->length == c->size) {
+        if (c->size == 0) {
+            c->size = 1;
+        }
         c->size *= 2;
         c->array = (GiraffeColumn*)realloc(c->array, c->size * sizeof(GiraffeColumn));
     }
@@ -578,13 +581,13 @@ uint16_t teradata_type_to_giraffez_type(uint16_t t) {
             return GD_BIGINT;
         case VARBYTE_NN:
         case VARBYTE_N:
-            return GD_VARCHAR;
+            return GD_VARBYTE;
         case BYTE_NN:
         case BYTE_N:
-            return GD_CHAR;
+            return GD_BYTE;
         case LONG_VARBYTE_NN:
         case LONG_VARBYTE_N:
-            return GD_VARCHAR;
+            return GD_VARBYTE;
         case DATE_NNA:
         case DATE_NA:
             return GD_DEFAULT;

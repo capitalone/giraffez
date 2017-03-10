@@ -133,10 +133,10 @@ namespace Giraffez {
         }
 
         PyObject* Checkpoint() {
-            // TODO: need free?
-            char *data;
+            char *data = NULL;
             TD_Length length = 0;
-            if ((status = TConn::Checkpoint(&data, &length)) >= TD_ERROR) {
+            if ((status = TConn::Checkpoint(&data, &length)) != TD_END_METHOD) {
+                // TODO: should this return an error?
                 return this->HandleError();
             }
             return PyBytes_FromStringAndSize(data, length);
@@ -151,6 +151,7 @@ namespace Giraffez {
         }
 
         PyObject* EndAcquisition() {
+            status = 0;
             if ((status = TConn::EndAcquisition()) >= TD_ERROR) {
                 return this->HandleError();
             }
@@ -198,6 +199,7 @@ namespace Giraffez {
             if (encoder->PackRowFunc(encoder, items, &data, &length) == NULL) {
                 return NULL;
             }
+            status = 0;
             if ((status = TConn::PutRow((char*)this->row_buffer, (TD_Length)length)) != TD_SUCCESS) {
                 return this->HandleError();
             }
@@ -245,7 +247,10 @@ namespace Giraffez {
         }
 
         PyObject* HandleError() {
-            char *error_msg;
+            if (status == TD_CALL_ENDACQ) {
+                this->EndAcquisition();
+            }
+            char *error_msg = NULL;
             TD_ErrorType error_type;
             Connection::GetErrorInfo(&error_msg, &error_type);
             PyErr_Format(TeradataError, "%d: %s", status, error_msg);
@@ -353,7 +358,7 @@ namespace Giraffez {
                 for (i = 0; i < len; i++) {
                     // TODO: check to ensure that the supplied value is valid as a
                     // a column
-                    column_name = PyList_GetItem(column_list, i);
+                    Py_RETURN_ERROR((column_name = PyList_GetItem(column_list, i)));
                     for (j=0; j<encoder->Columns->length; j++) {
                         column = &encoder->Columns->array[j];
                         if (strcmp(column->Name, PyUnicode_AsUTF8(column_name)) == 0) {

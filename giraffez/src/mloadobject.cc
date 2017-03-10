@@ -60,6 +60,7 @@ static int MLoad_init(MLoad *self, PyObject *args, PyObject *kwargs) {
     self->conn->AddAttribute(TD_TENACITY_HOURS, 1);
     self->conn->AddAttribute(TD_TENACITY_SLEEP, 1);
     self->conn->AddAttribute(TD_ERROR_LIMIT, 1);
+    //self->conn->AddAttribute(TD_ERROR_LIMIT, 5);
     return 0;
 }
 
@@ -147,11 +148,11 @@ static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
     DMLOption dml_option = MARK_DUPLICATE_ROWS;
 
     static const char *kwlist[] = {"tbl_name", "column_list", "dml_option", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|ii", (char**)kwlist, &tbl_name, &column_list, &dml_option)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|Oi", (char**)kwlist, &tbl_name, &column_list, &dml_option)) {
         return NULL;
     }
 
-    if (column_list != NULL && !(PyList_Check(column_list) || column_list == Py_None)) {
+    if (column_list != NULL && (!PyList_Check(column_list) || column_list == Py_None)) {
         PyErr_Format(GiraffezError, "Column list must be <list> type");
         return NULL;
     }
@@ -169,9 +170,11 @@ static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
             case TD_ERROR_TRANS_ABORTED:
                 PyErr_Clear();
                 if (self->conn->Release(tbl_name) == NULL) {
+                    DEBUG_PRINTF("%s: %d", "Release mload status", self->conn->status);
                     return NULL;
                 }
                 if ((self->conn->Initiate()) == NULL) {
+                    DEBUG_PRINTF("%s: %d", "Initiate mload status", self->conn->status);
                     return NULL;
                 }
                 break;

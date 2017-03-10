@@ -189,11 +189,26 @@ PyObject* teradata_char_to_pystring(unsigned char **data, const uint64_t column_
     return str;
 }
 
-PyObject* teradata_vchar_to_pystring(unsigned char **data) {
+PyObject* teradata_byte_to_pybytes(unsigned char **data, const uint64_t column_length) {
+    PyObject *str = PyBytes_FromStringAndSize((char*)*data, column_length);
+    *data += column_length;
+    return str;
+}
+
+PyObject* teradata_varchar_to_pystring(unsigned char **data) {
     PyObject *str;
     uint16_t H;
     unpack_uint16_t(data, &H);
     str = PyUnicode_FromStringAndSize((char*)*data, H);
+    *data += H;
+    return str;
+}
+
+PyObject* teradata_varbyte_to_pybytes(unsigned char **data) {
+    PyObject *str;
+    uint16_t H;
+    unpack_uint16_t(data, &H);
+    str = PyBytes_FromStringAndSize((char*)*data, H);
     *data += H;
     return str;
 }

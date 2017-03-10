@@ -173,11 +173,12 @@ class TeradataCmd(Connection):
     """
 
     def __init__(self, host=None, username=None, password=None, log_level=INFO, panic=False,
-            config=None, key_file=None, dsn=None, protect=False):
+            config=None, key_file=None, dsn=None, protect=False, silent=False):
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
-            dsn, protect)
+            dsn, protect, silent=silent)
 
         self.panic = panic
+        self.silent = silent
 
     def _connect(self, host, username, password):
         self.cmd = Cmd(host, username, password)
@@ -208,7 +209,7 @@ class TeradataCmd(Connection):
             self.options("query", command, 2)
         else:
             self.options("query", truncate(command), 2)
-        if not silent:
+        if not silent or not self.silent:
             log.info("Command", "Executing ...")
             log.info(self.options)
         if sanitize:

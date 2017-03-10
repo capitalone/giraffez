@@ -50,7 +50,7 @@ def quote_string(s, quote_character="'"):
     return "{0}{1}{0}".format(quote_character, s)
 
 def replace_cr(s):
-    if not isinstance(s, basestring):
+    if not isinstance(s, str):
         return s
     return s.strip().replace('\r', '\n')
 

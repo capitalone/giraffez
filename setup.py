@@ -10,6 +10,9 @@ from setuptools import setup, Extension as _Extension, find_packages
 from distutils.command.build_ext import build_ext
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 
+develop = False
+if len(sys.argv) > 1 and sys.argv[1] == "develop":
+    develop = True
 
 PY3 = sys.version_info[0] == 3
 
@@ -150,7 +153,8 @@ class Extension(_Extension):
                 self.define_macros.append(('WIN32', 1))
         else:
             self.extra_compile_args = ['-Wfatal-errors']
-        self.define_macros.append(("DEBUG", 1))
+        if develop:
+            self.define_macros.append(("DEBUG_LOGGING", 1))
 
     @classmethod
     def set_objects(cls, objects):

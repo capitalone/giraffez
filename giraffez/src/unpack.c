@@ -196,13 +196,17 @@ PyObject* teradata_item_to_pyobject(const TeradataEncoder *e, unsigned char **da
         case GD_CHAR:
             return teradata_char_to_pystring(data, column->Length);
         case GD_VARCHAR:
-            return teradata_vchar_to_pystring(data);
+            return teradata_varchar_to_pystring(data);
         case GD_DATE:
             return e->UnpackDateFunc(data);
         case GD_TIME:
             return e->UnpackTimeFunc(data, column->Length);
         case GD_TIMESTAMP:
             return e->UnpackTimestampFunc(data, column->Length);
+        case GD_BYTE:
+            return teradata_byte_to_pybytes(data, column->Length);
+        case GD_VARBYTE:
+            return teradata_varbyte_to_pybytes(data);
         default:
             return teradata_char_to_pystring(data, column->Length);
     }

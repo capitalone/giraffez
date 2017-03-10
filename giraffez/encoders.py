@@ -56,6 +56,10 @@ class TeradataEncoder(object):
         self._columns = value
         self.encoder.set_columns(self._columns)
 
+    @classmethod
+    def count(self, data):
+        return Encoder.count_rows(data)
+
     @property
     def delimiter(self):
         return self._delimiter

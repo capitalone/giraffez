@@ -119,14 +119,15 @@ static PyObject* Export_set_encoding(Export *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "i", &settings)) {
         return NULL;
     }
+    new_settings = self->conn->encoder->Settings;
     if (settings & ROW_RETURN_MASK) {
-        new_settings = (self->conn->encoder->Settings & ~ROW_RETURN_MASK) | settings;
+        new_settings = (new_settings & ~ROW_RETURN_MASK) | settings;
     }
     if (settings & DATETIME_RETURN_MASK) {
-        new_settings = (self->conn->encoder->Settings & ~DATETIME_RETURN_MASK) | settings;
+        new_settings = (new_settings & ~DATETIME_RETURN_MASK) | settings;
     }
     if (settings & DECIMAL_RETURN_MASK) {
-        new_settings = (self->conn->encoder->Settings & ~DECIMAL_RETURN_MASK) | settings;
+        new_settings = (new_settings & ~DECIMAL_RETURN_MASK) | settings;
     }
     if (encoder_set_encoding(self->conn->encoder, new_settings) != 0) {
         PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);

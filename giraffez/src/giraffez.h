@@ -29,7 +29,7 @@ extern "C" {
 #include "encoder.h"
 #include "teradata.h"
 
-#ifdef DEBUG
+#ifdef DEBUG_LOGGING
 #define DEBUG_PRINTF(fmt, ...) debug_printf(fmt, __VA_ARGS__)
 #else
 #define DEBUG_PRINTF(fmt, ...)

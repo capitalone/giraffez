@@ -163,7 +163,7 @@ PyObject* define_exceptions(PyObject *module) {
         return NULL;
     }
 
-    InvalidCredentialsError = PyErr_NewException("giraffez.InvalidCredentialsError", NULL, NULL);
+    InvalidCredentialsError = PyErr_NewException("giraffez.InvalidCredentialsError", TeradataError, NULL);
     PyModule_AddObject(module, "InvalidCredentialsError", InvalidCredentialsError);
     Py_RETURN_NONE;
 }

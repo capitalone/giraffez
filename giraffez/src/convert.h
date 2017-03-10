@@ -67,7 +67,9 @@ uint16_t unpack_string(unsigned char **data, char **str);
 
 // Character types
 PyObject* teradata_char_to_pystring(unsigned char **data, const uint64_t column_length);
-PyObject* teradata_vchar_to_pystring(unsigned char** data);
+PyObject* teradata_byte_to_pybytes(unsigned char **data, const uint64_t column_length);
+PyObject* teradata_varchar_to_pystring(unsigned char **data);
+PyObject* teradata_varbyte_to_pybytes(unsigned char **data);
 
 // Numeric types
 PyObject* teradata_byteint_to_pylong(unsigned char **data);

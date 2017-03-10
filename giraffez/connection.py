@@ -29,7 +29,7 @@ __all__ = ['Connection']
 
 class Connection(object):
     def __init__(self, host=None, username=None, password=None, log_level=INFO, config=None,
-            key_file=None, dsn=None, protect=False):
+            key_file=None, dsn=None, protect=False, silent=False):
         #: Log level initially set to SILENCE to ensure that using the
         #: Python API does not produce log output unless expressly set
         log.level = log_level
@@ -39,6 +39,8 @@ class Connection(object):
         self.protect = protect
 
         self.host = host
+
+        self.silent = silent
 
         #: Stores options for log output
         self.options = ConnectionOptions()
@@ -60,9 +62,11 @@ class Connection(object):
             if password is None:
                 raise suppress_context(ConfigurationError("Connection '{}' missing password value".format(self.dsn)))
         try:
-            log.info("Connection", "Connecting to data source '{}' ...".format(self.dsn))
+            if not self.silent:
+                log.info("Connection", "Connecting to data source '{}' ...".format(self.dsn))
             self._connect(host, username, password)
-            log.info("Connection", "Connection to '{}' established successfully.".format(self.dsn))
+            if not self.silent:
+                log.info("Connection", "Connection to '{}' established successfully.".format(self.dsn))
         except InvalidCredentialsError as error:
             if self.protect:
                 Config.lock_connection(self.config, self.dsn)
@@ -78,9 +82,11 @@ class Connection(object):
         return self
 
     def __exit__(self, exc_type, exc, exc_tb):
-        log.info("Connection", "Closing Teradata connection ...")
+        if not self.silent:
+            log.info("Connection", "Closing Teradata connection ...")
         self.close()
-        log.info("Connection", "Connection to '{}' closed.".format(self.dsn))
+        if not self.silent:
+            log.info("Connection", "Connection to '{}' closed.".format(self.dsn))
 
 
 class ConnectionOptions(object):

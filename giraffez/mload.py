@@ -91,11 +91,18 @@ class TeradataMLoad(Connection):
         self.error_count = 0
         self.preprocessor = lambda s: s
 
-        self.allow_precision_loss = False
+        self.coerce_floats = False
         if table is not None:
             self.table = table
         self._delimiter = DEFAULT_DELIMITER
         self._null = DEFAULT_NULL
+        self.preprocessor = lambda s: s
+
+    def _connect(self, host, username, password):
+        self.mload = MLoad(host, username, password)
+        title, version = get_version_info()
+        query_band = "UTILITYNAME={};VERSION={};".format(title, version)
+        self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
 
     def _apply_rows(self):
         log.info("MLoad", "Beginning apply phase ...")
@@ -128,29 +135,6 @@ class TeradataMLoad(Connection):
         self.end_acquisition = True
         log.info("MLoad", "Acquisition phase ended.")
 
-    def _connect(self, host, username, password):
-        self.mload = MLoad(host, username, password)
-        title, version = get_version_info()
-        query_band = "UTILITYNAME={};VERSION={};".format(title, version)
-        self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
-
-    def initiate(self):
-        if not self.table:
-            raise GiraffeError("Table must be set prior to initiating.")
-        if self.initiated:
-            raise GiraffeError("Already initiated connection.")
-        if self.perform_cleanup:
-            self.cleanup()
-        elif any(filter(lambda x: self.mload.exists(x), self.tables)):
-            raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
-        log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
-        self.mload.initiate(self.table)
-        self.mload.set_delimiter(self.delimiter)
-        self.mload.set_null(self.null)
-        log.info("MLoad", "Teradata PT request accepted.")
-        self._columns = self.mload.columns()
-        self.initiated = True
-
     def checkpoint(self):
         """
         Execute a checkpoint while loading rows. Called automatically
@@ -177,9 +161,9 @@ class TeradataMLoad(Connection):
 
     def close(self):
         log.info("MLoad", "Closing Teradata PT connection ...")
-        if not self.end_acquisition and self.initiated:
-            log.info("MLoad", "Acquisition phase was not called before closing.")
-            self._end_acquisition()
+        #if not self.end_acquisition and self.initiated:
+            #log.info("MLoad", "Acquisition phase was not called before closing.")
+            #self._end_acquisition()
         self.mload.close()
         log.info("MLoad", "Teradata PT request complete.")
 
@@ -206,11 +190,13 @@ class TeradataMLoad(Connection):
 
     @columns.setter
     def columns(self, field_names):
+        # TODO: check if list of strings
         if not isinstance(field_names, list):
             raise GiraffeError("Must set .columns property as type <List>")
-        if not self.table:
-            raise GiraffeError("Table name not set")
-        self._columns.set_filter(field_names)
+        self._columns = field_names
+        #if not self.table:
+            #raise GiraffeError("Table name not set")
+        #self._columns.set_filter(field_names)
 
     @property
     def delimiter(self):
@@ -229,32 +215,6 @@ class TeradataMLoad(Connection):
     def null(self, value):
         self._null = value
         self.mload.set_null(self._null)
-
-    # TODO: could probably make getters/setters part of the base class
-    # for things like columns and encoding
-    # TODO: encoding might not be a good word for what this is considering
-    # the problems that people have had with file encoding (utf-8, latin-1, etc)
-    #@property
-    #def encoding(self):
-        #"""
-        #The encoding of the file being loaded.
-
-        #:getter: Returns the name of the encoding being used.
-        #:setter: Set the encoding of the input file if not specified to the
-            #constructor of the instance. Accepted values are :code:`'text'`
-            #or :code:`'archive'`.
-
-            #Raises :class:`~giraffez.errors.GiraffeError` if :code:`enc` is not one
-            #of the above.
-        #:type: str
-        #"""
-        #return self._encoding
-
-    #@encoding.setter
-    #def encoding(self, value):
-        #if value not in self._valid_encodings:
-            #raise GiraffeError("{} is not a valid encoding type".format(value))
-        #self._encoding = value
 
     @property
     def exit_code(self):
@@ -319,17 +279,9 @@ class TeradataMLoad(Connection):
             self.table = table
 
         with Reader(filename, delimiter=delimiter, quotechar=quotechar) as f:
-            #if not self.columns:
-                #self.columns = f.header
-
-            if isinstance(f, JSONReader):
-                self.encoding = "dict"
-                self.preprocessor = lambda s: s
-            elif isinstance(f, FileReader):
-                self.encoding = "str"
-                self.preprocessor = lambda s: s
-            elif isinstance(f, ArchiveFileReader):
-                self.encoding = "archive"
+            if isinstance(f, ArchiveFileReader):
+                self.mload.set_encoding(ROW_ENCODING_RAW)
+                self.columns = f.header
                 self.preprocessor = lambda s: s
             self.null = null
             if delimiter is None:
@@ -339,7 +291,7 @@ class TeradataMLoad(Connection):
             i = 0
             for i, line in enumerate(f, 1):
                 self.load_row(line, panic=panic)
-                #self.load_row("whoops", panic=panic)
+                #self.load_row(b"whoops", panic=panic)
                 if i % self.checkpoint_interval == 1:
                     log.info("\rMLoad", "Processed {} rows".format(i), console=True)
                     # TODO: get error info and catch error 10517: UPDATE_OPERATOR: TPT10510: Error Limit has been reached or exceeded.
@@ -349,6 +301,23 @@ class TeradataMLoad(Connection):
                         return exit_code
             log.info("\rMLoad", "Processed {} rows".format(i))
             return self.finish()
+
+    def initiate(self):
+        if not self.table:
+            raise GiraffeError("Table must be set prior to initiating.")
+        if self.initiated:
+            raise GiraffeError("Already initiated connection.")
+        if self.perform_cleanup:
+            self.cleanup()
+        elif any(filter(lambda x: self.mload.exists(x), self.tables)):
+            raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
+        log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
+        self.mload.initiate(self.table, self.columns)
+        self.mload.set_delimiter(self.delimiter)
+        self.mload.set_null(self.null)
+        log.info("MLoad", "Teradata PT request accepted.")
+        self._columns = self.mload.columns()
+        self.initiated = True
 
     def load_row(self, items, panic=True):
         """

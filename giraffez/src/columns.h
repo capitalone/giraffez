@@ -42,7 +42,9 @@ typedef enum GiraffeTypes {
     GD_VARCHAR,
     GD_DATE,
     GD_TIME,
-    GD_TIMESTAMP
+    GD_TIMESTAMP,
+    GD_BYTE,
+    GD_VARBYTE
 } GiraffeTypes;
 
 typedef struct {

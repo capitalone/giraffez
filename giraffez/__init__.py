@@ -40,13 +40,13 @@ try:
     from . import _encoder
     from . import _tpt
 except ImportError as error:
-    raise Exception("""{}.  This indicates that either the
-giraffez C extensions did not compile correctly, or more likely,
-there is an issue with the environment or installation of the
-Teradata dependencies. Both the Teradata Call-Level Interface Version 2
-and Teradata Parallel Transporter API require several environment
-variables to be set to find the shared library files and error message
-catalog.
+    raise Exception("""{}.
+This indicates that either the giraffez C extensions did not compile
+correctly, or more likely, there is an issue with the environment or
+installation of the Teradata dependencies. Both the Teradata Call-Level
+Interface Version 2 and Teradata Parallel Transporter API require
+several environment variables to be set to find the shared library
+files and error message catalog.
 
 For more information, refer to this section in the giraffez
 documentation:

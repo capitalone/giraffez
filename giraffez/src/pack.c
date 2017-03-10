@@ -63,7 +63,9 @@ PyObject* teradata_row_from_pybytes(const TeradataEncoder *e, PyObject *row, uns
         return NULL;
     }
     len = PyBytes_Size(row);
-    *length += pack_string(data, str, len);
+    memcpy(*data, str, len);
+    *length += len;
+    /**length += pack_string(data, str, len);*/
     Py_RETURN_NONE;
 }
 

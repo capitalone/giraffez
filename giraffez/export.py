@@ -21,7 +21,7 @@ from .errors import *
 
 from .config import Config
 from .connection import Connection
-from .encoders import dict_to_json
+from .encoders import dict_to_json, TeradataEncoder
 from .fmt import truncate
 from .logging import log
 from .sql import parse_statement, remove_curly_quotes
@@ -98,6 +98,8 @@ class TeradataExport(Connection):
 
         #: Attributes set via property getter/setters
         self.query = query
+
+        self.processor = identity
 
     def _connect(self, host, username, password):
         self.export = Export(host, username, password)
@@ -210,12 +212,17 @@ class TeradataExport(Connection):
         self.export.set_encoding(ROW_ENCODING_RAW)
         writer.write(GIRAFFE_MAGIC)
         writer.write(self.columns.serialize())
-        for line in self.fetchall():
-            writer.write(line)
+        i = 0
+        for n, chunk in enumerate(self.fetchall(), 1):
+            writer.write(chunk)
+            yield TeradataEncoder.count(chunk)
 
     def json(self):
         self.processor = dict_to_json
-        return self.items()
+        self.export.set_encoding(ROW_ENCODING_DICT)
+        if self.coerce_floats:
+            self.export.set_encoding(DECIMAL_AS_FLOAT)
+        return self.fetchall()
 
     def items(self):
         self.processor = identity

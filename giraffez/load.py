@@ -61,7 +61,7 @@ class TeradataLoad(TeradataCmd):
     """
 
     def from_file(self, table_name, input_file_name, delimiter=None, null=DEFAULT_NULL,
-            date_conversion=False, quotechar='"'):
+            parse_dates=False, quotechar='"'):
         """
         Load a text file into the specified :code:`table_name`
 
@@ -96,9 +96,9 @@ class TeradataLoad(TeradataCmd):
                 self.options("quote char", f.reader.dialect.quotechar, 2)
             elif isinstance(f, JSONReader):
                 self.options("encoding", "json", 1)
-            return self.insert(table_name, rows, fields=f.header, date_conversion=date_conversion)
+            return self.insert(table_name, rows, fields=f.header, parse_dates=parse_dates)
 
-    def insert(self, table_name, rows, fields=None, date_conversion=True):
+    def insert(self, table_name, rows, fields=None, parse_dates=False):
         """
         Insert Python :code:`list` rows into the specified :code:`table_name`
 
@@ -129,7 +129,7 @@ class TeradataLoad(TeradataCmd):
         check_input(columns, fields)
         stats = defaultdict(int)
         processor = pipeline([
-            python_to_sql(table_name, columns, date_conversion)
+            python_to_sql(table_name, columns, parse_dates)
         ])
         def _fetch():
             stats['count'] = 0

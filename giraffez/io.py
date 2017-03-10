@@ -192,6 +192,7 @@ class Reader(object):
 
 class Writer(object):
     def __init__(self, path=None, mode='wt', use_gzip=False):
+        self.mode = mode
         if path is None:
             self.name = "stdout"
             if 'b' in mode:
