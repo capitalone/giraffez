@@ -82,15 +82,15 @@ class TeradataExport(Connection):
 
     def __init__(self, query=None, host=None, username=None, password=None,
             log_level=INFO, config=None, key_file=None, dsn=None, protect=False,
-            delimiter="|", null=None, coerce_floats=True):
+            coerce_floats=True):
         super(TeradataExport, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 
         #: Attributes used with property getter/setters
         self._query = None
         self._encoding = None
-        self._delimiter = delimiter
-        self._null = null
+        self._delimiter = None
+        self._null = None
 
         self.coerce_floats = coerce_floats
 
@@ -129,6 +129,7 @@ class TeradataExport(Connection):
     @delimiter.setter
     def delimiter(self, value):
         self._delimiter = value
+        self.export.set_delimiter(self._delimiter)
 
     @property
     def null(self):

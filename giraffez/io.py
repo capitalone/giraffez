@@ -124,7 +124,9 @@ class CSVReader(FileReader):
 
     def __init__(self, path, delimiter=None, quotechar='"'):
         super(CSVReader, self).__init__(path)
-        self.delimiter = file_delimiter(path)
+        self.delimiter = delimiter
+        if self.delimiter is None:
+            self.delimiter = file_delimiter(path)
         if self.delimiter is None:
             raise GiraffeError("Delimiter could not be inferred.")
         self.reader = csv.reader(self.fd, delimiter=self.delimiter, quotechar=quotechar)

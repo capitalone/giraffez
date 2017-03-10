@@ -403,6 +403,8 @@ class MLoadCommand(Command):
     ]
 
     def run(self, args):
+        if args.delimiter is not None:
+            args.delimiter = unescape_string(args.delimiter)
         if args.encoding not in ["archive", "str"]:
             raise GiraffeError("'{}' is not an encoder.".format(args.encoding))
         if not file_exists(args.input_file):
@@ -421,6 +423,8 @@ class MLoadCommand(Command):
             mload.encoding = args.encoding
             mload.coerce_floats = args.coerce_floats
             mload.table = args.table
+            mload.null = args.null
+            mload.delimiter = args.delimiter
             if args.drop_all is True:
                 mload.cleanup()
             else:

@@ -57,8 +57,6 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pystring;
             e->PackItemFunc = teradata_item_from_pyobject;
-            encoder_set_delimiter(e, DEFAULT_DELIMITER);
-            encoder_set_null(e, DEFAULT_NULLVALUE_STR);
             break;
         case ROW_ENCODING_DICT:
             e->UnpackRowsFunc = teradata_buffer_to_pylist;
@@ -66,7 +64,6 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pydict;
             e->PackItemFunc = teradata_item_from_pyobject;
-            encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
         case ROW_ENCODING_LIST:
             e->UnpackRowsFunc = teradata_buffer_to_pylist;
@@ -74,7 +71,6 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
             e->UnpackItemFunc = teradata_item_to_pyobject;
             e->PackRowFunc = teradata_row_from_pytuple;
             e->PackItemFunc = teradata_item_from_pyobject;
-            encoder_set_null(e, DEFAULT_NULLVALUE);
             break;
         case ROW_ENCODING_RAW:
             e->UnpackRowsFunc = teradata_buffer_to_pybytes;
@@ -129,7 +125,7 @@ PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
     // TODO: should also create a helper function for going from
     // utf-8 to bytes, needs to be very correct at the cost
     // of performance
-    PyObject *tmp;
+    PyObject *tmp = NULL;
     char *delimiter = NULL;
     if (_PyUnicode_Check(obj)) {
         if ((delimiter = PyUnicode_AsUTF8(obj)) == NULL) {
@@ -144,9 +140,12 @@ PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
         if ((delimiter = PyUnicode_AsUTF8(tmp)) == NULL) {
             return NULL;
         }
+    }
+    e->DelimiterStr = strdup(delimiter);
+    if (tmp != NULL) {
+        // decref here to prevent tmp from being deallocated before strdup is called
         Py_DECREF(tmp);
     }
-    e->DelimiterStr = delimiter;
     e->DelimiterStrLen = strlen(delimiter);
     Py_RETURN_NONE;
 }
@@ -160,7 +159,7 @@ PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
     e->NullValue = obj;
     // TODO: should probably check items here to ensure they are
     // the correct Python type
-    PyObject *tmp;
+    PyObject *tmp = NULL;
     char *null = NULL;
     if (_PyUnicode_Check(obj)) {
         if ((null = PyUnicode_AsUTF8(obj)) == NULL) {
@@ -175,9 +174,12 @@ PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
         if ((null = PyUnicode_AsUTF8(tmp)) == NULL) {
             return NULL;
         }
+    }
+    e->NullValueStr = strdup(null);
+    if (tmp != NULL) {
+        // decref here to prevent tmp from being deallocated before strdup is called
         Py_DECREF(tmp);
     }
-    e->NullValueStr = null;
     e->NullValueStrLen = strlen(e->NullValueStr);
     Py_RETURN_NONE;
 }
@@ -190,19 +192,23 @@ void encoder_clear(TeradataEncoder *e) {
 }
 
 void encoder_free(TeradataEncoder *e) {
+    if (e == NULL) {
+        return;
+    }
     Py_XDECREF(e->Delimiter);
     Py_XDECREF(e->NullValue);
     e->Delimiter = NULL;
     e->NullValue = NULL;
     encoder_clear(e);
-    if (e != NULL) {
-        /*if (e->buffer != NULL) {*/
-            /*free(e->buffer);*/
-            /*e->buffer = NULL;*/
-        /*}*/
-        free(e);
-        e = NULL;
+    free(e->DelimiterStr);
+    free(e->NullValueStr);
+    if (e->buffer != NULL) {
+        free(e->buffer->data);
+        free(e->buffer);
+        e->buffer = NULL;
     }
+    free(e);
+    e = NULL;
 }
 
 Buffer* buffer_new(int buffer_size) {

@@ -344,7 +344,7 @@ namespace Giraffez {
             table_schema = new Schema((char*)"input");
             // TODO: either use this or SetInputSchema
             this->ClearSchemaList();
-            if (column_list == NULL) {
+            if (column_list == NULL || column_list == Py_None) {
                 for (j=0; j<encoder->Columns->length; j++) {
                     column = &encoder->Columns->array[j];
                     table_schema->AddColumn(column->Name, (TD_DataType)column->TPTType, column->Length,

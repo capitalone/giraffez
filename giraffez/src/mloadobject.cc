@@ -152,7 +152,7 @@ static PyObject* MLoad_initiate(MLoad *self, PyObject *args, PyObject *kwargs) {
         return NULL;
     }
 
-    if (column_list != NULL && (!PyList_Check(column_list) || column_list == Py_None)) {
+    if (column_list != NULL && !(PyList_Check(column_list) || column_list == Py_None)) {
         PyErr_Format(GiraffezError, "Column list must be <list> type");
         return NULL;
     }
