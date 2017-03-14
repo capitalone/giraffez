@@ -19,6 +19,8 @@ import sys
 from .constants import *
 from .errors import *
 
+from . import _cli
+from . import _tpt
 from .config import Config, message_write_default
 from .encrypt import create_key_file
 from .io import home_file
@@ -100,7 +102,7 @@ class MainCommand(Command):
                 self.run()
             else:
                 raise error
-        except InvalidCredentialsError as error:
+        except (_cli.InvalidCredentialsError, _tpt.InvalidCredentialsError) as error:
             if args.protect:
                 Config.lock_connection(args.conf, args.dsn, args.key)
             raise error

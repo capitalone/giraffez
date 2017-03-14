@@ -19,6 +19,7 @@ from ._tpt import Export
 from .constants import *
 from .errors import *
 
+from ._tpt import InvalidCredentialsError
 from .config import Config
 from .connection import Connection
 from .encoders import dict_to_json, TeradataEncoder
@@ -45,15 +46,6 @@ class TeradataExport(Connection):
     :param str host: Omit to read from :code:`~/.girafferc` configuration file.
     :param str username: Omit to read from :code:`~/.girafferc` configuration file.
     :param str password: Omit to read from :code:`~/.girafferc` configuration file.
-    :param str delimiter: The delimiter to use when exporting with the 'text'
-        encoding. Defaults to '|'
-    :param str null: The string to use to represent a null value with the
-        'text' encoding. Defaults to 'NULL'
-    :param str encoding: The encoding format in which to export the data.
-        Defaults to 'text'.  Possible values are 'text' - delimited text 
-        output, 'dict' - to output each row as a :code:`dict` object mapping column names
-        to values, 'json' - to output each row as a JSON encoded string, and 
-        'archive' to output in giraffez archive format
     :param int log_level: Specify the desired level of output from the job.
         Possible values are :code:`giraffez.SILENCE` :code:`giraffez.INFO` (default),
         :code:`giraffez.VERBOSE` and :code:`giraffez.DEBUG`
@@ -65,6 +57,7 @@ class TeradataExport(Connection):
         locks the connection used in the configuration file. This can be unlocked using the
         command :code:`giraffez config --unlock <connection>` changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
+    :param bool coerce_floats: Coerce Teradata decimal types into Python floats
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
     :raises `giraffez.errors.TeradataError`: if the connection cannot be established
 
@@ -76,7 +69,7 @@ class TeradataExport(Connection):
 
        with giraffez.Export('dbc.dbcinfo') as export:
            print(export.header)
-           for row in export.results():
+           for row in export.values():
                print(row)
     """
 
@@ -155,6 +148,8 @@ class TeradataExport(Connection):
         """
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
+        if not self.delimiter:
+            self.delimiter = DEFAULT_DELIMITER
         return self.delimiter.join(self.columns.names)
 
     def initiate(self):
@@ -205,7 +200,17 @@ class TeradataExport(Connection):
         else:
             self._query = statement
         self.initiated = False
-        self.export.set_query(statement)
+        # Since CLIv2 is used in set_query (instead of relying on the
+        # colums from the TPT Export driver) and set_query will always
+        # happen before calls to initiate, set_query will always fail
+        # with InvalidCredentialsError before initiate despite initiate
+        # presumably failing after this point as well.
+        try:
+            self.export.set_query(statement)
+        except InvalidCredentialsError as error:
+            if args.protect:
+                Config.lock_connection(args.conf, args.dsn, args.key)
+            raise error
 
     def archive(self, writer):
         if 'b' not in writer.mode:
@@ -266,14 +271,7 @@ class TeradataExport(Connection):
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
         if not self.initiated:
-            # TODO: this may not be necessary, InvalidCredentialsError
-            # is being checked in the base class.
-            try:
-                self.initiate()
-            except InvalidCredentialsError as error:
-                if self.protect:
-                    Config.lock_connection(self.config, self.dsn)
-                raise suppress_context(error)
+            self.initiate()
         while True:
             data = self.export.get_buffer()
             if not data:

@@ -41,7 +41,6 @@ MOD_INIT(_tpt)
 
     MOD_DEF(m, "_tpt", "", module_methods);
 
-    // TODO: should also check if these are ready?
     giraffez_types_import();
 
     if (m == NULL) {

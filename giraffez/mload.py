@@ -17,7 +17,7 @@
 import struct
 import threading
 
-from ._tpt import MLoad, TeradataError, EncoderError
+from ._tpt import EncoderError, InvalidCredentialsError, MLoad, TeradataError
 
 from .constants import *
 from .errors import *
@@ -69,10 +69,9 @@ class TeradataMLoad(Connection):
     is complete.
     """
     checkpoint_interval = DEFAULT_CHECKPOINT_INTERVAL
-    _valid_encodings = {"str", "archive", "dict"}
 
     def __init__(self, table=None, host=None, username=None, password=None, log_level=INFO,
-            config=None, key_file=None, dsn=None, protect=False, cleanup=False):
+            config=None, key_file=None, dsn=None, protect=False, coerce_floats=False, cleanup=False):
         super(TeradataMLoad, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 
@@ -80,23 +79,18 @@ class TeradataMLoad(Connection):
         self._columns = None
         self._table_name = None
         self._encoding = None
+        self._delimiter = DEFAULT_DELIMITER
+        self._null = DEFAULT_NULL
 
-        #: Flags tracking the important stages of MultiLoad to ensure
-        #: that the job is shutdown smoothly (if possible).
         self.initiated = False
-        self.end_acquisition = False
+        self.coerce_floats = coerce_floats
         self.perform_cleanup = cleanup
 
         self.applied_count = 0
         self.error_count = 0
         self.preprocessor = lambda s: s
-
-        self.coerce_floats = False
         if table is not None:
             self.table = table
-        self._delimiter = DEFAULT_DELIMITER
-        self._null = DEFAULT_NULL
-        self.preprocessor = lambda s: s
 
     def _connect(self, host, username, password):
         self.mload = MLoad(host, username, password)
@@ -132,7 +126,6 @@ class TeradataMLoad(Connection):
     def _end_acquisition(self):
         log.info("MLoad", "Ending acquisition phase ...")
         self.mload.end_acquisition()
-        self.end_acquisition = True
         log.info("MLoad", "Acquisition phase ended.")
 
     def checkpoint(self):
@@ -161,9 +154,6 @@ class TeradataMLoad(Connection):
 
     def close(self):
         log.info("MLoad", "Closing Teradata PT connection ...")
-        #if not self.end_acquisition and self.initiated:
-            #log.info("MLoad", "Acquisition phase was not called before closing.")
-            #self._end_acquisition()
         self.mload.close()
         log.info("MLoad", "Teradata PT request complete.")
 
@@ -190,13 +180,9 @@ class TeradataMLoad(Connection):
 
     @columns.setter
     def columns(self, field_names):
-        # TODO: check if list of strings
         if not isinstance(field_names, list):
             raise GiraffeError("Must set .columns property as type <List>")
         self._columns = field_names
-        #if not self.table:
-            #raise GiraffeError("Table name not set")
-        #self._columns.set_filter(field_names)
 
     @property
     def delimiter(self):
@@ -237,7 +223,7 @@ class TeradataMLoad(Connection):
         self._apply_rows()
         return self.exit_code
 
-    def from_file(self, filename, table=None, null=DEFAULT_NULL, delimiter=None, panic=True, quotechar='"'):
+    def from_file(self, filename, table=None, null=None, delimiter=None, panic=True, quotechar='"'):
         """
         Load from a file into the target table, handling each step of the
         load process.
@@ -277,24 +263,21 @@ class TeradataMLoad(Connection):
             if not table:
                 raise GiraffeError("Table must be set or specified to load a file.")
             self.table = table
-
+        if null is not None:
+            self.null = null
+        if delimiter is not None:
+            self.delimiter = delimiter
         with Reader(filename, delimiter=delimiter, quotechar=quotechar) as f:
             if isinstance(f, ArchiveFileReader):
                 self.mload.set_encoding(ROW_ENCODING_RAW)
                 self.columns = f.header
                 self.preprocessor = lambda s: s
-            self.null = null
-            if delimiter is None:
-                delimiter = "|"
-            self.delimiter = delimiter
             self.initiate()
             i = 0
             for i, line in enumerate(f, 1):
                 self.load_row(line, panic=panic)
-                #self.load_row(b"whoops", panic=panic)
                 if i % self.checkpoint_interval == 1:
                     log.info("\rMLoad", "Processed {} rows".format(i), console=True)
-                    # TODO: get error info and catch error 10517: UPDATE_OPERATOR: TPT10510: Error Limit has been reached or exceeded.
                     checkpoint_status = self.checkpoint()
                     exit_code = self.exit_code
                     if exit_code != 0:
@@ -307,12 +290,17 @@ class TeradataMLoad(Connection):
             raise GiraffeError("Table must be set prior to initiating.")
         if self.initiated:
             raise GiraffeError("Already initiated connection.")
-        if self.perform_cleanup:
-            self.cleanup()
-        elif any(filter(lambda x: self.mload.exists(x), self.tables)):
-            raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
-        log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
-        self.mload.initiate(self.table, self.columns)
+        try:
+            if self.perform_cleanup:
+                self.cleanup()
+            elif any(filter(lambda x: self.mload.exists(x), self.tables)):
+                raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
+            log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
+            self.mload.initiate(self.table, self.columns)
+        except InvalidCredentialsError as error:
+            if args.protect:
+                Config.lock_connection(args.conf, args.dsn, args.key)
+            raise error
         self.mload.set_delimiter(self.delimiter)
         self.mload.set_null(self.null)
         log.info("MLoad", "Teradata PT request accepted.")

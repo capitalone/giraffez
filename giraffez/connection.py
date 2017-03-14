@@ -19,6 +19,7 @@ import collections
 from .constants import *
 from .errors import *
 
+from ._cli import InvalidCredentialsError
 from .config import Config
 from .logging import log
 from .utils import show_warning, suppress_context
@@ -69,7 +70,7 @@ class Connection(object):
                 log.info("Connection", "Connection to '{}' established successfully.".format(self.dsn))
         except InvalidCredentialsError as error:
             if self.protect:
-                Config.lock_connection(self.config, self.dsn)
+                Config.lock_connection(self.config, self.dsn, self.key)
             raise error
 
     def _connect(self, host, username, password):

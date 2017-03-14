@@ -29,7 +29,7 @@ user-friendly and very fast.
 """
 
 __title__ = 'giraffez'
-__version__ = '2.0.0-dev0'
+__version__ = '2.0.0beta1'
 __authors__ = ['Christopher Marshall', 'Kyle Travis']
 __license__ = 'Apache 2.0'
 __all__     = ['Export', 'MLoad', 'Load', 'Cmd', 'Config', 'Secret']
@@ -53,14 +53,13 @@ documentation:
     http://www.capitalone.io/giraffez/intro.html#environment.
 """.format(error.msg))
 
+from ._cli import TeradataError as TeradataCLIError
+from ._tpt import TeradataError as TeradataPTError
 from .cmd import TeradataCmd as Cmd
 from .config import Config
 from .constants import SILENCE, VERBOSE, DEBUG, INFO
 from .errors import (
-    GeneralError,
     GiraffeError,
-    MultiLoadError,
-    TeradataError,
     GiraffeTypeError,
     GiraffeEncodeError,
     InvalidCredentialsError,

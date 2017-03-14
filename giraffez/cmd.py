@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._cli import Cmd, RequestEnded, StatementEnded, TeradataError
-
 from .constants import *
 from .errors import *
+
+from ._cli import Cmd, RequestEnded, StatementEnded, TeradataError
 
 from .connection import Connection
 from .fmt import truncate
@@ -144,7 +144,6 @@ class TeradataCmd(Connection):
     :param int log_level: Specify the desired level of output from the job.
         Possible values are :code:`giraffez.SILENCE` :code:`giraffez.INFO` (default),
         :code:`giraffez.VERBOSE` and :code:`giraffez.DEBUG`
-    :param bool panic: If :code:`True` stop executing commands and return after the first error.
     :param str config: Specify an alternate configuration file to be read from, when previous paramaters are omitted.
     :param str key_file: Specify an alternate key file to use for configuration decryption
     :param string dsn: Specify a connection name from the configuration file to be
@@ -153,8 +152,7 @@ class TeradataCmd(Connection):
         locks the connection used in the configuration file. This can be unlocked using the
         command :code:`giraffez config --unlock <connection>` changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
-    :param string mload_session: Identifies mload sessions to suppress duplicate log output.
-        Used internally only.
+    :param string silent: Suppress log output. Used internally only.
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
     :raises `giraffez.errors.TeradataError`: if the connection cannot be established
 
@@ -187,17 +185,18 @@ class TeradataCmd(Connection):
         if getattr(self, 'cmd', None):
             self.cmd.close()
 
-    def execute(self, command, sanitize=True, multi_statement=False, prepare_only=False,
-            silent=False, coerce_floats=True, parse_dates=False):
-        # TODO: Improve/fix this docstring
+    def execute(self, command, coerce_floats=True, parse_dates=False, multi_statement=False,
+            sanitize=True, silent=False, prepare_only=False):
         """
         Execute commands using CLIv2.
 
         :param str command: The SQL command to be executed
-        :param bool sanitize: Whether or not to call :func:`~giraffez.sql.prepare_statement` on the command
+        :param bool coerce_floats: Coerce Teradata decimal types into Python floats
+        :param bool parse_dates: Parses Teradata datetime types into Python datetimes
         :param bool multi_statement: Execute in multi-statement mode
-        :param bool prepare_only: Only prepare the command (no results)
+        :param bool sanitize: Whether or not to call :func:`~giraffez.sql.prepare_statement` on the command
         :param bool silent: Silence console logging (within this function only)
+        :param bool prepare_only: Only prepare the command (no results)
         :return: the results of each statement in the command
         :rtype: :class:`~giraffez.types.Rows`
         :raises `giraffez.errors.TeradataError`: if the query is invalid

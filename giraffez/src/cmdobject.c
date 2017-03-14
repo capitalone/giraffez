@@ -35,7 +35,11 @@ PyObject* check_parcel_error(TeradataConnection *conn) {
         Py_RETURN_NONE;
     case PclFAILURE:
         err = tdcli_read_failure(conn->dbc->fet_data_ptr);
-        PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
+        if (err->Code == TD_ERROR_INVALID_USER) {
+            PyErr_Format(InvalidCredentialsError, "%d: %s", err->Code, err->Msg);
+        } else {
+            PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
+        }
         return NULL;
     case PclERROR:
         err = tdcli_read_error(conn->dbc->fet_data_ptr);
@@ -206,7 +210,11 @@ PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, un
             return NULL;
         case PclFAILURE:
             err = tdcli_read_failure((char*)*data);
-            PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
+            if (err->Code == TD_ERROR_INVALID_USER) {
+                PyErr_Format(InvalidCredentialsError, "%d: %s", err->Code, err->Msg);
+            } else {
+                PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
+            }
             return NULL;
         case PclERROR:
             err = tdcli_read_error((char*)*data);
@@ -320,11 +328,9 @@ static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
     uint32_t new_settings = 0;
     uint32_t settings;
     PyObject *null = NULL, *delimiter = NULL;
-
     if (!PyArg_ParseTuple(args, "i|OO", &settings, &null, &delimiter)) {
         return NULL;
     }
-
     if (settings & ROW_RETURN_MASK) {
         new_settings = (self->encoder->Settings & ~ROW_RETURN_MASK) | settings;
     }
@@ -334,14 +340,12 @@ static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
     if (settings & DECIMAL_RETURN_MASK) {
         new_settings = (self->encoder->Settings & ~DECIMAL_RETURN_MASK) | settings;
     }
-
     if (encoder_set_encoding(self->encoder, new_settings) != 0) {
         PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);
         return NULL;
     }
     Py_RETURN_ERROR(encoder_set_null(self->encoder, null));
     Py_RETURN_ERROR(encoder_set_delimiter(self->encoder, delimiter));
-
     Py_RETURN_NONE;
 }
 
