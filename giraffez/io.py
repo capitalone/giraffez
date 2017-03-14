@@ -82,8 +82,8 @@ class BaseReader(object):
         return next(self.fd)
 
     @classmethod
-    def read_all(cls, path):
-        with cls(path, "rb") as f:
+    def read_all(cls, path, mode='rt'):
+        with cls(path, mode) as f:
             return f.read()
 
     @classmethod
