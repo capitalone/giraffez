@@ -43,7 +43,7 @@ __all__ = ['TeradataExport']
 
 class TeradataExport(Connection):
     """
-    The class for using the Teradata Parallel Transport API to quickly eport
+    The class for using the Teradata Parallel Transport API to quickly export
     large amounts of data.
 
     Exposed under the alias :class:`giraffez.Export`.
