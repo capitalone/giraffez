@@ -76,7 +76,7 @@ class CmdCommand(Command):
         if " " not in args.query:
             if file_exists(args.query):
                 file_name = args.query
-                args.query = FileReader.read_all(file_name)
+                args.query = FileReader.read_all(file_name).decode('ascii')
         start_time = time.time()
         with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as cmd:
