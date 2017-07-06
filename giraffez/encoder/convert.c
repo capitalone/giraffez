@@ -143,17 +143,20 @@ static PyObject* decimal128_to_pystring(unsigned char** data, const uint16_t col
         PyObject* pw = PyLong_FromLong((long)10);
         PyObject* sd = PyLong_FromLong((long)column_scale);
         PyObject* scale = PyNumber_Power(pw, sd, Py_None);
-        PyObject* x = PyNumber_FloorDivide(v, scale);
-        PyObject* y = PyNumber_Remainder(v, scale);
-        PyObject* fmt = PyUnicode_FromFormat("%%d.%%0%dd", column_scale);
+        PyObject *absv = PyNumber_Absolute(v);
+        PyObject* x = PyNumber_FloorDivide(absv, scale);
+        PyObject* y = PyNumber_Remainder(absv, scale);
+        const char* fmt = q < 0 ? "-%%d.%%0%dd" : "%%d.%%0%dd";
+        PyObject* finalfmt = PyUnicode_FromFormat(fmt, column_scale);
         PyObject* tup = Py_BuildValue("(OO)", x, y);
-        s = PyUnicode_Format(fmt, tup);
+        s = PyUnicode_Format(finalfmt, tup);
         Py_DECREF(v);
+        Py_DECREF(absv);
         Py_DECREF(sd);
         Py_DECREF(scale);
         Py_DECREF(x);
         Py_DECREF(y);
-        Py_DECREF(fmt);
+        Py_DECREF(finalfmt);
         Py_DECREF(tup);
     } else {
         s = PyObject_Str(v);
