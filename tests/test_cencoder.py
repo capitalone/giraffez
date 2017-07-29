@@ -109,7 +109,28 @@ class TestCEncoder(object):
         result_text = encoder.read(expected_bytes)
         assert result_text == expected_text
 
-    def test_decimal_scale_with_trailing_zeros(self, encoder):
+    def test_decimal_negative_more_again(self):
+        """
+        Decode/encode Teradata decimal type values containing
+        negatives with an integer-part of 0. This test ensures
+        that the signedness is not lost with a zero value. This
+        test ensures that negative numbers that are 128-bit are
+        handled correctly.
+
+        col1
+        -----------
+        -0.08
+        """
+        columns = Columns([
+            ('col1', TD_DECIMAL, 16, 24, 2),
+        ])
+        expected_bytes = b'\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+        expected_text = ['-0.08']
+        encoder = _encoder.Encoder(columns)
+        result_text = encoder.unpack_row(expected_bytes)
+        assert result_text == expected_text
+
+    def test_decimal_scale_with_trailing_zeros(self):
         """
         Ensure that encoder correctly handles the conversion of scale
         regardless of digits provided.
