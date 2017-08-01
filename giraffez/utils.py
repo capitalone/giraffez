@@ -112,7 +112,7 @@ def register_graceful_shutdown_signal():
     exiting, and the second will shutdown whether the connections
     have been closed or not.
     """
-    from ._common import register_graceful_shutdown_signal as _register
+    from ._teradata import register_graceful_shutdown_signal as _register
     _register()
 
 def show_warning(message, category):

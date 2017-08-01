@@ -22,7 +22,7 @@ try:
 except ImportError:
     import json
 
-from ._encoder import Encoder
+from ._teradata import Encoder
 from .constants import *
 from .errors import *
 

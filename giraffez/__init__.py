@@ -36,9 +36,8 @@ __all__     = ['Export', 'MLoad', 'Load', 'Cmd', 'Config', 'Secret']
 
 
 try:
-    from . import _cli
-    from . import _encoder
-    from . import _tpt
+    from . import _teradata
+    from . import _teradatapt
 except ImportError as error:
     raise Exception("""{}.
 This indicates that either the giraffez C extensions did not compile
@@ -53,8 +52,8 @@ documentation:
     http://www.capitalone.io/giraffez/intro.html#environment.
 """.format(error.msg))
 
-from ._cli import TeradataError as TeradataCLIError
-from ._tpt import TeradataError as TeradataPTError
+from ._teradata import TeradataError as TeradataCLIError
+from ._teradatapt import TeradataError as TeradataPTError
 from .cmd import TeradataCmd as Cmd
 from .config import Config
 from .constants import SILENCE, VERBOSE, DEBUG, INFO

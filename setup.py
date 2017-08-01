@@ -174,51 +174,23 @@ class Extension(_Extension):
         pass
 
 
-class CommonExtension(Extension):
-    name = "giraffez._common"
-    sources = [
-        "giraffez/commonmodule.c",
-    ]
-
-
-class EncoderExtension(Extension):
-    name = "giraffez._encoder"
+class TeradataExtension(Extension):
+    name = "giraffez._teradata"
 
     sources = [
+        "giraffez/src/buffer.c",
         "giraffez/src/columns.c",
         "giraffez/src/convert.c",
         "giraffez/src/encoder.c",
         "giraffez/src/errors.c",
-        "giraffez/src/pack.c",
-        "giraffez/src/pytypes.c",
-        "giraffez/src/unpack.c",
-        "giraffez/src/encoderobject.c",
-        "giraffez/encodermodule.c",
-    ]
-
-    depends = [
-        "giraffez/src/columns.h",
-        "giraffez/src/convert.h",
-        "giraffez/src/encoder.h",
-        "giraffez/encodermodule.c",
-    ]
-
-
-class CLIExtension(Extension):
-    name = "giraffez._cli"
-
-    sources = [
-        "giraffez/src/cmdobject.c",
-        "giraffez/src/errors.c",
+        "giraffez/src/row.c",
         "giraffez/src/teradata.c",
-        "giraffez/climodule.c",
+        "giraffez/_teradatamodule.c",
     ]
 
     depends = [
         "giraffez/climodule.c",
     ]
-
-    depends_on = [EncoderExtension]
 
     cli_include_dir = None
     cli_library_dir = None
@@ -271,21 +243,18 @@ class CLIExtension(Extension):
             self.libraries.append("cliv2")
 
 
-class TPTExtension(Extension):
-    name = "giraffez._tpt"
+class TeradataPTExtension(Extension):
+    name = "giraffez._teradatapt"
 
     sources = [
-        "giraffez/src/errors.c",
-        "giraffez/src/exportobject.cc",
-        "giraffez/src/mloadobject.cc",
-        "giraffez/tptmodule.cc",
+        "giraffez/_teradataptmodule.cc",
     ]
 
     depends = [
-        "giraffez/tptmodule.cc",
+        "giraffez/_teradataptmodule.cc",
     ]
 
-    depends_on = [EncoderExtension, CLIExtension]
+    depends_on = [TeradataExtension]
 
     tpt_include_dir = None
     tpt_library_dir = None
@@ -420,7 +389,7 @@ class BuildExt(build_ext):
 
 
 if __name__ == '__main__':
-    ext_modules = [CommonExtension(), EncoderExtension(), CLIExtension(), TPTExtension()]
+    ext_modules = [TeradataExtension(), TeradataPTExtension()]
 
     with open('requirements.txt') as f:
         requirements = f.read().splitlines()

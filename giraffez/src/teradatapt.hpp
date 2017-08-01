@@ -17,16 +17,17 @@
 #ifndef __GIRAFFEZ_CONNECTION_H
 #define __GIRAFFEZ_CONNECTION_H
 
-#include <Python.h>
+#include "common.h"
+#include "columns.h"
+#include "convert.h"
+#include "encoder.h"
+#include "teradata.h"
+#include <sstream>
 
 // Teradata Parallel Transporter API
 #include <connection.h>
 #include <schema.h>
 #include <DMLGroup.h>
-
-#include <sstream>
-
-#include "giraffez.h"
 
 
 typedef teradata::client::API::Connection TConn;

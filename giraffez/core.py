@@ -19,8 +19,8 @@ import sys
 from .constants import *
 from .errors import *
 
-from . import _cli
-from . import _tpt
+from . import _teradata
+from . import _teradatapt
 from .config import Config, message_write_default
 from .encrypt import create_key_file
 from .io import home_file

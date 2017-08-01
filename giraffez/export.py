@@ -14,12 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._tpt import Export
+from ._teradatapt import Export
 
 from .constants import *
 from .errors import *
 
-from ._tpt import InvalidCredentialsError
+from ._teradatapt import InvalidCredentialsError
 from .config import Config
 from .connection import Connection
 from .encoders import dict_to_json, TeradataEncoder

@@ -21,24 +21,15 @@
 extern "C" {
 #endif
 
-#define NO_CLIV2_ERROR_T
-#define STRING_CLI
-
 #define CONNECTED      0
 #define NOT_CONNECTED  1
 #define REQUEST_OPEN   1
 #define REQUEST_CLOSED 0
 #define OK             0
-#define STOP           1
-#define FAILED        -1
-#define PCL_FAIL      -2
-#define PCL_ERR       -3
 
-// This header file does not make use of the Python C API, however, the
-// Python C API is designed in such a way that in order to prevent
-// redefinition of macros set by the C standard library it must be
-// included before any C standard library.
-#include <Python.h>
+#include "common.h"
+#include "columns.h"
+#include "encoder.h"
 
 // Teradata CLIv2
 #include <coperr.h>
@@ -246,18 +237,32 @@ typedef struct TeradataTypes {
     } TptTypes;
 } TeradataTypes;
 
-TeradataErr* tdcli_read_error(char *dataptr);
-TeradataErr* tdcli_read_failure(char *dataptr);
-TeradataConnection* tdcli_new();
-uint16_t tdcli_init(TeradataConnection *conn);
-uint16_t tdcli_connect(TeradataConnection *conn, const char *host, const char *username,
+TeradataErr* __teradata_read_error(char *dataptr);
+TeradataErr* __teradata_read_failure(char *dataptr);
+TeradataConnection* __teradata_new();
+uint16_t __teradata_init(TeradataConnection *conn);
+uint16_t __teradata_connect(TeradataConnection *conn, const char *host, const char *username,
     const char *password);
-uint16_t tdcli_fetch(TeradataConnection *conn);
-uint16_t tdcli_fetch_record(TeradataConnection *conn);
-uint16_t tdcli_execute(TeradataConnection *conn, const char *command);
-uint16_t tdcli_end_request(TeradataConnection *conn);
-void tdcli_close(TeradataConnection *conn);
-void tdcli_free(TeradataConnection *conn);
+uint16_t __teradata_fetch(TeradataConnection *conn);
+uint16_t __teradata_fetch_record(TeradataConnection *conn);
+uint16_t __teradata_execute(TeradataConnection *conn, const char *command);
+uint16_t __teradata_end_request(TeradataConnection *conn);
+void __teradata_close(TeradataConnection *conn);
+void __teradata_free(TeradataConnection *conn);
+
+PyObject* teradata_check_error(TeradataConnection *conn);
+PyObject* teradata_close(TeradataConnection *conn);
+TeradataConnection* teradata_connect(const char *host, const char *username,
+    const char *password);
+PyObject* teradata_execute_rc(TeradataConnection *conn, TeradataEncoder *e, const char *command, int *rc);
+PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const char *command);
+PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command);
+PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data,
+    const uint32_t length);
+
+uint16_t teradata_type_to_tpt_type(uint16_t t);
+uint16_t teradata_type_from_tpt_type(uint16_t t);
+uint16_t teradata_type_to_giraffez_type(uint16_t t);
 
 #ifdef __cplusplus
 }

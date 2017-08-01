@@ -5,7 +5,7 @@ import pytest
 
 import decimal
 import giraffez
-from giraffez._encoder import EncoderError
+from giraffez._teradata import EncoderError
 from giraffez.constants import *
 from giraffez.encoders import *
 from giraffez.types import *
@@ -15,7 +15,9 @@ def encoder():
     return giraffez.Encoder(encoding=DECIMAL_AS_STRING)
 
 
+# todo: table testing
 class TestCEncoder(object):
+    # def test_deserialize_column()
     def test_decimal_128(self, encoder):
         """
         Decode/encode Teradata decimal type values > 18 digits.
@@ -109,7 +111,7 @@ class TestCEncoder(object):
         result_text = encoder.read(expected_bytes)
         assert result_text == expected_text
 
-    def test_decimal_negative_more_again(self):
+    def test_decimal_negative_more_again(self, encoder):
         """
         Decode/encode Teradata decimal type values containing
         negatives with an integer-part of 0. This test ensures
@@ -121,16 +123,25 @@ class TestCEncoder(object):
         -----------
         -0.08
         """
-        columns = Columns([
+        encoder.columns = Columns([
             ('col1', TD_DECIMAL, 16, 24, 2),
         ])
         expected_bytes = b'\x00\xf8\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
-        expected_text = ['-0.08']
-        encoder = _encoder.Encoder(columns)
-        result_text = encoder.unpack_row(expected_bytes)
+        expected_text = ('-0.08',)
+        result_text = encoder.read(expected_bytes)
         assert result_text == expected_text
 
-    def test_decimal_scale_with_trailing_zeros(self):
+        expected_bytes = b'\x00\x94\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+        expected_text = ('-1.08',)
+        result_text = encoder.read(expected_bytes)
+        assert result_text == expected_text
+
+        expected_bytes = b'\x00\xee\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+        expected_text = ('-0.18',)
+        result_text = encoder.read(expected_bytes)
+        assert result_text == expected_text
+
+    def test_decimal_scale_with_trailing_zeros(self, encoder):
         """
         Ensure that encoder correctly handles the conversion of scale
         regardless of digits provided.

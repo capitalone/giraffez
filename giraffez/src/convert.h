@@ -21,8 +21,9 @@
 extern "C" {
 #endif
 
-#include <Python.h>
 #include "common.h"
+#include "columns.h"
+#include "convert.h"
 
 
 enum DecimalTypes {
@@ -101,7 +102,7 @@ int teradata_decimal128_to_cstring(unsigned char **data, const uint16_t column_s
 
 
 // TODO: inline?
-inline PyObject* cstring_to_pystring(const char *buf, const int length);
+PyObject* cstring_to_pystring(const char *buf, const int length);
 PyObject* cstring_to_giraffez_decimal(const char *buf, const int length);
 PyObject* cstring_to_pyfloat(const char *buf, const int length);
 PyObject* pystring_from_cformat(const char* fmt, ...);
@@ -126,6 +127,19 @@ PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_l
     unsigned char **buf, uint16_t *len);
 PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_length,
     const uint16_t column_scale, unsigned char **buf, uint16_t *len);
+
+int giraffez_types_import();
+
+PyObject*       giraffez_columns_to_pyobject(GiraffeColumns *columns);
+GiraffeColumns* giraffez_columns_from_pyobject(PyObject *columns_obj);
+
+// TODO: make macros instead?
+PyObject* giraffez_decimal_from_pystring(PyObject *obj);
+PyObject* giraffez_date_from_datetime(int year, int month, int day, int hour, int minute,
+    int second, int microsecond);
+PyObject* giraffez_time_from_time(int hour, int minute, int second, int microsecond);
+PyObject* giraffez_ts_from_datetime(int year, int month, int day, int hour, int minute, int second,
+    int microsecond);
 
 #ifdef __cplusplus
 }

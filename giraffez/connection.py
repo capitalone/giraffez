@@ -19,7 +19,7 @@ import collections
 from .constants import *
 from .errors import *
 
-from ._cli import InvalidCredentialsError
+from ._teradata import InvalidCredentialsError
 from .config import Config
 from .logging import log
 from .utils import show_warning, suppress_context

@@ -29,7 +29,7 @@ import threading
 from .constants import *
 from .errors import *
 
-from ._cli import TeradataError
+from ._teradata import TeradataError
 from .fmt import format_table, replace_cr
 from .logging import log, setup_logging
 from .utils import get_version_info, timer

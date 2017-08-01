@@ -14,18 +14,30 @@
  * limitations under the License.
  */
 
-#ifndef __GIRAFFEZ_INTERNAL_CONFIG
-#define __GIRAFFEZ_INTERNAL_CONFIG
+#ifndef __GIRAFFEZ_BUFFER_H
+#define __GIRAFFEZ_BUFFER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "common.h"
 
 
-#define BUFFER_STRPTIME_SIZE 1024
-#define BUFFER_ITEM_SIZE 1024
-#define BUFFER_FORMAT_SIZE 1024
+typedef struct buffer_t {
+    size_t length;
+    size_t pos;
+    char   *data;
+} buffer_t;
 
-#define TD_ROW_MAX_SIZE 64260
-#define VARCHAR_NULL_LENGTH 2
-#define MAX_PARCEL_ATTEMPTS 5
-#define TERADATA_CHARSET "UTF8"
+buffer_t* buffer_new(int buffer_size);
+void      buffer_write(buffer_t *b, char *data, int length);
+void      buffer_reset(buffer_t *b, size_t n);
+void      buffer_writef(buffer_t *b, const char *fmt, ...);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

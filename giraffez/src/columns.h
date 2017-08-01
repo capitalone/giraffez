@@ -21,7 +21,6 @@
 extern "C" {
 #endif
 
-#include <Python.h>
 #include "common.h"
 
 
@@ -48,9 +47,9 @@ typedef enum GiraffeTypes {
 } GiraffeTypes;
 
 typedef struct {
-    char *Database;
-    char *Table;
-    char *Name;
+    char     *Database;
+    char     *Table;
+    char     *Name;
     uint16_t Type;
     uint64_t Length;
     uint16_t Precision;
@@ -58,22 +57,22 @@ typedef struct {
     uint16_t Scale;
     uint16_t GDType;
     uint16_t TPTType;
-    char *Alias;
-    char *Title;
-    char *Format;
-    char *Default;
-    char *Nullable;
+    char     *Alias;
+    char     *Title;
+    char     *Format;
+    char     *Default;
+    char     *Nullable;
 
     uint16_t NullLength;
-    char *SafeName;
+    char     *SafeName;
 } GiraffeColumn;
 
 typedef struct {
-    size_t size;
-    size_t length;
-    size_t header_length;
-    unsigned char *buffer;
-    GiraffeColumn *array;
+    size_t           size;
+    size_t           length;
+    size_t           header_length;
+    unsigned char    *buffer;
+    GiraffeColumn    *array;
     RawStatementInfo *raw;
 } GiraffeColumns;
 
@@ -88,28 +87,28 @@ typedef struct {
 
     uint16_t Position;
 
-    char *Alias;
-    char *Title;
-    char *Format;
-    char *Default;
-    char *IdentityColumn;
-    char *DefinitelyWritable;
-    char *NotDefinedNotNull;
-    char *CanReturnNull;
-    char *PermittedInWhere;
-    char *Writable;
+    char     *Alias;
+    char     *Title;
+    char     *Format;
+    char     *Default;
+    char     *IdentityColumn;
+    char     *DefinitelyWritable;
+    char     *NotDefinedNotNull;
+    char     *CanReturnNull;
+    char     *PermittedInWhere;
+    char     *Writable;
     uint16_t Type;
     uint16_t UDType;
 
     char *TypeName;
     char *DataTypeMiscInfo;
 
-    uint64_t Length;
-    uint16_t Precision;
-    uint16_t Interval;
-    uint16_t Scale;
+    uint64_t      Length;
+    uint16_t      Precision;
+    uint16_t      Interval;
+    uint16_t      Scale;
     unsigned char *CharacterSetType;
-    uint64_t TotalNumberCharacters;
+    uint64_t      TotalNumberCharacters;
     unsigned char *CaseSensitive;
     unsigned char *NumericItemSigned;
     unsigned char *UniquelyDescribesRow;
@@ -119,15 +118,15 @@ typedef struct {
 } StatementInfoColumn;
 
 typedef struct {
-    size_t size;
-    size_t length;
+    size_t              size;
+    size_t              length;
     StatementInfoColumn *array;
 } StatementInfo;
 
 GiraffeColumn* column_new();
-void columns_init(GiraffeColumns *c, size_t initial_size);
-void columns_append(GiraffeColumns *c, GiraffeColumn element);
-void columns_free(GiraffeColumns *c);
+void           columns_init(GiraffeColumns *c, size_t initial_size);
+void           columns_append(GiraffeColumns *c, GiraffeColumn element);
+void           columns_free(GiraffeColumns *c);
 
 void indicator_set(GiraffeColumns *columns, unsigned char **data);
 void indicator_clear(unsigned char **ind, size_t n);
@@ -137,11 +136,7 @@ void stmt_info_init(StatementInfo *s, size_t initial_size);
 void stmt_info_append(StatementInfo *s, StatementInfoColumn element);
 void stmt_info_free(StatementInfo *s);
 char* safe_name(const char *name);
-GiraffeColumns* unpack_stmt_info_to_columns(unsigned char **data, const uint32_t length);
-void unpack_stmt_info(unsigned char **data, StatementInfo *s, const uint32_t length);
-uint16_t teradata_type_to_tpt_type(uint16_t t);
-uint16_t tpt_type_to_teradata_type(uint16_t t);
-uint16_t teradata_type_to_giraffez_type(uint16_t t);
+GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t length);
 
 #ifdef __cplusplus
 }

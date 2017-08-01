@@ -17,7 +17,7 @@
 from .constants import *
 from .errors import *
 
-from ._cli import Cmd, RequestEnded, StatementEnded, TeradataError
+from ._teradata import Cmd, RequestEnded, StatementEnded, TeradataError
 
 from .connection import Connection
 from .fmt import truncate

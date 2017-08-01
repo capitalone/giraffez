@@ -24,6 +24,8 @@
 extern "C" {
 #endif
 
+#include <Python.h>
+#include <structmember.h>
 #include <ctype.h>
 #include <math.h>
 #include <stddef.h>
@@ -37,10 +39,34 @@ extern "C" {
 #include <string.h>
 
 // Python 2/3 C API and Windows compatibility
-#include "compat.h"
+#include "_compat.h"
 
 // General compile-time settings
-#include "config.h"
+#define BUFFER_STRPTIME_SIZE 1024
+#define BUFFER_ITEM_SIZE     1024
+#define BUFFER_FORMAT_SIZE   1024
+
+#define TD_ROW_MAX_SIZE      64260
+#define VARCHAR_NULL_LENGTH  2
+#define MAX_PARCEL_ATTEMPTS  5
+#define TERADATA_CHARSET     "UTF8"
+
+// CLIv2 attempts to define a type error_t which already exists in the standard library
+#define NO_CLIV2_ERROR_T
+// Required to compile with C++ compilers
+#define STRING_CLI
+
+
+#ifdef DEBUG_LOGGING
+#define DEBUG_PRINTF(fmt, ...) debug_printf(fmt, __VA_ARGS__)
+#else
+#define DEBUG_PRINTF(fmt, ...)
+#endif
+
+void debug_printf(const char *fmt, ...);
+
+PyObject* define_exceptions(PyObject *module);
+
 
 extern PyTypeObject CmdType;
 extern PyTypeObject EncoderType;

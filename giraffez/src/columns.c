@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
+#include "common.h"
+#include "convert.h"
+#include "teradata.h"
+
 #include "columns.h"
-#include "giraffez.h"
+
 
 GiraffeColumn* column_new() {
     GiraffeColumn *column;
@@ -61,7 +65,7 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
     }
     if (element.Type < BLOB_NN) {
         element.TPTType = element.Type;
-        element.Type = tpt_type_to_teradata_type(element.Type);
+        element.Type = teradata_type_from_tpt_type(element.Type);
     } else {
         element.TPTType = teradata_type_to_tpt_type(element.Type);
     }
@@ -80,7 +84,6 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
 void columns_free(GiraffeColumns *c) {
     free(c->array);
     free(c->buffer);
-    free(c->raw);
     c->array = NULL;
     c->buffer = NULL;
     c->length = c->size = 0;
@@ -178,8 +181,8 @@ char* safe_name(const char *name) {
     return s;
 }
 
-GiraffeColumns* unpack_stmt_info_to_columns(unsigned char **data, const uint32_t length) {
-    StatementInfoColumn *scolumn;
+GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t length) {
+    StatementInfoColumn *c;
     StatementInfo *s;
     GiraffeColumn *column;
     GiraffeColumns *columns;
@@ -194,464 +197,69 @@ GiraffeColumns* unpack_stmt_info_to_columns(unsigned char **data, const uint32_t
 
     s = (StatementInfo*)malloc(sizeof(StatementInfo));
     stmt_info_init(s, 1);
-    unpack_stmt_info(data, s, length);
+    unsigned char *ext, *start;
+    start = *data;
+    while ((*data - start) < length) {
+        c = (StatementInfoColumn*)malloc(sizeof(StatementInfoColumn));
+        unpack_uint16_t(data, &c->ExtensionLayout);
+        unpack_uint16_t(data, &c->ExtensionType);
+        unpack_uint16_t(data, &c->ExtensionLength);
+        if (c->ExtensionLayout != 1) {
+            *data += c->ExtensionLength;
+            continue;
+        }
+        ext = *data;
+        unpack_string(data, &c->Database);
+        unpack_string(data, &c->Table);
+        unpack_string(data, &c->Name);
+        unpack_uint16_t(data, &c->Position);
+        unpack_string(data, &c->Alias);
+        unpack_string(data, &c->Title);
+        unpack_string(data, &c->Format);
+        unpack_string(data, &c->Default);
+        unpack_char(data, &c->IdentityColumn);
+        unpack_char(data, &c->DefinitelyWritable);
+        unpack_char(data, &c->NotDefinedNotNull);
+        unpack_char(data, &c->CanReturnNull);
+        unpack_char(data, &c->PermittedInWhere);
+        unpack_char(data, &c->Writable);
+        unpack_uint16_t(data, &c->Type);
+        unpack_uint16_t(data, &c->UDType);
+        unpack_string(data, &c->TypeName);
+        unpack_string(data, &c->DataTypeMiscInfo);
+        unpack_uint64_t(data, &c->Length);
+        unpack_uint16_t(data, &c->Precision);
+        unpack_uint16_t(data, &c->Interval);
+        unpack_uint16_t(data, &c->Scale);
+        unpack_uchar(data, &c->CharacterSetType);
+        unpack_uint64_t(data, &c->TotalNumberCharacters);
+        unpack_uchar(data, &c->CaseSensitive);
+        unpack_uchar(data, &c->NumericItemSigned);
+        unpack_uchar(data, &c->UniquelyDescribesRow);
+        unpack_uchar(data, &c->OnlyMemberUniqueIndex);
+        unpack_uchar(data, &c->IsExpression);
+        unpack_uchar(data, &c->PermittedInOrderBy);
+        // Sometimes extra data...
+        if ((*data-ext) < c->ExtensionLength) {
+            *data += (c->ExtensionLength - (*data-ext));
+        }
+        stmt_info_append(s, *c);
+    }
     for (i=0; i<s->length; i++) {
-        scolumn = &s->array[i];
+        c = &s->array[i];
         column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
-        column->Name = strdup(scolumn->Name);
-        column->Type = scolumn->Type;
-        column->Length = scolumn->Length;
-        column->Precision = scolumn->Precision;
-        column->Scale = scolumn->Scale;
-        column->Alias = scolumn->Alias;
-        column->Title = scolumn->Title;
-        column->Format = scolumn->Format;
-        column->Default = scolumn->Default;
-        column->Nullable = scolumn->CanReturnNull;
+        column->Name = strdup(c->Name);
+        column->Type = c->Type;
+        column->Length = c->Length;
+        column->Precision = c->Precision;
+        column->Scale = c->Scale;
+        column->Alias = c->Alias;
+        column->Title = c->Title;
+        column->Format = c->Format;
+        column->Default = c->Default;
+        column->Nullable = c->CanReturnNull;
         columns_append(columns, *column);
     }
     stmt_info_free(s);
     return columns;
-}
-
-void unpack_stmt_info(unsigned char** data, StatementInfo* s, const uint32_t length) {
-    unsigned char *ext, *start;
-    start = *data;
-    StatementInfoColumn *column;
-    while ((*data - start) < length) {
-        column = (StatementInfoColumn*)malloc(sizeof(StatementInfoColumn));
-        unpack_uint16_t(data, &column->ExtensionLayout);
-        unpack_uint16_t(data, &column->ExtensionType);
-        unpack_uint16_t(data, &column->ExtensionLength);
-        if (column->ExtensionLayout != 1) {
-            *data += column->ExtensionLength;
-            continue;
-        }
-        ext = *data;
-        unpack_string(data, &column->Database);
-        unpack_string(data, &column->Table);
-        unpack_string(data, &column->Name);
-        unpack_uint16_t(data, &column->Position);
-        unpack_string(data, &column->Alias);
-        unpack_string(data, &column->Title);
-        unpack_string(data, &column->Format);
-        unpack_string(data, &column->Default);
-        unpack_char(data, &column->IdentityColumn);
-        unpack_char(data, &column->DefinitelyWritable);
-        unpack_char(data, &column->NotDefinedNotNull);
-        unpack_char(data, &column->CanReturnNull);
-        unpack_char(data, &column->PermittedInWhere);
-        unpack_char(data, &column->Writable);
-        unpack_uint16_t(data, &column->Type);
-        unpack_uint16_t(data, &column->UDType);
-        unpack_string(data, &column->TypeName);
-        unpack_string(data, &column->DataTypeMiscInfo);
-        unpack_uint64_t(data, &column->Length);
-        unpack_uint16_t(data, &column->Precision);
-        unpack_uint16_t(data, &column->Interval);
-        unpack_uint16_t(data, &column->Scale);
-        unpack_uchar(data, &column->CharacterSetType);
-        unpack_uint64_t(data, &column->TotalNumberCharacters);
-        unpack_uchar(data, &column->CaseSensitive);
-        unpack_uchar(data, &column->NumericItemSigned);
-        unpack_uchar(data, &column->UniquelyDescribesRow);
-        unpack_uchar(data, &column->OnlyMemberUniqueIndex);
-        unpack_uchar(data, &column->IsExpression);
-        unpack_uchar(data, &column->PermittedInOrderBy);
-        // Sometimes extra data...
-        if ((*data-ext) < column->ExtensionLength) {
-            *data += (column->ExtensionLength - (*data-ext));
-        }
-        stmt_info_append(s, *column);
-    }
-}
-
-uint16_t teradata_type_to_tpt_type(uint16_t t) {
-    switch (t) {
-        case BLOB_NN:
-        case BLOB_N:
-        case BLOB_AS_DEFERRED_NN:
-        case BLOB_AS_DEFERRED_N:
-        case BLOB_AS_LOCATOR_NN:
-        case BLOB_AS_LOCATOR_N:
-            return TD_BLOB;
-        case BLOB_AS_DEFERRED_NAME_NN:
-        case BLOB_AS_DEFERRED_NAME_N:
-            return TD_BLOB_AS_DEFERRED_BY_NAME;
-        case CLOB_NN:
-        case CLOB_N:
-            return TD_CLOB;
-        case CLOB_AS_DEFERRED_NN:
-        case CLOB_AS_DEFERRED_N:
-            return TD_CLOB_AS_DEFERRED_BY_NAME;
-        case CLOB_AS_LOCATOR_NN:
-        case CLOB_AS_LOCATOR_N:
-            return TD_CLOB;
-        case UDT_NN:
-        case UDT_N:
-        case DISTINCT_UDT_NN:
-        case DISTINCT_UDT_N:
-        case STRUCT_UDT_NN:
-        case STRUCT_UDT_N:
-            return TD_CHAR;
-        case VARCHAR_NN:
-        case VARCHAR_N:
-            return TD_VARCHAR;
-        case CHAR_NN:
-        case CHAR_N:
-            return TD_CHAR;
-        case LONG_VARCHAR_NN:
-        case LONG_VARCHAR_N:
-            return TD_LONGVARCHAR;
-        case VARGRAPHIC_NN:
-        case VARGRAPHIC_N:
-            return TD_VARGRAPHIC;
-        case GRAPHIC_NN:
-        case GRAPHIC_N:
-            return TD_GRAPHIC;
-        case LONG_VARGRAPHIC_NN:
-        case LONG_VARGRAPHIC_N:
-            return TD_LONGVARGRAPHIC;
-        case FLOAT_NN:
-        case FLOAT_N:
-            return TD_FLOAT;
-        case DECIMAL_NN:
-        case DECIMAL_N:
-            return TD_DECIMAL;
-        case INTEGER_NN:
-        case INTEGER_N:
-            return TD_INTEGER;
-        case SMALLINT_NN:
-        case SMALLINT_N:
-            return TD_SMALLINT;
-        case ARRAY_1D_NN:
-        case ARRAY_1D_N:
-        case ARRAY_ND_NN:
-        case ARRAY_ND_N:
-            return TD_CHAR;
-        case BIGINT_NN:
-        case BIGINT_N:
-            return TD_BIGINT;
-        case VARBYTE_NN:
-        case VARBYTE_N:
-            return TD_VARBYTE;
-        case BYTE_NN:
-        case BYTE_N:
-            return TD_BYTE;
-        case LONG_VARBYTE_NN:
-        case LONG_VARBYTE_N:
-            return TD_LONGVARCHAR;
-        case DATE_NNA:
-        case DATE_NA:
-            return TD_CHAR;
-        case DATE_NN:
-        case DATE_N:
-            return TD_DATE;
-        case BYTEINT_NN:
-        case BYTEINT_N:
-            return TD_BYTEINT;
-        case TIME_NN:
-        case TIME_N:
-            return TD_TIME;
-        case TIMESTAMP_NN:
-        case TIMESTAMP_N:
-            return TD_TIMESTAMP;
-        case TIME_NNZ:
-        case TIME_NZ:
-            return TD_TIME_WITHTIMEZONE;
-        case TIMESTAMP_NNZ:
-        case TIMESTAMP_NZ:
-            return TD_TIMESTAMP_WITHTIMEZONE;
-        case INTERVAL_YEAR_NN:
-        case INTERVAL_YEAR_N:
-            return TD_INTERVAL_YEAR;
-        case INTERVAL_YEAR_TO_MONTH_NN:
-        case INTERVAL_YEAR_TO_MONTH_N:
-            return TD_INTERVAL_YEARTOMONTH;
-        case INTERVAL_MONTH_NN:
-        case INTERVAL_MONTH_N:
-            return TD_INTERVAL_MONTH;
-        case INTERVAL_DAY_NN:
-        case INTERVAL_DAY_N:
-            return TD_INTERVAL_DAY;
-        case INTERVAL_DAY_TO_HOUR_NN:
-        case INTERVAL_DAY_TO_HOUR_N:
-            return TD_INTERVAL_DAYTOHOUR;
-        case INTERVAL_DAY_TO_MINUTE_NN:
-        case INTERVAL_DAY_TO_MINUTE_N:
-            return TD_INTERVAL_DAYTOMINUTE;
-        case INTERVAL_DAY_TO_SECOND_NN:
-        case INTERVAL_DAY_TO_SECOND_N:
-            return TD_INTERVAL_DAYTOSECOND;
-        case INTERVAL_HOUR_NN:
-        case INTERVAL_HOUR_N:
-            return TD_INTERVAL_HOUR;
-        case INTERVAL_HOUR_TO_MINUTE_NN:
-        case INTERVAL_HOUR_TO_MINUTE_N:
-            return TD_INTERVAL_HOURTOMINUTE;
-        case INTERVAL_HOUR_TO_SECOND_NN:
-        case INTERVAL_HOUR_TO_SECOND_N:
-            return TD_INTERVAL_HOURTOSECOND;
-        case INTERVAL_MINUTE_NN:
-        case INTERVAL_MINUTE_N:
-            return TD_INTERVAL_MINUTE;
-        case INTERVAL_MINUTE_TO_SECOND_NN:
-        case INTERVAL_MINUTE_TO_SECOND_N:
-            return TD_INTERVAL_MINUTETOSECOND;
-        case INTERVAL_SECOND_NN:
-        case INTERVAL_SECOND_N:
-            return TD_INTERVAL_SECOND;
-        case PERIOD_DATE_NN:
-        case PERIOD_DATE_N:
-            return TD_PERIOD_DATE;
-        case PERIOD_TIME_NN:
-        case PERIOD_TIME_N:
-            return TD_PERIOD_TIME;
-        case PERIOD_TIME_NNZ:
-        case PERIOD_TIME_NZ:
-            return TD_PERIOD_TIME_TZ;
-        case PERIOD_TIMESTAMP_NN:
-        case PERIOD_TIMESTAMP_N:
-            return TD_PERIOD_TS;
-        case PERIOD_TIMESTAMP_NNZ:
-        case PERIOD_TIMESTAMP_NZ:
-            return TD_PERIOD_TS_TZ;
-        case XML_TEXT_NN:
-        case XML_TEXT_N:
-        case XML_TEXT_DEFERRED_NN:
-        case XML_TEXT_DEFERRED_N:
-        case XML_TEXT_LOCATOR_NN:
-        case XML_TEXT_LOCATOR_N:
-            return TD_CHAR;
-    }
-    return TD_CHAR;
-}
-
-uint16_t tpt_type_to_teradata_type(uint16_t t) {
-    switch (t) {
-        case TD_INTEGER:
-            return INTEGER_NN;
-        case TD_SMALLINT:
-            return SMALLINT_NN;
-        case TD_FLOAT:
-            return FLOAT_NN;
-        case TD_DECIMAL:
-            return DECIMAL_NN;
-        case TD_CHAR:
-            return CHAR_NN;
-        case TD_BYTEINT:
-            return BYTEINT_NN;
-        case TD_VARCHAR:
-            return VARCHAR_NN;
-        case TD_LONGVARCHAR:
-            return LONG_VARCHAR_NN;
-        case TD_BYTE:
-            return BYTE_NN;
-        case TD_VARBYTE:
-            return VARBYTE_NN;
-        case TD_DATE:
-            return DATE_NN;
-        case TD_GRAPHIC:
-            return GRAPHIC_NN;
-        case TD_VARGRAPHIC:
-            return VARGRAPHIC_NN;
-        case TD_LONGVARGRAPHIC:
-            return LONG_VARGRAPHIC_NN;
-        case TD_DATE_ANSI:
-            return DATE_NNA;
-        case TD_TIME:
-            return TIME_NN;
-        case TD_TIME_WITHTIMEZONE:
-            return TIME_NNZ;
-        case TD_BIGINT:
-            return BIGINT_NN;
-        case TD_BLOB:
-            return BLOB_NN;
-        case TD_CLOB:
-            return CLOB_NN;
-        case TD_BLOB_AS_DEFERRED_BY_NAME:
-            return BLOB_AS_DEFERRED_NAME_NN;
-        case TD_CLOB_AS_DEFERRED_BY_NAME:
-            return CLOB_AS_DEFERRED_NN;
-        case TD_TIMESTAMP:
-            return TIMESTAMP_NN;
-        case TD_TIMESTAMP_WITHTIMEZONE:
-            return TIMESTAMP_NNZ;
-        case TD_INTERVAL_YEAR:
-            return INTERVAL_YEAR_NN;
-        case TD_INTERVAL_YEARTOMONTH:
-            return INTERVAL_YEAR_TO_MONTH_NN;
-        case TD_INTERVAL_MONTH:
-            return INTERVAL_MONTH_NN;
-        case TD_INTERVAL_DAY:
-            return INTERVAL_DAY_NN;
-        case TD_INTERVAL_DAYTOHOUR:
-            return INTERVAL_DAY_TO_HOUR_NN;
-        case TD_INTERVAL_DAYTOMINUTE:
-            return INTERVAL_DAY_TO_MINUTE_NN;
-        case TD_INTERVAL_DAYTOSECOND:
-            return INTERVAL_DAY_TO_SECOND_NN;
-        case TD_INTERVAL_HOUR:
-            return INTERVAL_HOUR_NN;
-        case TD_INTERVAL_HOURTOMINUTE:
-            return INTERVAL_HOUR_TO_MINUTE_NN;
-        case TD_INTERVAL_HOURTOSECOND:
-            return INTERVAL_HOUR_TO_SECOND_NN;
-        case TD_INTERVAL_MINUTE:
-            return INTERVAL_MINUTE_NN;
-        case TD_INTERVAL_MINUTETOSECOND:
-            return INTERVAL_MINUTE_TO_SECOND_NN;
-        case TD_INTERVAL_SECOND:
-            return INTERVAL_SECOND_NN;
-        case TD_PERIOD_DATE:
-            return PERIOD_DATE_NN;
-        case TD_PERIOD_TIME:
-            return PERIOD_TIME_NN;
-        case TD_PERIOD_TIME_TZ:
-            return PERIOD_TIME_NNZ;
-        case TD_PERIOD_TS:
-            return PERIOD_TIMESTAMP_NN;
-        case TD_PERIOD_TS_TZ:
-            return PERIOD_TIMESTAMP_NNZ;
-        case TD_NUMBER:
-            return INTEGER_NN;
-    }
-    return CHAR_NN;
-}
-
-uint16_t teradata_type_to_giraffez_type(uint16_t t) {
-    switch (t) {
-        case BLOB_NN:
-        case BLOB_N:
-        case BLOB_AS_DEFERRED_NN:
-        case BLOB_AS_DEFERRED_N:
-        case BLOB_AS_LOCATOR_NN:
-        case BLOB_AS_LOCATOR_N:
-        case BLOB_AS_DEFERRED_NAME_NN:
-        case BLOB_AS_DEFERRED_NAME_N:
-        case CLOB_NN:
-        case CLOB_N:
-        case CLOB_AS_DEFERRED_NN:
-        case CLOB_AS_DEFERRED_N:
-        case CLOB_AS_LOCATOR_NN:
-        case CLOB_AS_LOCATOR_N:
-        case UDT_NN:
-        case UDT_N:
-        case DISTINCT_UDT_NN:
-        case DISTINCT_UDT_N:
-        case STRUCT_UDT_NN:
-        case STRUCT_UDT_N:
-            return GD_DEFAULT;
-        case VARCHAR_NN:
-        case VARCHAR_N:
-            return GD_VARCHAR;
-        case CHAR_NN:
-        case CHAR_N:
-            return GD_CHAR;
-        case LONG_VARCHAR_NN:
-        case LONG_VARCHAR_N:
-        case VARGRAPHIC_NN:
-        case VARGRAPHIC_N:
-            return GD_VARCHAR;
-        case GRAPHIC_NN:
-        case GRAPHIC_N:
-            return GD_DEFAULT;
-        case LONG_VARGRAPHIC_NN:
-        case LONG_VARGRAPHIC_N:
-            return GD_VARCHAR;
-        case FLOAT_NN:
-        case FLOAT_N:
-            return GD_FLOAT;
-        case DECIMAL_NN:
-        case DECIMAL_N:
-            return GD_DECIMAL;
-        case INTEGER_NN:
-        case INTEGER_N:
-            return GD_INTEGER;
-        case SMALLINT_NN:
-        case SMALLINT_N:
-            return GD_SMALLINT;
-        case ARRAY_1D_NN:
-        case ARRAY_1D_N:
-        case ARRAY_ND_NN:
-        case ARRAY_ND_N:
-            return GD_DEFAULT;
-        case BIGINT_NN:
-        case BIGINT_N:
-            return GD_BIGINT;
-        case VARBYTE_NN:
-        case VARBYTE_N:
-            return GD_VARBYTE;
-        case BYTE_NN:
-        case BYTE_N:
-            return GD_BYTE;
-        case LONG_VARBYTE_NN:
-        case LONG_VARBYTE_N:
-            return GD_VARBYTE;
-        case DATE_NNA:
-        case DATE_NA:
-            return GD_DEFAULT;
-        case DATE_NN:
-        case DATE_N:
-            return GD_DATE;
-        case BYTEINT_NN:
-        case BYTEINT_N:
-            return GD_BYTEINT;
-        case TIME_NN:
-        case TIME_N:
-            return GD_TIME;
-        case TIMESTAMP_NN:
-        case TIMESTAMP_N:
-            return GD_TIMESTAMP;
-        case TIME_NNZ:
-        case TIME_NZ:
-            return GD_CHAR;
-        case TIMESTAMP_NNZ:
-        case TIMESTAMP_NZ:
-            return GD_CHAR;
-        case INTERVAL_YEAR_NN:
-        case INTERVAL_YEAR_N:
-        case INTERVAL_YEAR_TO_MONTH_NN:
-        case INTERVAL_YEAR_TO_MONTH_N:
-        case INTERVAL_MONTH_NN:
-        case INTERVAL_MONTH_N:
-        case INTERVAL_DAY_NN:
-        case INTERVAL_DAY_N:
-        case INTERVAL_DAY_TO_HOUR_NN:
-        case INTERVAL_DAY_TO_HOUR_N:
-        case INTERVAL_DAY_TO_MINUTE_NN:
-        case INTERVAL_DAY_TO_MINUTE_N:
-        case INTERVAL_DAY_TO_SECOND_NN:
-        case INTERVAL_DAY_TO_SECOND_N:
-        case INTERVAL_HOUR_NN:
-        case INTERVAL_HOUR_N:
-        case INTERVAL_HOUR_TO_MINUTE_NN:
-        case INTERVAL_HOUR_TO_MINUTE_N:
-        case INTERVAL_HOUR_TO_SECOND_NN:
-        case INTERVAL_HOUR_TO_SECOND_N:
-        case INTERVAL_MINUTE_NN:
-        case INTERVAL_MINUTE_N:
-        case INTERVAL_MINUTE_TO_SECOND_NN:
-        case INTERVAL_MINUTE_TO_SECOND_N:
-        case INTERVAL_SECOND_NN:
-        case INTERVAL_SECOND_N:
-        case PERIOD_DATE_NN:
-        case PERIOD_DATE_N:
-        case PERIOD_TIME_NN:
-        case PERIOD_TIME_N:
-        case PERIOD_TIME_NNZ:
-        case PERIOD_TIME_NZ:
-        case PERIOD_TIMESTAMP_NN:
-        case PERIOD_TIMESTAMP_N:
-        case PERIOD_TIMESTAMP_NNZ:
-        case PERIOD_TIMESTAMP_NZ:
-        case XML_TEXT_NN:
-        case XML_TEXT_N:
-        case XML_TEXT_DEFERRED_NN:
-        case XML_TEXT_DEFERRED_N:
-        case XML_TEXT_LOCATOR_NN:
-        case XML_TEXT_LOCATOR_N:
-            return GD_DEFAULT;
-    }
-    return GD_DEFAULT;
 }

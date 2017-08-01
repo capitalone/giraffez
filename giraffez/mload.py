@@ -17,7 +17,7 @@
 import struct
 import threading
 
-from ._tpt import EncoderError, InvalidCredentialsError, MLoad, TeradataError
+from ._teradatapt import EncoderError, InvalidCredentialsError, MLoad, TeradataError
 
 from .constants import *
 from .errors import *

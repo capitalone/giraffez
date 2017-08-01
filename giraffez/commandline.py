@@ -27,7 +27,7 @@ import io
 import yaml
 
 try:
-    from . import _encoder
+    from . import _teradata
 except ImportError:
     pass
 
