@@ -40,7 +40,7 @@ static int TeradataError_init(TeradataErrorObject *self, PyObject *args, PyObjec
         return -1;
     }
     Py_INCREF(args);
-    Py_SETREF(self->args, args);
+    Py_XSETREF(self->args, args);
     colon = PyUnicode_FromString(":");
     if (PyBytes_Check(msg)) {
         if ((utmp = PyUnicode_FromEncodedObject(msg, "UTF-8", NULL)) == NULL) {

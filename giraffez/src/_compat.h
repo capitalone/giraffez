@@ -27,6 +27,21 @@
 #endif
 
 #if PY_MAJOR_VERSION >= 3
+#if PY_MINOR_VERSION >= 4
+  #define Py_SETREF(op, op2)                      \
+      do {                                        \
+          PyObject *_py_tmp = (PyObject *)(op);   \
+          (op) = (op2);                           \
+          Py_DECREF(_py_tmp);                     \
+      } while (0)
+  #define Py_XSETREF(op, op2)                     \
+      do {                                        \
+          PyObject *_py_tmp = (PyObject *)(op);   \
+          (op) = (op2);                           \
+          Py_XDECREF(_py_tmp);                    \
+      } while (0)
+#endif
+
   #define MOD_ERROR_VAL NULL
   #define MOD_SUCCESS_VAL(val) val
   #define MOD_INIT(name) PyMODINIT_FUNC PyInit_##name(void)
