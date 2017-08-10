@@ -594,7 +594,7 @@ error:
 PyObject* teradata_byteint_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     PyObject *temp = NULL;
     int8_t b;
-    if (!PyLong_Check(item)) {
+    if (!_PyLong_Check(item)) {
         if (!PyUnicode_Check(item)) {
             PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
@@ -617,7 +617,7 @@ PyObject* teradata_byteint_from_pylong(PyObject *item, const uint16_t column_len
 PyObject* teradata_smallint_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     PyObject *temp = NULL;
     int16_t h;
-    if (!PyLong_Check(item)) {
+    if (!_PyLong_Check(item)) {
         if (!PyUnicode_Check(item)) {
             PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
@@ -640,7 +640,7 @@ PyObject* teradata_smallint_from_pylong(PyObject *item, const uint16_t column_le
 PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     PyObject *temp = NULL;
     int32_t l;
-    if (!PyLong_Check(item)) {
+    if (!_PyLong_Check(item)) {
         if (!PyUnicode_Check(item)) {
             PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
@@ -663,7 +663,7 @@ PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length,
 PyObject* teradata_bigint_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     PyObject *temp = NULL;
     int64_t q;
-    if (!PyLong_Check(item)) {
+    if (!_PyLong_Check(item)) {
         if (!PyUnicode_Check(item)) {
             PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
@@ -723,6 +723,7 @@ PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_l
         Py_RETURN_ERROR((str = PyUnicode_AsUTF8(temp)));
         Py_DECREF(temp);
     }
+
 
     memset(&tm, '\0', sizeof(tm));
     if (strptime(str, "%Y-%m-%d", &tm) == NULL) {

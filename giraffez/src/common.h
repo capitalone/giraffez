@@ -30,9 +30,14 @@ extern "C" {
 #include <math.h>
 #include <stddef.h>
 #if defined(WIN32) || defined(WIN64)
-#include <pstdint.h>
+#include "_stdint.h"
+#include "_strptime.c"
+
+const char *strptime(const char *buf, const char *fmt, struct tm *tm);
+
 #else
 #include <stdint.h>
+#include <time.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>

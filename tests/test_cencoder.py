@@ -417,7 +417,7 @@ class TestEncoder(object):
     params = {
         "test_deserialize": test_encoder_data + deserialize_only_tests,
         "test_serialize": test_encoder_data + serialize_only_tests,
-        "test_serialize": character_tests,
+        # "test_serialize": character_tests,
         "test_serialize_error": error_tests,
     }
 

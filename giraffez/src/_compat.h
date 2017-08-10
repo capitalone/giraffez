@@ -53,6 +53,7 @@
   #define Py_TPFLAGS_HAVE_ITER 0
   #define MOD_ERROR_VAL NULL
   #define PyStr_Check(ob) PyUnicode_Check(ob)
+  #define _PyLong_Check(ob) PyLong_Check(ob)
   #define _PyFloat_FromString(ob) PyFloat_FromString(ob)
 
   #define TEXT_T Py_UNICODE
@@ -67,6 +68,7 @@
 
   #define PyNumber_FloorDivide PyNumber_Divide
 
+  #define _PyLong_Check(ob) (PyLong_Check(ob) || PyInt_Check(ob))
   #define _PyFloat_FromString(ob) PyFloat_FromString(ob, NULL)
   #define PyLong_FromUnicodeObject(ob, b) PyLong_FromUnicode(PyUnicode_AS_UNICODE(ob), PyUnicode_GetSize(ob), b)
 

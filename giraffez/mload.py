@@ -115,6 +115,18 @@ class TeradataMLoad(Connection):
         self._update_error_count()
         log.info("MLoad", "Apply phase ended.")
 
+    def _end_acquisition(self):
+        log.info("MLoad", "Ending acquisition phase ...")
+        self.mload.end_acquisition()
+        log.info("MLoad", "Acquisition phase ended.")
+
+    def _exit_code(self):
+        data = self.mload.get_event(TD_Evt_ExitCode)
+        if data is None:
+            log.info("MLoad", "Update exit code failed.")
+            return
+        return struct.unpack("h", data)[0]
+
     def _update_apply_count(self):
         data = self.mload.get_event(TD_Evt_RowCounts64)
         if data is None:
@@ -132,11 +144,6 @@ class TeradataMLoad(Connection):
         count = struct.unpack("I", data)[0]
         log.debug("Debug[2]", "Event[ErrorTable2]: c:{}".format(count))
         self.error_count = count
-
-    def _end_acquisition(self):
-        log.info("MLoad", "Ending acquisition phase ...")
-        self.mload.end_acquisition()
-        log.info("MLoad", "Acquisition phase ended.")
 
     def checkpoint(self):
         """
@@ -213,13 +220,6 @@ class TeradataMLoad(Connection):
     def null(self, value):
         self._null = value
         self.mload.set_null(self._null)
-
-    def _exit_code(self):
-        data = self.mload.get_event(TD_Evt_ExitCode)
-        if data is None:
-            log.info("MLoad", "Update exit code failed.")
-            return
-        return struct.unpack("h", data)[0]
 
     def finish(self):
         """
