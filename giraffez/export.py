@@ -105,7 +105,7 @@ class TeradataExport(Connection):
         self.delimiter = DEFAULT_DELIMITER
         self.null = DEFAULT_NULL
 
-    def close(self):
+    def close(self, exc=None):
         log.info("Export", "Closing Teradata PT connection ...")
         self.export.close()
         log.info("Export", "Teradata PT request complete.")

@@ -29,7 +29,7 @@ user-friendly and very fast.
 """
 
 __title__ = 'giraffez'
-__version__ = '2.0.0beta1'
+__version__ = '2.0.0rc1'
 __authors__ = ['Christopher Marshall', 'Kyle Travis']
 __license__ = 'Apache 2.0'
 __all__     = ['Export', 'MLoad', 'Load', 'Cmd', 'Config', 'Secret']

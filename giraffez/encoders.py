@@ -28,7 +28,7 @@ from .errors import *
 
 from .fmt import escape_quotes, quote_string, replace_cr
 from .logging import log
-from .types import Bytes, Columns, Date, Decimal, Time, Timestamp
+from .types import Columns, Date, Decimal, Time, Timestamp
 from .utils import pipeline
 
 from ._compat import *

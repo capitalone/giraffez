@@ -251,7 +251,7 @@ class TeradataCmd(Connection):
     def _connect(self, host, username, password):
         self.cmd = Cmd(host, username, password)
 
-    def close(self):
+    def close(self, exc=None):
         if getattr(self, 'cmd', None):
             self.cmd.close()
 

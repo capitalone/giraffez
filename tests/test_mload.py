@@ -31,6 +31,7 @@ class TestMLoad(object):
         mload.mload.exists.return_value = False
         mload.mload.checkpoint.return_value = 0
         mload.mload.get_event.side_effect = [
+            b'\x00\x00',
             b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80',
             b'\x00\x00\x00\x00',
             b'\x00\x00',
