@@ -64,6 +64,7 @@ typedef struct {
     char     *Nullable;
 
     uint16_t NullLength;
+    uint64_t FormatLength;
     char     *SafeName;
 } GiraffeColumn;
 
@@ -136,6 +137,7 @@ void stmt_info_init(StatementInfo *s, size_t initial_size);
 void stmt_info_append(StatementInfo *s, StatementInfoColumn element);
 void stmt_info_free(StatementInfo *s);
 char* safe_name(const char *name);
+uint64_t format_length(const char *format);
 GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t length);
 
 #ifdef __cplusplus

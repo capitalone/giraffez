@@ -27,7 +27,7 @@ from .logging import log
 from ._compat import *
 
 
-__all__ = ['Column', 'Columns', 'Bytes', 'Date', 'Decimal', 'Time', 'Timestamp', 'Row']
+__all__ = ['Column', 'Columns', 'Date', 'Decimal', 'Time', 'Timestamp', 'Row']
 
 
 DATE_FORMATS = [
@@ -46,31 +46,6 @@ TIME_FORMATS = {
     26: "%Y-%m-%d %H:%M:%S.%f",
     32: "%Y-%m-%d %H:%M:%S.%f"
 }
-
-
-class Bytes(object):
-    def __init__(self, columns):
-        self.raw_array = bytearray([0] * columns.header_length)
-
-    @classmethod
-    def read(cls, f):
-        for b in iterbytes(f):
-            for i in reversed(xrange(8)):
-                yield (b >> i) & 1
-
-    def set_bit(self, offset):
-        byte, bit = divmod(offset, 8)
-        self.raw_array[byte] |= 128 >> bit
-
-    def __add__(self, other):
-        # XXX: b2s isn't even defined
-        return b2s(self) + other
-
-    def __bytes__(self):
-        return bytes(self.raw_array)
-
-    def __str__(self):
-        return str(self.raw_array)
 
 
 class Column(object):
@@ -538,10 +513,13 @@ class Row(object):
         return len(self.row)
 
     def __repr__(self):
-        return str(self.items())
+        return "Row({})".format(self.items())
+
+    def to_json(self):
+        return self.__str__()
 
     def __str__(self):
-        return self.__repr__()
+        return self.items()
 
 
 class Time(datetime.time):

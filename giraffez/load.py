@@ -22,11 +22,15 @@ from collections import defaultdict
 from .constants import *
 from .errors import *
 
+# from ._teradata import TeradataError
+
 from .cmd import TeradataCmd
 from .encoders import check_input, null_handler, python_to_sql
 from .io import CSVReader, JSONReader, Reader
 from .logging import log
 from .utils import pipeline
+
+from ._compat import *
 
 
 __all__ = ['TeradataLoad']
@@ -89,10 +93,7 @@ class TeradataLoad(TeradataCmd):
             preprocessor = null_handler(null)
             rows = (preprocessor(l) for l in f)
             if isinstance(f, CSVReader):
-                delimiter = f.reader.dialect.delimiter
-                if delimiter == "\t":
-                    delimiter = "\\t"
-                self.options("delimiter", delimiter, 1)
+                self.options("delimiter", unescape_string(f.reader.dialect.delimiter), 1)
                 self.options("quote char", f.reader.dialect.quotechar, 2)
             elif isinstance(f, JSONReader):
                 self.options("encoding", "json", 1)
@@ -122,6 +123,8 @@ class TeradataLoad(TeradataCmd):
                 columns = _columns_cache[table_name]
             else:
                 columns = self.fetch_columns(table_name, silent=False)
+                if not columns:
+                    raise GiraffeError("Fetch columns failed '{}'".format(table_name))
                 _columns_cache[table_name] = columns
         if fields is None:
             fields = columns.safe_names
@@ -151,8 +154,8 @@ class TeradataLoad(TeradataCmd):
             if current_block:
                 yield current_block
         log.info("Load", "Executing ...")
-        for block in _fetch():
+        for i, block in enumerate(_fetch()):
             self.execute(block, sanitize=True, multi_statement=True, silent=True)
-            # TODO: should maybe only print once?
-            log.info(self.options)
+            if i == 0:
+                log.info(self.options)
         return stats

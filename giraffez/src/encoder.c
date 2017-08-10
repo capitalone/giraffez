@@ -125,14 +125,9 @@ PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
     Py_XDECREF(e->Delimiter);
     Py_INCREF(obj);
     e->Delimiter = obj;
-    // TODO: should probably check items here to ensure they are
-    // the correct Python type
-    // TODO: should also create a helper function for going from
-    // utf-8 to bytes, needs to be very correct at the cost
-    // of performance
     PyObject *tmp = NULL;
-    char *delimiter = NULL;
-    if (_PyUnicode_Check(obj)) {
+    const char *delimiter = NULL;
+    if (PyStr_Check(obj)) {
         if ((delimiter = PyUnicode_AsUTF8(obj)) == NULL) {
             return NULL;
         }
@@ -148,7 +143,8 @@ PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
     }
     e->DelimiterStr = strdup(delimiter);
     if (tmp != NULL) {
-        // decref here to prevent tmp from being deallocated before strdup is called
+        // decref here to prevent tmp from being deallocated before
+        // strdup is called
         Py_DECREF(tmp);
     }
     e->DelimiterStrLen = strlen(delimiter);
@@ -162,11 +158,9 @@ PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
     Py_XDECREF(e->NullValue);
     Py_INCREF(obj);
     e->NullValue = obj;
-    // TODO: should probably check items here to ensure they are
-    // the correct Python type
     PyObject *tmp = NULL;
     char *null = NULL;
-    if (_PyUnicode_Check(obj)) {
+    if (PyStr_Check(obj)) {
         if ((null = PyUnicode_AsUTF8(obj)) == NULL) {
             return NULL;
         }

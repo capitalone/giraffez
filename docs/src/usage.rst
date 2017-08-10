@@ -47,8 +47,8 @@ Using :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` with pandas:
 
     import pandas as pd
     with giraffez.Cmd() as cmd:
-        result = cmd.execute_one("select infokey, character_length(infokey) as nchars from dbc.dbcinfo")
-        df = pd.DataFrame(result.items())
+        result = cmd.execute("select infokey, character_length(infokey) as nchars from dbc.dbcinfo")
+        df = pd.DataFrame(list(result.items()))
 
 .. code-block:: python
 
@@ -62,9 +62,9 @@ Using :class:`giraffez.Export <giraffez.export.TeradataExport>` with pandas:
 
 .. code-block:: python
 
-    with giraffez.Export(encoding='dict') as export:
+    with giraffez.Export() as export:
         export.query = "select infokey, character_length(infokey) as nchars from dbc.dbcinfo"
-        df = pd.DataFrame(export.results())
+        df = pd.DataFrame(list(export.items()))
 
 .. code-block:: python
 
@@ -77,9 +77,24 @@ Using :class:`giraffez.Export <giraffez.export.TeradataExport>` with pandas:
     nchars    11.666667
     dtype: float64
 
-.. _export-aliasing:
+Using :class:`giraffez.Load <giraffez.load.TeradataLoad>` with pandas:
 
-**Note:** because of the way the TPT Export driver functions, the provided alias "nchars" for the computed column in the query is not available. In this case, the source column "infokey" is used. Rather than allow duplicate column names, :class:`giraffez.Export <giraffez.export.TeradataExport>` detects this and enumerates the offending columns. If this behavior is unacceptable or the alias is needed, you may need to use :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` or modify your query.
+.. code-block:: python
+
+    with giraffez.Load("database.table_name") as load:
+        load.insert("database.table_name", df.values.tolist(), fields=df.columns.tolist())
+
+Using :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` with pandas:
+
+.. code-block:: python
+
+    with giraffez.MLoad("database.table_name") as mload:
+        # TODO: dont specify all columns if not necessary
+        mload.columns = df.columns.tolist()
+        for row in df.values.tolist():
+            mload.load_row(row)
+
+**Note:** it is extremely important when loading data to make sure that the data types you are using in Python are compatible with the Teradata data type it is being loaded into.  If the type is incorrect it can cause the mload driver to fail with error messages that are sometimes very difficult to diagnose.  It is recommended to work with a small test dataset and a copy of the table when initially creating a `giraffez.MLoad <giraffez.mload.TeradataMLoad>` based script, which will be much easier to troubleshoot.
  
 
 Exporting to different formats
@@ -92,29 +107,32 @@ Using the Python standard library `csv <https://docs.python.org/3/library/csv.ht
 
     import csv
 
-    with giraffez.Export('dbc.dbcinfo', encoding='dict') as export:
+    with giraffez.Export('dbc.dbcinfo') as export:
         with open("output.csv", "w") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=export.columns.names)
             writer.writeheader()
-            writer.writerows(export.results())
+            for row in export.values():
+                writer.writerow(row)
+            writer.writerows(list(export.values()))
 
 Or very similar with :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>`:
 
 .. code-block:: python
 
     with giraffez.Cmd() as cmd:
-        result = cmd.execute_one("select * from dbc.dbcinfo")
+        result = cmd.execute("select * from dbc.dbcinfo")
         with open("output.csv", "w") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=result.columns.names)
-            writer.writerows(result.items())
+            for row in result.items():
+                writer.writerow(row)
 
 Here is a way to output a stream of JSON, where each row is a JSON encoded string separated by newline characters:
 
 .. code-block:: python
 
-    with giraffez.Export('database.table_name', encoding='json') as export:
+    with giraffez.Export('database.table_name') as export:
         with open("output.json", "w") as f:
-            for row in export.results():
+            for row in export.json():
                 f.write(row)
                 f.write("\n")
 
@@ -144,7 +162,7 @@ All statements executed within a ``with`` context block happen within the same T
    
 .. code-block:: python
 
-    >>> print(result)
+    >>> print(list(result))
     {'first_name': 'clark', 'last_name': 'kent', 'email': None}
     {'first_name': 'peter', 'last_name': 'parker', 'email': None}
     {'first_name': 'bruce', 'last_name': 'wayne', 'email': 'batman@wayne.co'}
@@ -155,25 +173,29 @@ There are some exceptions to this when dealing with :class:`giraffez.Export <gir
 Exception handling
 ------------------
 
-In cases where :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` raises a :class:`GiraffeEncodeError <giraffez.errors.GiraffeEncodeError>` and panics, the release of the table lock can be ensured by wrapping the :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` code with a try-except that calls :class:`release <giraffez.mload.TeradataMLoad.release>`:
+In cases where :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` raises an :class:`EncodeError <giraffez.EncodeError>`, the exception be intercepted to modify the control flow.  For example, this can be particularly useful when troubleshooting an unsuccessful mload:
 
 .. code-block:: python
 
-   with giraffez.MLoad("database.table_name") as mload:
-       try:
-           mload.columns = ["last_name", "first_name"]
-           rows = [
-               ("Hemingway", "Ernest"),
-               ("Chekhov", "Anton"),
-               ("Kafka", "Franz")
-           ]
-           for row in rows:
-               mload.load_row(row)
-           exit_code = mload.finish()
-       except giraffez.GiraffeEncodeError as error:
-           mload.release()
-           # re-raise the error so that it produces the full traceback
-           raise error
+    with giraffez.MLoad("database.table_name") as mload:
+        mload.columns = ["last_name", "first_name"]
+        rows = [
+            ("Hemingway", "Ernest"),
+            ("Chekhov", "Anton"),
+            ("Kafka", "Franz")
+        ]
+        for row in rows:
+            try:
+                mload.load_row(row)
+            except giraffez.EncoderError as error:
+                # Intercept the exception to print out the row causing
+                # the error
+                print("Input row: ", repr(row))
+                # re-raise the error so that it produces the full
+                # traceback or simply continue to the next row
+                raise error
+
+This ends up giving a lot of flexibility to make helpful modifications to the behavior of the mload task that isn't available in the official mload utility.
 
 .. _archiving:
 

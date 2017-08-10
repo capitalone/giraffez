@@ -26,6 +26,7 @@
 
 // CLIv2 control flow exceptions
 PyObject *EndStatementError;
+PyObject *EndStatementInfoError;
 PyObject *EndRequestError;
 
 TeradataErr* __teradata_read_error(char *dataptr) {
@@ -341,7 +342,8 @@ PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, un
             e->Columns = e->UnpackStmtInfoFunc(data, length);
             break;
         case PclSTATEMENTINFOEND:
-            break;
+            PyErr_SetNone(EndStatementInfoError);
+            return NULL;
         case PclENDSTATEMENT:
             PyErr_SetNone(EndStatementError);
             return NULL;

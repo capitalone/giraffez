@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
+import struct
+
 from ._teradatapt import Export
 
 from .constants import *
@@ -79,7 +82,7 @@ class TeradataExport(Connection):
         super(TeradataExport, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 
-        #: Attributes used with property getter/setters
+        # Attributes used with property getter/setters
         self._query = None
         self._encoding = None
         self._delimiter = None
@@ -89,9 +92,10 @@ class TeradataExport(Connection):
 
         self.initiated = False
 
-        #: Attributes set via property getter/setters
         self.query = query
 
+        #: The amount of time spent in idle (waiting for server)
+        self.idle_time = 0
         self.processor = identity
 
     def _connect(self, host, username, password):
@@ -154,11 +158,13 @@ class TeradataExport(Connection):
 
     def initiate(self):
         log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
+        start_time = time.time()
         self.export.initiate()
+        self.idle_time = time.time() - start_time
         self.initiated = True
         log.info("Export", "Teradata PT request accepted.")
-        self.options("delimiter", escape_string(self.delimiter), 2)
-        self.options("null", self.null, 3)
+        self.options("delimiter", escape_string(self.delimiter or DEFAULT_DELIMITER), 2)
+        self.options("null", self.null or DEFAULT_NULL, 3)
         log.info("Export", "Executing ...")
         log.info(self.options)
 
@@ -213,61 +219,83 @@ class TeradataExport(Connection):
             raise error
 
     def archive(self, writer):
+        """
+        Writes export archive files in the Giraffez archive format.
+        This takes a `giraffez.io.Writer` and writes archive chunks to
+        file until all rows for a given statement have been exhausted.
+
+        .. code-block:: python
+
+            with TeradataExport("database.table_name") as export:
+                with Writer("database.table_name.tar.gz", 'wb', use_gzip=True) as out:
+                    for n in export.archive(out):
+                        print("Rows: {}".format(n))
+
+        :param `giraffez.io.Writer` writer: A writer handling the archive output
+
+        :rtype: iterator (yields ``int``)
+        """
         if 'b' not in writer.mode:
             raise GiraffeError("Archive writer must be in binary mode")
         self.export.set_encoding(ROW_ENCODING_RAW)
         writer.write(GIRAFFE_MAGIC)
         writer.write(self.columns.serialize())
         i = 0
-        for n, chunk in enumerate(self.fetchall(), 1):
+        for n, chunk in enumerate(self._fetchall(), 1):
             writer.write(chunk)
             yield TeradataEncoder.count(chunk)
 
     def json(self):
+        """
+        Sets the current encoder output to json encoded strings and
+        returns a row iterator.
+
+        :rtype: iterator (yields ``str``)
+        """
         self.processor = dict_to_json
         self.export.set_encoding(ROW_ENCODING_DICT)
         if self.coerce_floats:
             self.export.set_encoding(DECIMAL_AS_FLOAT)
-        return self.fetchall()
+        return self._fetchall()
 
     def items(self):
+        """
+        Sets the current encoder output to Python `dict` and returns
+        a row iterator.
+
+        :rtype: iterator (yields ``dict``)
+        """
         self.processor = identity
         self.export.set_encoding(ROW_ENCODING_DICT)
         if self.coerce_floats:
             self.export.set_encoding(DECIMAL_AS_FLOAT)
-        return self.fetchall()
+        return self._fetchall()
 
     def strings(self):
+        """
+        Sets the current encoder output to Python `str` and returns
+        a row iterator.
+
+        :rtype: iterator (yields ``str``)
+        """
         self.processor = identity
         self.export.set_encoding(ROW_ENCODING_STRING|DATETIME_AS_STRING|DECIMAL_AS_STRING)
-        return self.fetchall()
+        return self._fetchall()
 
     def values(self):
+        """
+        Sets the current encoder output to Python `list` and returns
+        a row iterator.
+
+        :rtype: iterator (yields ``list``)
+        """
         self.processor = identity
         self.export.set_encoding(ROW_ENCODING_LIST)
         if self.coerce_floats:
             self.export.set_encoding(DECIMAL_AS_FLOAT)
-        return self.fetchall()
+        return self._fetchall()
 
-    def fetchall(self):
-        """
-        Generates and yields row results as they are returned from
-        Teradata and processed. 
-        
-        :return: A generator that can be iterated over or coerced into a list.
-        :rtype: iterator (yields ``string`` or ``dict``)
-
-        .. code-block:: python
-
-           # iterate over results
-           with giraffez.Export('dbc.dbcinfo') as export:
-               for row in export.results():
-                   print(row)
-
-           # retrieve results as a list
-           with giraffez.Export('db.table2') as export:
-               results = list(export.results())
-        """
+    def _fetchall(self):
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
         if not self.initiated:

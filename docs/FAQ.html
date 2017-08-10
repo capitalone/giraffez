@@ -1,0 +1,278 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Frequently Asked Questions &mdash; giraffez 2.0.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="giraffez 2.0.0 documentation" href="index.html"/>
+        <link rel="prev" title="API Reference" href="api.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> giraffez
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command-line.html">Commands</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Advanced Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">FAQ</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#why-the-name-giraffez">Why the name giraffez?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-are-the-teradata-call-level-interface-version-2-and-teradata-parallel-transporter-api-and-how-do-i-get-them">What are the Teradata Call-Level Interface Version 2 and Teradata Parallel Transporter API and how do I get them?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-is-ujson-an-optional-requirement">Why is ujson an optional requirement?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-are-the-column-aliases-incorrect-when-using-export">Why are the column aliases incorrect when using Export?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-implicitly-coerce-teradata-decimals">Why implicitly coerce Teradata decimals?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-character-sets-are-supported">What character sets are supported?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/capitalone/giraffez">GitHub</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">giraffez</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Frequently Asked Questions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/FAQ.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="frequently-asked-questions">
+<span id="faq"></span><h1>Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="why-the-name-giraffez">
+<h2>Why the name giraffez?<a class="headerlink" href="#why-the-name-giraffez" title="Permalink to this headline">¶</a></h2>
+<p>The original intention was to create a C++ command-line tool that quickly <em>dumped</em> a Teradata table to a file. The first name was “Teradumps” (which is an awful name), for Teradata and “dump-s” (aka “dump to string”). When trying to think up a better name, we found ourselves thinking, “Hadoop has an elephant, what’s another cool animal? How about a giraffe?”. And, thus, GiraffeDumps was the name at the time. Later as more functionality was added to the package it was decided to come up with a final name that better represents the project (it moved beyond just dumping from Teradata), and the name giraffez was where we landed.</p>
+</div>
+<div class="section" id="what-are-the-teradata-call-level-interface-version-2-and-teradata-parallel-transporter-api-and-how-do-i-get-them">
+<span id="teradata-libraries"></span><h2>What are the Teradata Call-Level Interface Version 2 and Teradata Parallel Transporter API and how do I get them?<a class="headerlink" href="#what-are-the-teradata-call-level-interface-version-2-and-teradata-parallel-transporter-api-and-how-do-i-get-them" title="Permalink to this headline">¶</a></h2>
+<dl class="glossary docutils">
+<dt id="term-teradata-call-level-interface-version-2-cliv2"><em>Teradata Call-Level Interface Version 2 (CLIv2)</em></dt>
+<dd>The official Teradata C API, which provides an interface for communication with a Teradata server. This library is the same used by Teradata to create all their client-side tools. It is supported on most major platforms of Windows, Linux, Unix, and Unix-like operation systems (Mac OS) and supports processor architectures for x86 (32-bit and 64-bit), Power PC, Itanium 2, PA-RISC, and Opteron.</dd>
+<dt id="term-teradata-parallel-transporter-api-tpt-api"><em>Teradata Parallel Transporter API (TPT API)</em></dt>
+<dd>Official Teradata library that exposes many common and simplified interfaces to Teradata via C++. This library is built upon the CLIv2 and gives support for bulk operations such as Export and Load.</dd>
+</dl>
+<p>While these libraries have wide support, the platform-specific installation of these can vary wildly and be problematic. Since these are dependencies for almost all giraffez features, it means that these will need to be installed and configured correctly for giraffez to be able to work properly. If having trouble with these contact your system administrator and/or checkout the Teradata support forums. Teradata is a commercial product only, and these drivers are both under proprietary license, so getting these drivers may not be available outside of a relationship with Teradata.</p>
+<p>The CLIv2 is offered for free for Windows, Linux, HP-UX, AIX, and Solaris via <a class="reference external" href="http://downloads.teradata.com">http://downloads.teradata.com</a> (login required) and is bundled in the Teradata Tools and Utilities for Windows download. The TPT API is only available with the Teradata Tools and Utilities for Windows, and is distributed for other platforms via their <a class="reference external" href="https://tays.teradata.com">paid support portal</a> and via the media provided with the purchased server software. The TTU packages are not publicly offered for Linux or MacOS, however, both libraries <em>should</em> be available in this package (unsure if TPT was included in packages prior to 15.00).</p>
+</div>
+<div class="section" id="why-is-ujson-an-optional-requirement">
+<span id="ujson"></span><h2>Why is ujson an optional requirement?<a class="headerlink" href="#why-is-ujson-an-optional-requirement" title="Permalink to this headline">¶</a></h2>
+<p>When performing an Export to json, the ujson package is much faster than Python’s standard library json. Python’s json package is much slower because it provides a more complete json marshaling package, whereas ujson is sufficiently complete for the purpose of creating well-formed json from this type of data.</p>
+</div>
+<div class="section" id="why-are-the-column-aliases-incorrect-when-using-export">
+<span id="export-header"></span><h2>Why are the column aliases incorrect when using Export?<a class="headerlink" href="#why-are-the-column-aliases-incorrect-when-using-export" title="Permalink to this headline">¶</a></h2>
+<p><strong>Update</strong> This should no longer apply as the new method for fetching columns does not rely on the broken TPT API</p>
+<p>A regression was introduced after version 13.10 of the Teradata Parallel Transporter API that causes inconsistent behavior with column aliases in Export operations.  When dealing with columns that are aliased the Teradata library does not return the name specified in the alias.  It seemed that when dealing with columns that are aliased that it would instead return the underlying column name or when dealing with computed fields returning a blank string.</p>
+<p>This affects any part of giraffez that makes use of the <a class="reference internal" href="api.html#giraffez.export.TeradataExport" title="giraffez.export.TeradataExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code></a> class (it does not affect <cite>giraffez.Cmd &lt;giraffez.cmd.TeradataCmd&gt;</cite>).  Unfortunately, this is rooted in the proprietary Teradata libraries and cannot be fixed within giraffez, so the recommendation is to simply hardcode the column names with the query in those cases.</p>
+</div>
+<div class="section" id="why-implicitly-coerce-teradata-decimals">
+<h2>Why implicitly coerce Teradata decimals?<a class="headerlink" href="#why-implicitly-coerce-teradata-decimals" title="Permalink to this headline">¶</a></h2>
+<p>In previous versions of giraffez, Teradata decimal types fixed precision was preserved via Python’s <cite>decimal.Decimal</cite> type.  The decision was made to allow implicit conversion of Teradata decimal types to the Python float because of the many times unnecessary performance burden with using <cite>decimal.Decimal</cite> and this cost not being transparent when using <cite>decimal.Decimal</cite>.  For example, numpy will take a <cite>decimal.Decimal</cite> in place of a float because <cite>decimal.Decimal</cite> has the appropriate magic methods defined, but will be many times slower.  This cost ends up being invisible to users because the fixed-point arithmetic is hidden by the Python magic methods.  While giraffez is very convered with correctness, this decision was made to balance that with performance and what we feel is the most likely use case.</p>
+</div>
+<div class="section" id="what-character-sets-are-supported">
+<h2>What character sets are supported?<a class="headerlink" href="#what-character-sets-are-supported" title="Permalink to this headline">¶</a></h2>
+<p>What versions of Python are supported, what platforms?</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="api.html" class="btn btn-neutral" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Capital One Services, LLC.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'2.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

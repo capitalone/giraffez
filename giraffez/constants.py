@@ -515,10 +515,17 @@ TD_Evt_ExportCount64            = 23
 TD_Evt_RunStats64               = 24
 TD_Evt_ErrorTable1_64           = 25
 TD_Evt_ApplyCount64             = 26
-TD_Evt_AcquisitionPhaseStats    = 27
-TD_Evt_ApplicationPhaseStat     = 28
-TD_Evt_LoadPhaseStats           = 29
-TD_Evt_ExportPhaseStats         = 30
+TD_Evt_BlockCount64             = 27
+TD_Evt_AcquisitionPhaseStats    = 28
+TD_Evt_ApplicationPhaseStat     = 29
+TD_Evt_LoadPhaseStats           = 30
+TD_Evt_ExportPhaseStats         = 31
+TD_Evt_SessionNodeId            = 32
+TD_Evt_SessionThroughput        = 33
+TD_Evt_ExportNoSpoolMode        = 34
+TD_Evt_QueryBandByteCount       = 35
+TD_Evt_RowsDiscarded            = 37
+TD_Evt_BufferLayout2            = 38
 
 TD_Evt_Version                  = 101
 
@@ -528,6 +535,7 @@ TD_UNAVAILABLE                  = 4
 TD_ERROR                        = 99
 
 # Error codes
+TD_ERROR_REQUEST_EXHAUSTED      = 307
 TD_ERROR_CANNOT_RELEASE_MLOAD   = 2572
 TD_ERROR_TABLE_MLOAD_EXISTS     = 2574
 TD_ERROR_WORK_TABLE_MISSING     = 2583

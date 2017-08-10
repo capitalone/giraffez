@@ -40,6 +40,7 @@ try:
     from . import _teradatapt
 except ImportError as error:
     raise Exception("""{}.
+
 This indicates that either the giraffez C extensions did not compile
 correctly, or more likely, there is an issue with the environment or
 installation of the Teradata dependencies. Both the Teradata Call-Level
@@ -50,17 +51,19 @@ files and error message catalog.
 For more information, refer to this section in the giraffez
 documentation:
     http://www.capitalone.io/giraffez/intro.html#environment.
-""".format(error.msg))
+""".format(error))
 
-from ._teradata import TeradataError as TeradataCLIError
-from ._teradatapt import TeradataError as TeradataPTError
+from ._teradata import TeradataError
+from ._teradatapt import (
+    EncoderError,
+    TeradataError as TeradataPTError
+)
 from .cmd import TeradataCmd as Cmd
 from .config import Config
 from .constants import SILENCE, VERBOSE, DEBUG, INFO
 from .errors import (
     GiraffeError,
     GiraffeTypeError,
-    GiraffeEncodeError,
     InvalidCredentialsError,
     ConnectionLock
 )

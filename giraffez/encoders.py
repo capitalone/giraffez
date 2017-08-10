@@ -36,6 +36,14 @@ from ._compat import *
 
 
 class TeradataEncoder(object):
+    """
+    The class wrapping the Teradata C encoder.
+
+    Exposed under the alias :class:`giraffez.Encoder`.
+
+    :param list or :class:`giraffez.Columns` columns: Columns used for encoding.
+    :param int encoding: Constant value representing the settings used by underlying C encoder.
+    """
     def __init__(self, columns=[], encoding=None):
         self.encoding = ENCODER_SETTINGS_DEFAULT
         self._columns = columns
@@ -115,6 +123,12 @@ class TeradataEncoder(object):
 
 
 class Handler(object):
+    """
+    Base class for creating data handlers.  This class can be subclassed
+    to define a list of functions that run on data that matches the
+    Teradata data types provided.  This is useful when dealing with data
+    that may not be in the appropriate Python type to be encoded.
+    """
     handlers = []
 
     def __init__(self, columns):
@@ -200,6 +214,7 @@ def python_to_sql(table_name, columns, date_conversion=True):
                 raise GiraffeEncodeError("Cannot convert datetime '{}'".format(s))
             return value.to_string(length)
     else:
+        convert_time = lambda a: a
         convert_date = lambda a: a
         convert_datetime = lambda a, b: a
     def _encoder(items):

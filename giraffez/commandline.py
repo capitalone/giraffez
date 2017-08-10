@@ -49,20 +49,22 @@ from .parser import Argument, Command
 from .shell import GiraffeShell
 from .sql import parse_statement
 from .utils import pipeline, prompt_bool, readable_time, \
-    register_graceful_shutdown_signal, show_warning, timer
+    register_shutdown_signal, register_graceful_shutdown_signal, \
+    show_warning, timer
 
 from ._compat import *
 
 
 setup_logging()
 
-# Registers graceful shutdown handler using C signals. This allows for
-# the behavior where Ctrl+C pressed once will attempt to shutdown
-# Teradata connections properly, and pressed again exits the process
-# whether the connections have closed or not. This is in commandline.py
-# because otherwise this would be a default signal handler for any
-# library that imports giraffez.
-register_graceful_shutdown_signal()
+# Registers the standard shutdown handler using C signals. Since parts
+# of the giraffez code will execute without acquiring the GIL, Python's
+# normal Ctrl+C behavior will not work. This signal handler attempts
+# to remedy this by setting a signal handler in C that imitates the
+# desired behavior. The goal is to avoid having to acquire the GIL but
+# this could be changed in the future if the cost of acquiring the GIL
+# in the C extension is shown to be minimal.
+register_shutdown_signal()
 
 
 class CmdCommand(Command):
@@ -74,41 +76,41 @@ class CmdCommand(Command):
     arguments = [
         Argument("query", help="Query command (string or file)"),
         Argument("-t", "--table-output", default=False, help="Print in table format"),
+        Argument("-j", "--json", default=False, help="Export in json format"),
+        Argument("-d", "--delimiter", default='\t', help="Text delimiter"),
+        Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
+        Argument("--header", default=False, help="Do prepend header"),
     ]
 
     def run(self, args):
-        file_name = None
-        if " " not in args.query:
-            if file_exists(args.query):
-                file_name = args.query
-                args.query = FileReader.read_all(file_name)
+        if args.json:
+            args.header = False
+        elif args.table_output:
+            args.header = True
+        args.delimiter = unescape_string(args.delimiter)
         start_time = time.time()
+        register_graceful_shutdown_signal()
         with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as cmd:
+            cmd.options("table_output", args.table_output)
             with Writer() as out:
-                statements = parse_statement(args.query)
-                if file_name:
-                    cmd.options("source", file_name)
-                cmd.options("table_output", args.table_output)
-                for s in statements:
-                    start_time = time.time()
-                    result = cmd.execute(s)
-                    count = 0
-                    if out.is_stdout:
-                        log.info(colors.green(colors.bold("-"*32)))
-                    i = 0
-                    if args.table_output and not (args.query.lower().startswith("show") or \
-                            args.query.lower().startswith("help")):
-                        rows = [replace_cr(row) for row in result]
-                        i = len(rows)
-                        rows.insert(0, result.columns.names)
-                        out.writen("\r{}".format(format_table(rows)))
-                    else:
-                        for i, row in enumerate(result, 1):
-                            out.writen("\t".join([str(replace_cr(x)) for x in row]))
-                    if out.is_stdout:
-                        log.info(colors.green(colors.bold("-"*32)))
-                    log.info("Results", "{} rows in {}".format(i, readable_time(time.time() - start_time)))
+                result = cmd.execute(args.query, header=args.header)
+                if out.is_stdout:
+                    log.info(colors.green(colors.bold("-"*32)))
+                if args.json:
+                    for row in result.items():
+                        out.writen(json.dumps(row))
+                elif args.table_output and not (args.query.lower().startswith("show") or \
+                        args.query.lower().startswith("help")):
+                    rows = [replace_cr(row) for row in result]
+                    out.writen("\r{}".format(format_table(rows)))
+                else:
+                    for row in result:
+                        out.writen(args.delimiter.join([replace_cr(str(x)) for x in row]))
+                if out.is_stdout:
+                    log.info(colors.green(colors.bold("-"*32)))
+                count = sum([n.count for n in result.statements])
+                log.info("Results", "{} rows in {}".format(count, readable_time(time.time() - start_time)))
 
 
 class ConfigCommand(Command):
@@ -210,6 +212,7 @@ class ExportCommand(Command):
         elif args.json:
             args.no_header = True
 
+        register_graceful_shutdown_signal()
         with TeradataExport(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as export:
             if args.delimiter is not None:
@@ -217,13 +220,9 @@ class ExportCommand(Command):
             if args.null is not None:
                 export.null = args.null
             export.query = args.query
-
+            start_time = time.time()
             if args.archive:
                 with Writer(args.output_file, 'wb', use_gzip=args.gzip) as out:
-                    start_time = time.time()
-                    export.initiate()
-                    idle_time = time.time() - start_time
-                    start_time = time.time()
                     i = 0
                     for n in export.archive(out):
                         i += n
@@ -231,22 +230,17 @@ class ExportCommand(Command):
                     log.info("\rExport", "Processed {} rows".format(i))
             else:
                 with Writer(args.output_file, use_gzip=args.gzip) as out:
-                    start_time = time.time()
                     export.initiate()
-                    idle_time = time.time() - start_time
                     export.options("output", out.name, 4)
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
-
                     if not args.no_header:
                         out.writen(export.header)
-
-                    start_time = time.time()
-                    i = 0
                     if args.json:
                         exportfn = export.json
                     else:
                         exportfn = export.strings
+                    i = 0
                     for i, row in enumerate(exportfn(), 1):
                         if i % 100000 == 0 and args.output_file:
                             log.info("\rExport", "Processed {} rows".format(i), console=True)
@@ -255,10 +249,10 @@ class ExportCommand(Command):
                         log.info("\rExport", "Processed {} rows".format(i))
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
-            export_time = time.time() - start_time
-            log.info("Results", "{} rows in {}".format(i, readable_time(export_time)))
-            log.info("Results", "Time spent idle: {}".format(readable_time(idle_time)))
-            log.info("Results", "Total time spent: {}".format(readable_time(export_time + idle_time)))
+            total_time = time.time() - start_time
+            log.info("Results", "{} rows in {}".format(i, readable_time(total_time - export.idle_time)))
+            log.info("Results", "Time spent idle: {}".format(readable_time(export.idle_time)))
+            log.info("Results", "Total time spent: {}".format(readable_time(total_time)))
 
 
 class ExternalCommand(Command):
@@ -361,6 +355,7 @@ class LoadCommand(Command):
             "containing special characters")),
         Argument("--parse-dates", default=False, help=("Enable automatic conversion of "
             "dates/timestamps")),
+        Argument("-p", "--no-panic", default=False, help="Prevents normal panic behavior on error")
     ]
 
     def run(self, args):
@@ -374,8 +369,9 @@ class LoadCommand(Command):
         if args.delimiter is None:
             args.delimiter = file_delimiter(args.input_file)
 
+        register_graceful_shutdown_signal()
         with TeradataLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
-                dsn=args.dsn) as load:
+                dsn=args.dsn, panic=args.no_panic) as load:
             load.options("source", args.input_file, 0)
             load.options("output", args.table, 1)
             load.options("null", args.null, 5)
@@ -418,6 +414,7 @@ class MLoadCommand(Command):
             show_warning(("USING MLOAD TO INSERT LESS THAN {} ROWS IS NOT RECOMMENDED - USE LOAD "
                 "INSTEAD!").format(MLOAD_THRESHOLD), UserWarning)
 
+        register_graceful_shutdown_signal()
         with TeradataMLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as mload:
             mload.encoding = args.encoding
@@ -445,11 +442,14 @@ class MLoadCommand(Command):
             log.info('  output      => "{}"'.format(args.table))
             start_time = time.time()
             exit_code = mload.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char)
+            total_time = time.time() - start_time
             log.info("MLoad", "Teradata PT request finished with exit code '{}'".format(exit_code))
             log.info("Results", "...")
             log.info('  Successful   => "{}"'.format(mload.applied_count))
             log.info('  Unsuccessful => "{}"'.format(mload.error_count))
-            log.info("Results", "{} rows in {}".format(mload.total_count, readable_time(time.time() - start_time)))
+            log.info("Results", "{} rows in {}".format(mload.total_count, readable_time(total_time - mload.idle_time)))
+            log.info("Results", "Time spent idle: {}".format(readable_time(mload.idle_time)))
+            log.info("Results", "Total time spent: {}".format(readable_time(total_time)))
             if exit_code != 0:
                 with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
                         dsn=args.dsn, silent=True) as cmd:
@@ -513,6 +513,7 @@ class RunCommand(Command):
             "shell": ShellCommand,
             "secret": SecretCommand,
         }
+        register_graceful_shutdown_signal()
         for job in job_config:
             job_type = job.get("type")
             if not job_type:

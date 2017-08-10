@@ -116,6 +116,15 @@ static PyObject* Export_get_buffer(Export *self) {
     return self->conn->GetBuffer();
 }
 
+static PyObject* Export_get_event(Export *self, PyObject *args, PyObject *kwargs) {
+    TD_EventType event_type;
+    TD_Index event_index = 0;
+    if (!PyArg_ParseTuple(args, "i|i", &event_type, &event_index)) {
+        return NULL;
+    }
+    return self->conn->GetEvent(event_type, event_index);
+}
+
 static PyObject* Export_set_encoding(Export *self, PyObject *args) {
     uint32_t new_settings = 0;
     uint32_t settings;
@@ -179,6 +188,7 @@ static PyMethodDef Export_methods[] = {
     {"close", (PyCFunction)Export_close, METH_NOARGS, ""},
     {"columns", (PyCFunction)Export_columns, METH_NOARGS, ""},
     {"get_buffer", (PyCFunction)Export_get_buffer, METH_NOARGS, ""},
+    {"get_event", (PyCFunction)Export_get_event, METH_VARARGS, ""},
     {"initiate", (PyCFunction)Export_initiate, METH_NOARGS, ""},
     {"set_encoding", (PyCFunction)Export_set_encoding, METH_VARARGS, ""},
     {"set_null", (PyCFunction)Export_set_null, METH_VARARGS, ""},

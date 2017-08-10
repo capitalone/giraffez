@@ -191,6 +191,17 @@ PyObject* teradata_char_to_pystring(unsigned char **data, const uint64_t column_
     return str;
 }
 
+PyObject* teradata_char_to_pystring_f(unsigned char **data, const uint64_t column_length, const uint64_t format_length) {
+    PyObject *str;
+    if (format_length > 0 && format_length <= column_length) {
+        str = PyUnicode_FromStringAndSize((char*)*data, format_length);
+    } else {
+        str = PyUnicode_FromStringAndSize((char*)*data, column_length);
+    }
+    *data += column_length;
+    return str;
+}
+
 PyObject* teradata_byte_to_pybytes(unsigned char **data, const uint64_t column_length) {
     PyObject *str = PyBytes_FromStringAndSize((char*)*data, column_length);
     *data += column_length;
@@ -494,59 +505,76 @@ PyObject* pystring_from_cformat(const char *fmt, ...) {
     return PyUnicode_FromStringAndSize(ss, length);
 }
 
-
 // PACK
 PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint16_t *packed_length) {
+    const char *str;
     Py_ssize_t length;
-    PyObject *temp = NULL;
-    char *str;
-    if (PyBytes_Check(s)) {
-        if ((temp = PyUnicode_FromEncodedObject(s, NULL, NULL)) == NULL) {
-            return NULL;
+    PyObject *stmp = NULL, *utmp = NULL;
+    if (!PyUnicode_Check(s)) {
+        if (PyBytes_Check(s)) {
+            if ((utmp = PyUnicode_FromEncodedObject(s, "UTF-8", NULL)) == NULL) {
+                goto error;
+            }
+            s = utmp;
+        } else {
+            PyErr_Format(EncoderError, "Expected string type and received '%s'", Py_TYPE(s)->tp_name);
+            goto error;
         }
-        s = temp;
-    } else if (!_PyUnicode_Check(s)) {
-        PyErr_Format(EncoderError, "Expected string type and received '%s'", Py_TYPE(s)->tp_name);
-        return NULL;
     }
-
+#if PY_MAJOR_VERSION < 3
+    if ((stmp = PyUnicode_AsEncodedString(s, "UTF-8", NULL)) == NULL) {
+        goto error;
+    }
+    s = stmp;
+#endif
     if ((str = PyUnicode_AsUTF8AndSize(s, &length)) == NULL) {
-            printf("2\n");
-        return NULL;
+        goto error;
     }
-    Py_XDECREF(temp);
     if (length > TD_ROW_MAX_SIZE) {
         PyErr_Format(EncoderError, "VARCHAR field value length %d exceeds maximum allowed.", length);
-        return NULL;
+        goto error;
     }
     *packed_length += pack_string(buf, str, length);
+    Py_XDECREF(stmp);
+    Py_XDECREF(utmp);
     Py_RETURN_NONE;
+error:
+    Py_XDECREF(stmp);
+    Py_XDECREF(utmp);
+    return NULL;
 }
 
 PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
-    Py_ssize_t length;
-    PyObject *temp = NULL;
     int fill;
-    char *str;
-    if (PyBytes_Check(s)) {
-        if ((temp = PyUnicode_FromEncodedObject(s, NULL, NULL)) == NULL) {
-            return NULL;
+    const char *str;
+    Py_ssize_t length;
+    PyObject *stmp = NULL, *utmp = NULL;
+    if (!PyUnicode_Check(s)) {
+        if (PyBytes_Check(s)) {
+            if ((utmp = PyUnicode_FromEncodedObject(s, "UTF-8", NULL)) == NULL) {
+                goto error;
+            }
+            s = utmp;
+        } else {
+            PyErr_Format(EncoderError, "Expected string type and received '%s'", Py_TYPE(s)->tp_name);
+            goto error;
         }
-        s = temp;
-    } else if (!_PyUnicode_Check(s)) {
-        PyErr_Format(EncoderError, "Expected string type and received '%s'", Py_TYPE(s)->tp_name);
-        return NULL;
     }
+#if PY_MAJOR_VERSION < 3
+    if ((stmp = PyUnicode_AsEncodedString(s, "UTF-8", NULL)) == NULL) {
+        goto error;
+    }
+    s = stmp;
+#endif
     if ((str = PyUnicode_AsUTF8AndSize(s, &length)) == NULL) {
-        return NULL;
+        goto error;
     }
-    Py_XDECREF(temp);
     if (length > TD_ROW_MAX_SIZE) {
         PyErr_Format(EncoderError, "CHAR field value length %d exceeds maximum allowed.", length);
-        return NULL;
+        goto error;
     } else if (length > column_length) {
         PyErr_Format(EncoderError, "CHAR field value length %d exceeds column length %d.", length, column_length);
-        return NULL;
+        goto error;
     }
     memcpy(*buf, str, length);
     *buf += length;
@@ -554,7 +582,13 @@ PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length,
     memset(*buf, 0x20, fill);
     *buf += fill;
     *packed_length += column_length;
+    Py_XDECREF(stmp);
+    Py_XDECREF(utmp);
     Py_RETURN_NONE;
+error:
+    Py_XDECREF(stmp);
+    Py_XDECREF(utmp);
+    return NULL;
 }
 
 PyObject* teradata_byteint_from_pylong(PyObject *item, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
@@ -682,7 +716,7 @@ PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_l
     struct tm tm;
     int32_t l = 0;
     
-    if (_PyUnicode_Check(item)) {
+    if (PyStr_Check(item)) {
         Py_RETURN_ERROR((str = PyUnicode_AsUTF8(item)));
     } else {
         Py_RETURN_ERROR((temp = PyObject_Str(item)));
@@ -844,33 +878,31 @@ static PyObject *TimestampType;
 
 int giraffez_types_import() {
     PyObject *mod;
-    mod = PyImport_ImportModule("giraffez.types");
-    if (!mod) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import module giraffez.types");
+    if ((mod = PyImport_ImportModule("giraffez.types")) == NULL) {
         return -1;
-    }
+    };
     if ((ColumnsType = PyObject_GetAttrString(mod, "Columns")) == NULL) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Columns");
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Columns into C extension");
         return -1;
 
     }
     if ((DateType = PyObject_GetAttrString(mod, "Date")) == NULL) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Date");
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Date into C extension");
         return -1;
 
     };
     if ((TimeType = PyObject_GetAttrString(mod, "Time")) == NULL) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Time");
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Time into C extension");
         return -1;
 
     }
     if ((TimestampType = PyObject_GetAttrString(mod, "Timestamp")) == NULL) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Timestamp");
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Timestamp into C extension");
         return -1;
 
     }
     if ((DecimalType = PyObject_GetAttrString(mod, "Decimal")) == NULL) {
-        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Decimal");
+        PyErr_SetString(PyExc_ImportError, "Unable to import giraffez.Decimal into C extension");
         return -1;
     }
     Py_DECREF(mod);

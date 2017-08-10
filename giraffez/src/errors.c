@@ -28,43 +28,49 @@ typedef struct {
     PyObject *code;
 } TeradataErrorObject;
 
-void debug_printf(const char *fmt, ...) {
-    PyObject *s;
-    va_list vargs;
-    va_start(vargs, fmt);
-    s = PyUnicode_FromFormatV(fmt, vargs);
-    va_end(vargs);
-    fprintf(stderr, "DEBUG: %s\n", PyUnicode_AsUTF8(s));
-    Py_XDECREF(s);
-}
-
 static int TeradataError_init(TeradataErrorObject *self, PyObject *args, PyObject *kwds) {
     PyObject *msg = NULL;
     PyObject *code = NULL;
     PyObject *item = NULL;
     PyObject *parts = NULL;
     PyObject *colon = NULL;
+    PyObject *utmp = NULL;
     Py_ssize_t size;
     if (!PyArg_ParseTuple(args, "O", &msg)) {
         return -1;
     }
+    Py_INCREF(args);
+    Py_SETREF(self->args, args);
     colon = PyUnicode_FromString(":");
+    if (PyBytes_Check(msg)) {
+        if ((utmp = PyUnicode_FromEncodedObject(msg, "UTF-8", NULL)) == NULL) {
+            goto error;
+        }
+        msg = utmp;
+    }
     if ((parts = PyUnicode_Split(msg, colon, 1)) == NULL) {
-        return -1;
+        goto error;
     }
     size = PyList_Size(parts);
     if (size == 2) {
-        if ((code = PyLong_FromUnicodeObject(PyList_GET_ITEM(parts, 0), 10)) == NULL) {
-            return -1;
+        PyObject *cro = PyList_GET_ITEM(parts, 0);
+        if ((code = PyLong_FromUnicodeObject(cro, 10)) == NULL) {
+            goto error;
         }
         Py_XSETREF(self->code, code);
         if ((item = PyList_GetItem(parts, 1)) == NULL) {
-            return -1;
+            goto error;
         }
         Py_INCREF(PyList_GET_ITEM(parts, 1));
         Py_XSETREF(self->message, PyList_GET_ITEM(parts, 1));
     }
+    Py_XDECREF(utmp);
+    Py_XDECREF(colon);
     return 0;
+error:
+    Py_XDECREF(utmp);
+    Py_XDECREF(colon);
+    return -1;
 }
 
 static int TeradataError_clear(TeradataErrorObject *self) {
@@ -95,6 +101,21 @@ static int TeradataError_traverse(TeradataErrorObject *self, visitproc visit, vo
     return 0;
 }
 
+static PyObject* TeradataError_repr(PyObject *obj) {
+    PyObject *message, *rep, *repr, *sub;
+    TeradataErrorObject *self = (TeradataErrorObject*)obj;
+    sub = PyUnicode_FromString("\x01");
+    rep = PyUnicode_FromString("");
+    if ((message = PyUnicode_Replace(self->message, sub, rep, -1)) == NULL) {
+        return NULL;
+    }
+    repr = PyUnicode_FromFormat("TeradataError(%S:%S)", self->code, message);
+    Py_DECREF(message);
+    Py_DECREF(sub);
+    Py_DECREF(rep);
+    return repr;
+}
+
 static PyMemberDef TeradataError_members[] = {
     {"message", T_OBJECT, offsetof(TeradataErrorObject, message), 0, PyDoc_STR("exception message")},
     {"code", T_OBJECT, offsetof(TeradataErrorObject, code), 0, PyDoc_STR("code name")},
@@ -103,7 +124,7 @@ static PyMemberDef TeradataError_members[] = {
 
 PyTypeObject TeradataErrorType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "giraffez.TeradataErrorz",                       /* tp_name */
+    "giraffez.TeradataErrorz",                      /* tp_name */
     sizeof(TeradataErrorObject),                    /* tp_basicsize */
     0,                                              /* tp_itemsize */
     (destructor)TeradataError_dealloc,              /* tp_dealloc */
@@ -111,7 +132,7 @@ PyTypeObject TeradataErrorType = {
     0,                                              /* tp_getattr */
     0,                                              /* tp_setattr */
     0,                                              /* tp_compare */
-    0,                                              /* tp_repr */
+    TeradataError_repr,                             /* tp_repr */
     0,                                              /* tp_as_number */
     0,                                              /* tp_as_sequence */
     0,                                              /* tp_as_mapping */
@@ -122,7 +143,7 @@ PyTypeObject TeradataErrorType = {
     0,                                              /* tp_setattro */
     0,                                              /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE
-         | Py_TPFLAGS_HAVE_GC,                       /* tp_flags */
+         | Py_TPFLAGS_HAVE_GC,                      /* tp_flags */
     0,                                              /* tp_doc */
     (traverseproc)TeradataError_traverse,           /* tp_traverse */
     (inquiry)TeradataError_clear,                   /* tp_clear */
@@ -164,4 +185,14 @@ PyObject* define_exceptions(PyObject *module) {
     InvalidCredentialsError = PyErr_NewException("giraffez.InvalidCredentialsError", TeradataError, NULL);
     PyModule_AddObject(module, "InvalidCredentialsError", InvalidCredentialsError);
     Py_RETURN_NONE;
+}
+
+void debug_printf(const char *fmt, ...) {
+    PyObject *s;
+    va_list vargs;
+    va_start(vargs, fmt);
+    s = PyUnicode_FromFormatV(fmt, vargs);
+    va_end(vargs);
+    fprintf(stderr, "DEBUG: %s\n", PyUnicode_AsUTF8(s));
+    Py_XDECREF(s);
 }

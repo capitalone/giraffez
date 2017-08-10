@@ -64,5 +64,6 @@ def truncate(s, n=7, c=70, placeholder="..."):
         return s
     if char_count > (n * c):
         s = s[0:n*c]
+        lines = s.split('\n')
     lines = "\n".join(lines[0:n])
     return "{} {}".format(lines, placeholder)

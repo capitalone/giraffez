@@ -1,9 +1,6 @@
 .PHONY: all clean build test cover docs
 
 PYMODULE=giraffez
-GH_PAGES_SOURCES=docs/source $(PYMODULE) docs/Makefile
-CURRENT_BRANCH:=$(shell git rev-parse --abbrev-ref HEAD)
-NEW_COMMIT_MESSAGE:=$(shell git log $(CURRENT_BRANCH) -1 --pretty=short --abbrev-commit)
 
 all: clean install
 
@@ -40,28 +37,4 @@ upload: test
 	@python setup.py bdist_wheel upload
 
 docs:
-	$(MAKE) -C docs html
-
-initdocs:
-	@git branch gh-pages
-	@git symbolic-ref HEAD refs/heads/gh-pages
-	@rm .git/index
-	@git clean -fdx
-	@touch .nojekyll
-	@git add .nojekyll
-	@git commit -m 'Initial commit'
-	@git push origin gh-pages
-
-updatedocs:
-	@git checkout gh-pages
-	@rm -rf docs/build docs/_sources docs/_static *.html *.js
-	@git checkout $(CURRENT_BRANCH) $(GH_PAGES_SOURCES)
-	@git reset HEAD
-	@$(MAKE) -C docs clean html
-	@rm -rf _sources _static
-	@mv -fv docs/build/html/* .
-	@rm -rf $(GH_PAGES_SOURCES) docs/build/html
-	@git add -A
-	@git commit -m "Generage gh-pages for $(NEW_COMMIT_MESSAGE)"
-	@git push origin gh-pages
-	@git checkout $(CURRENT_BRANCH)
+	@cd docs && sphinx-build -b html src .

@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import os
 import sys
 import gzip
@@ -119,7 +121,6 @@ class FileReader(BaseReader):
 
 
 class CSVReader(FileReader):
-
     encoding = "csv"
 
     def __init__(self, path, delimiter=None, quotechar='"'):
@@ -141,7 +142,6 @@ class CSVReader(FileReader):
 
 
 class JSONReader(FileReader):
-
     encoding = "dict"
 
     def __init__(self, path):
@@ -150,9 +150,6 @@ class JSONReader(FileReader):
         self.fd.seek(0)
 
     def readline(self):
-        #obj = json.loads(next(self.fd))
-        #return [obj.get(c, None) for c  in self.columns.names]
-        #return json.loads(next(self.fd)).values()
         return json.loads(next(self.fd))
 
 

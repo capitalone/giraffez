@@ -80,6 +80,7 @@ extern PyObject *InvalidCredentialsError;
 
 // CLIv2 control flow exceptions
 extern PyObject *EndStatementError;
+extern PyObject *EndStatementInfoError;
 extern PyObject *EndRequestError;
 
 

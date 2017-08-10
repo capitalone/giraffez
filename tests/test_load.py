@@ -139,6 +139,7 @@ class TestLoad(object):
             f.write("\n")
 
         with giraffez.Load() as load:
+            load.panic = False
             result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
 
     def test_load_from_file_error_panic(self, mocker, tmpfiles):
@@ -162,7 +163,6 @@ class TestLoad(object):
             f.write("\n")
 
         with giraffez.Load() as load:
-            load.panic = True
             with pytest.raises(GiraffeEncodeError):
                 result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
                 print(result)
@@ -189,7 +189,6 @@ class TestLoad(object):
             f.write("\n")
 
         with giraffez.Load() as load:
-            load.panic = True
             with pytest.raises(GiraffeError):
                 result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
                 print(result)
@@ -202,7 +201,6 @@ class TestLoad(object):
             f.write("\n")
 
         with giraffez.Load() as load:
-            load.panic = True
             with pytest.raises(GiraffeError):
                 result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
                 print(result)
@@ -215,7 +213,6 @@ class TestLoad(object):
             f.write("\n")
 
         with giraffez.Load() as load:
-            load.panic = True
             with pytest.raises(GiraffeEncodeError):
                 result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
                 print(result)
@@ -241,6 +238,5 @@ class TestLoad(object):
         ]
 
         with giraffez.Load() as load:
-            load.panic = True
             with pytest.raises(GiraffeEncodeError):
                 load.insert("db1.test", rows)

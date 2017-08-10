@@ -200,7 +200,7 @@ PyObject* teradata_item_to_pyobject(const TeradataEncoder *e, unsigned char **da
             }
             return e->UnpackDecimalFunc(item, n);
         case GD_CHAR:
-            return teradata_char_to_pystring(data, column->Length);
+            return teradata_char_to_pystring_f(data, column->Length, column->FormatLength);
         case GD_VARCHAR:
             return teradata_varchar_to_pystring(data);
         case GD_DATE:
@@ -242,7 +242,7 @@ PyObject* teradata_row_from_unknown(const TeradataEncoder *e, PyObject *row, uns
         uint16_t *length) {
     if (PyDict_Check(row)) {
         encoder_set_encoding((TeradataEncoder*)e, ROW_ENCODING_DICT);
-    } else if (_PyUnicode_Check(row) || PyBytes_Check(row)) {
+    } else if (PyStr_Check(row) || PyBytes_Check(row)) {
         encoder_set_encoding((TeradataEncoder*)e, ROW_ENCODING_STRING);
     } else if (PyTuple_Check(row) || PyList_Check(row)) {
         encoder_set_encoding((TeradataEncoder*)e, ROW_ENCODING_LIST);
@@ -274,7 +274,7 @@ PyObject* teradata_row_from_pybytes(const TeradataEncoder *e, PyObject *row, uns
 PyObject* teradata_row_from_pystring(const TeradataEncoder *e, PyObject *row, unsigned char **data,
         uint16_t *length) {
     PyObject *items;
-    if (!(_PyUnicode_Check(row) || PyBytes_Check(row))) {
+    if (!(PyStr_Check(row) || PyBytes_Check(row))) {
         return teradata_row_from_unknown(e, row, data, length);
     }
     if ((items = PyUnicode_Split(row, e->Delimiter, e->Columns->length-1)) == NULL) {
@@ -322,7 +322,6 @@ PyObject* teradata_row_from_pytuple(const TeradataEncoder *e, PyObject *row, uns
         return NULL;
     }
     if (e->Columns->length != (size_t)slength) {
-        // TODO: make sure this works
         PyErr_Format(EncoderError, "Wrong number of items in row, expected %d but got %d", e->Columns->length, slength);
         return NULL;
     }

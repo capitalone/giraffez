@@ -39,6 +39,7 @@ GiraffeColumn* column_new() {
     column->Format = NULL;
     column->Default = NULL;
     column->Nullable = NULL;
+    column->FormatLength = 0;
     column->NullLength = 0;
     column->SafeName = NULL;
     return column;
@@ -76,6 +77,9 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
         element.NullLength = element.Length;
     }
     element.SafeName = safe_name(element.Name);
+    if (element.GDType == GD_CHAR && element.Format != NULL) {
+        element.FormatLength = format_length(element.Format);
+    }
     c->array[c->length++] = element;
     c->header_length = (int)ceil(c->length/8.0);
     c->buffer = (unsigned char*)realloc(c->buffer, c->header_length * sizeof(unsigned char));
@@ -162,6 +166,15 @@ void stmt_info_free(StatementInfo *s) {
     free(s->array);
     s->array = NULL;
     s->length = s->size = 0;
+}
+
+uint64_t format_length(const char *format) {
+    int l;
+    int n = sscanf(format, "X(%d)", &l);
+    if (n != 1) {
+        return 0;
+    }
+    return l;
 }
 
 char* safe_name(const char *name) {

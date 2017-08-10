@@ -41,7 +41,7 @@ The ``TERADATA_HOME`` variable is only necessary during installation and only if
 
 For Windows, the locations for `TELAPI.lib` and `opermsgs.dll` must be in the Windows PATH variable.
 
-For Unix-like platforms, the path that contains `libtelapi.so` must be added to the ``LD_LIBRARY_PATH`` environment variable, and the path containing `opermsgs.cat` must be added to the ``NLS_PATH`` environment variable with ``%N`` placed at the end.
+For Unix-like platforms, the path that contains `libtelapi.so` must be added to the ``LD_LIBRARY_PATH`` environment variable, and the path containing `opermsgs.cat` must be added to the ``NLSPATH`` environment variable with ``%N`` placed at the end.
 
 For all other issues installing and configuring Teradata libraries, use the documents provided by `Teradata Information <http://www.info.teradata.com/>` or by engaging with the `Teradata Community <https://community.teradata.com>`.
 

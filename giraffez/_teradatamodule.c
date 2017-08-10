@@ -140,13 +140,13 @@ static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
         return NULL;
     }
     if (settings & ROW_RETURN_MASK) {
-        new_settings = (self->encoder->Settings & ~ROW_RETURN_MASK) | settings;
+        new_settings = (self->encoder->Settings & ~ROW_RETURN_MASK) | (settings & ROW_RETURN_MASK);
     }
     if (settings & DATETIME_RETURN_MASK) {
-        new_settings = (self->encoder->Settings & ~DATETIME_RETURN_MASK) | settings;
+        new_settings = (self->encoder->Settings & ~DATETIME_RETURN_MASK) | (settings & DATETIME_RETURN_MASK);
     }
     if (settings & DECIMAL_RETURN_MASK) {
-        new_settings = (self->encoder->Settings & ~DECIMAL_RETURN_MASK) | settings;
+        new_settings = (self->encoder->Settings & ~DECIMAL_RETURN_MASK) | (settings & DECIMAL_RETURN_MASK);
     }
     if (encoder_set_encoding(self->encoder, new_settings) != 0) {
         PyErr_Format(PyExc_ValueError, "Encoder set_encoding failed, bad encoding '0x%06x'.", settings);
@@ -436,14 +436,31 @@ static void warm_shutdown(int signum) {
     signal(SIGINT, cold_shutdown);
 }
 
-static PyObject* register_shutdown(PyObject* self) {
+static void shutdown(int signum) {
+    // Should imitate normal Ctrl+C behavior for giraffez code that has
+    // not acquired the GIL
+    PyGILState_STATE state;
+    state = PyGILState_Ensure();
+    PyErr_SetInterrupt();
+    PyGILState_Release(state);
+}
+
+static PyObject* register_graceful_shutdown(PyObject* self) {
     signal(SIGINT, &warm_shutdown);
     signal(SIGTERM, &warm_shutdown);
     Py_RETURN_NONE;
 }
 
+static PyObject* register_shutdown(PyObject* self) {
+    signal(SIGINT, &shutdown);
+    signal(SIGTERM, &shutdown);
+    Py_RETURN_NONE;
+}
+
+// TODO(chris): create a signal unregister
 static PyMethodDef module_methods[] = {
-    {"register_graceful_shutdown_signal", (PyCFunction)register_shutdown, METH_NOARGS, NULL},
+    {"register_shutdown_signal", (PyCFunction)register_shutdown, METH_NOARGS, NULL},
+    {"register_graceful_shutdown_signal", (PyCFunction)register_graceful_shutdown, METH_NOARGS, NULL},
     {NULL}  /* Sentinel */
 };
 
@@ -480,6 +497,8 @@ MOD_INIT(_teradata)
 
     EndStatementError = PyErr_NewException("_teradata.StatementEnded", NULL, NULL);
     PyModule_AddObject(m, "StatementEnded", EndStatementError);
+    EndStatementInfoError = PyErr_NewException("_teradata.StatementInfoEnded", NULL, NULL);
+    PyModule_AddObject(m, "StatementInfoEnded", EndStatementInfoError);
     EndRequestError = PyErr_NewException("_teradata.RequestEnded", NULL, NULL);
     PyModule_AddObject(m, "RequestEnded", EndRequestError);
 

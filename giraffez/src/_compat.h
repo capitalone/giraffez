@@ -37,16 +37,28 @@
 
   #define Py_TPFLAGS_HAVE_ITER 0
   #define MOD_ERROR_VAL NULL
-  #define _PyUnicode_Check(ob) PyUnicode_Check(ob)
+  #define PyStr_Check(ob) PyUnicode_Check(ob)
   #define _PyFloat_FromString(ob) PyFloat_FromString(ob)
 
   #define TEXT_T Py_UNICODE
 #else
   #define PyUnicode_AsUTF8 PyString_AsString
-  #define PyNumber_FloorDivide PyNumber_Divide
+  #define PyUnicode_AsUTF8AndSize(pystr, sizeptr) \
+    ((*sizeptr=PyString_Size(pystr)), PyString_AsString(pystr))
+  #define PyStr_Check(ob) (PyString_Check(ob) || PyUnicode_Check(ob))
+
+  #define PyBytes_Check PyString_Check
   #define PyBytes_FromStringAndSize PyString_FromStringAndSize
-  #define _PyUnicode_Check(ob) PyString_Check(ob) || PyUnicode_Check(ob)
+
+  #define PyNumber_FloorDivide PyNumber_Divide
+
   #define _PyFloat_FromString(ob) PyFloat_FromString(ob, NULL)
+  #define PyLong_FromUnicodeObject(ob, b) PyLong_FromUnicode(PyUnicode_AS_UNICODE(ob), PyUnicode_GetSize(ob), b)
+
+  #define PyException_HEAD PyObject_HEAD PyObject *dict;\
+             PyObject *args; PyObject *traceback;\
+             PyObject *context; PyObject *cause;\
+             char suppress_context;
 
   #define MOD_ERROR_VAL
   #define MOD_SUCCESS_VAL(val)

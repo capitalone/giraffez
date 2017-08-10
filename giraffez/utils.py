@@ -105,6 +105,13 @@ def readable_time(t):
     else:
         return "{:.3f}s".format(t)
 
+def register_shutdown_signal():
+    """
+    Registers a simple shutdown handler using C signals.
+    """
+    from ._teradata import register_shutdown_signal as _register
+    _register()
+
 def register_graceful_shutdown_signal():
     """
     Registers graceful shutdown handler using C signals. The first

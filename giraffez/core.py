@@ -102,7 +102,7 @@ class MainCommand(Command):
                 self.run()
             else:
                 raise error
-        except (_cli.InvalidCredentialsError, _tpt.InvalidCredentialsError) as error:
+        except (_teradata.InvalidCredentialsError, _teradatapt.InvalidCredentialsError) as error:
             if args.protect:
                 Config.lock_connection(args.conf, args.dsn, args.key)
             raise error

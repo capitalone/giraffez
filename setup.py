@@ -188,13 +188,6 @@ class TeradataExtension(Extension):
         "giraffez/_teradatamodule.c",
     ]
 
-    depends = [
-        "giraffez/climodule.c",
-    ]
-
-    cli_include_dir = None
-    cli_library_dir = None
-
     def setup(self):
         if TERADATA_HOME is None:
             raise TeradataNotFound("Unable to find the Teradata files.")
@@ -223,16 +216,11 @@ class TeradataExtension(Extension):
         else:
             raise PlatformNotSupported("This following platform is unsupported or unknown: '{}'".format(platform.system()))
 
-        if os.path.isdir(tdcli_inc):
-            self.cli_include_dir = tdcli_inc
-        if os.path.isdir(tdcli_lib):
-            self.cli_library_dir = tdcli_lib
-
-        if not self.cli_include_dir or not self.cli_library_dir:
+        if not os.path.isdir(tdcli_inc) or not os.path.isdir(tdcli_lib):
             raise TeradataNotFound("Cannot find the Teradata CLIv2 files.")
 
-        self.include_dirs.append(self.cli_include_dir)
-        self.library_dirs.append(self.cli_library_dir)
+        self.include_dirs.append(tdcli_inc)
+        self.library_dirs.append(tdcli_lib)
 
         # Set libraries
         if platform.system() == 'Windows':
@@ -250,14 +238,7 @@ class TeradataPTExtension(Extension):
         "giraffez/_teradataptmodule.cc",
     ]
 
-    depends = [
-        "giraffez/_teradataptmodule.cc",
-    ]
-
     depends_on = [TeradataExtension]
-
-    tpt_include_dir = None
-    tpt_library_dir = None
 
     def setup(self):
         if TERADATA_HOME is None:
@@ -276,9 +257,14 @@ class TeradataPTExtension(Extension):
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib64")
+                # version 16.10 appears to have yet again change the location
+                if not os.path.isdir(tptapi_lib):
+                    tptapi_lib = os.path.join(TERADATA_HOME, "lib64")
             else:
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib")
+                if not os.path.isdir(tptapi_lib):
+                    tptapi_lib = os.path.join(TERADATA_HOME, "lib")
         elif platform.system() == 'Darwin':
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
@@ -289,16 +275,11 @@ class TeradataPTExtension(Extension):
         else:
             raise PlatformNotSupported("This following platform is unsupported or unknown: '{}'".format(platform.system()))
 
-        if os.path.isdir(tptapi_inc):
-            self.tpt_include_dir = tptapi_inc
-        if os.path.isdir(tptapi_lib):
-            self.tpt_library_dir = tptapi_lib
-
-        if not self.tpt_include_dir or not self.tpt_library_dir:
+        if not os.path.isdir(tptapi_inc) or not os.path.isdir(tptapi_lib):
             raise TeradataNotFound("Cannot find the Teradata Parallel Transporter API files.")
 
-        self.include_dirs.append(self.tpt_include_dir)
-        self.library_dirs.append(self.tpt_library_dir)
+        self.include_dirs.append(tptapi_inc)
+        self.library_dirs.append(tptapi_lib)
 
         if platform.system() == 'Windows':
             self.libraries.append("telapi")
@@ -345,20 +326,31 @@ class BuildExt(build_ext):
             include_dirs=ext.include_dirs,
             extra_postargs=ext.extra_compile_args,
             depends=ext.depends)
-        self.cache[ext.name] = objects
+        self.cache[ext.name] = ext
         return objects
 
     def build_extension(self, ext):
         ext.setup()
-        objects = self.compile(ext)
-        ext_path = self.get_ext_fullpath(ext.name)
         if ext.depends_on:
             for dep in ext.depends_on:
                 if dep.name not in self.cache:
-                    objects += self.compile(dep())
+                    d = dep()
+                    ext.include_dirs += d.include_dirs
+                    ext.library_dirs += d.library_dirs
+                    ext.libraries += d.libraries
+                    ext.objects += self.compile(d)
                 else:
-                    objects += self.cache[dep.name]
-                objects = list(set(objects))
+                    d = self.cache[dep.name]
+                    ext.include_dirs += d.include_dirs
+                    ext.library_dirs += d.library_dirs
+                    ext.libraries += d.libraries
+                    ext.objects += d.objects
+                ext.include_dirs = list(set(ext.include_dirs))
+                ext.library_dirs = list(set(ext.library_dirs))
+                ext.libraries = list(set(ext.libraries))
+                ext.objects = list(set(ext.objects))
+        ext.objects += self.compile(ext)
+        ext_path = self.get_ext_fullpath(ext.name)
 
         # Return early when a shared object is not being created. This
         # is useful when dealing with Extensions that need to have
@@ -368,7 +360,7 @@ class BuildExt(build_ext):
             return
 
         self.compiler.link_shared_object(
-            objects,
+            ext.objects,
             ext_path,
             libraries=self.get_libraries(ext),
             library_dirs=ext.library_dirs,

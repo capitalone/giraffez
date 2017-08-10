@@ -76,7 +76,7 @@ class Connection(object):
     def _connect(self, host, username, password):
         pass
 
-    def close(self):
+    def close(self, exc=None):
         pass
 
     def __enter__(self):
@@ -85,7 +85,7 @@ class Connection(object):
     def __exit__(self, exc_type, exc, exc_tb):
         if not self.silent:
             log.info("Connection", "Closing Teradata connection ...")
-        self.close()
+        self.close(exc)
         if not self.silent:
             log.info("Connection", "Connection to '{}' closed.".format(self.dsn))
 

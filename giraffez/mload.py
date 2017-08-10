@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 import struct
 import threading
 
@@ -57,6 +58,9 @@ class TeradataMLoad(Connection):
         locks the connection used in the configuration file. This can be unlocked using the
         command :code:`giraffez config --unlock <connection>`, changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
+    :param bool coerce_floats: Coerce Teradata decimal types into Python floats
+    :param bool cleanup: MLoad will attempt to cleanup all work tables
+        when context exits.
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
     :raises `giraffez.errors.TeradataError`: if the connection cannot be established
 
@@ -75,7 +79,7 @@ class TeradataMLoad(Connection):
         super(TeradataMLoad, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 
-        #: Attributes used with property getter/setters
+        # Attributes used with property getter/setters
         self._columns = None
         self._table_name = None
         self._encoding = None
@@ -83,11 +87,17 @@ class TeradataMLoad(Connection):
         self._null = DEFAULT_NULL
 
         self.initiated = False
+        self.finished = False
         self.coerce_floats = coerce_floats
         self.perform_cleanup = cleanup
+        self.exit_code = None
 
         self.applied_count = 0
         self.error_count = 0
+
+        #: The amount of time spent in idle (waiting for server)
+        self.idle_time = 0
+
         self.preprocessor = lambda s: s
         if table is not None:
             self.table = table
@@ -152,7 +162,9 @@ class TeradataMLoad(Connection):
         for t in threads:
             t.join()
 
-    def close(self):
+    def close(self, exc=None):
+        if not exc:
+            self.finish()
         log.info("MLoad", "Closing Teradata PT connection ...")
         self.mload.close()
         log.info("MLoad", "Teradata PT request complete.")
@@ -202,8 +214,7 @@ class TeradataMLoad(Connection):
         self._null = value
         self.mload.set_null(self._null)
 
-    @property
-    def exit_code(self):
+    def _exit_code(self):
         data = self.mload.get_event(TD_Evt_ExitCode)
         if data is None:
             log.info("MLoad", "Update exit code failed.")
@@ -218,9 +229,19 @@ class TeradataMLoad(Connection):
 
         :return: The exit code returned when applying rows to the table
         """
+        if self.finished:
+            return self.exit_code
         checkpoint_status = self.checkpoint()
-        self._end_acquisition()
-        self._apply_rows()
+        self.exit_code = self._exit_code()
+        if self.exit_code != 0:
+            raise TeradataPTError("MLoad job finished with return code '{}'".format(self.exit_code))
+        # TODO(chris): should this happen every time?
+        if self.applied_count > 0:
+            self._end_acquisition()
+            self._apply_rows()
+        if self.exit_code != 0:
+            raise TeradataPTError("MLoad job finished with return code '{}'".format(self.exit_code))
+        self.finished = True
         return self.exit_code
 
     def from_file(self, filename, table=None, null=None, delimiter=None, panic=True, quotechar='"'):
@@ -296,7 +317,9 @@ class TeradataMLoad(Connection):
             elif any(filter(lambda x: self.mload.exists(x), self.tables)):
                 raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
             log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
+            start_time = time.time()
             self.mload.initiate(self.table, self.columns)
+            self.idle_time = time.time() - start_time
         except InvalidCredentialsError as error:
             if args.protect:
                 Config.lock_connection(args.conf, args.dsn, args.key)

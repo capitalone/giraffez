@@ -8,7 +8,7 @@ from giraffez.__main__ import main
 from giraffez.core import MainCommand
 from giraffez.errors import *
 from giraffez.encrypt import *
-from giraffez._cli import TeradataError
+from giraffez._teradata import TeradataError
 
 
 @pytest.mark.usefixtures('tmpfiles')

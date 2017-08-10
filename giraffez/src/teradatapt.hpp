@@ -65,11 +65,11 @@ namespace Giraffez {
         }
 
         PyObject* SetEncoding(uint32_t settings, PyObject *null, PyObject *delimiter) {
-            if (null != NULL && !_PyUnicode_Check(delimiter)) {
+            if (null != NULL && !PyStr_Check(delimiter)) {
                 PyErr_SetString(PyExc_TypeError, "Delimiter must be string");
                 return NULL;
             }
-            if (null != NULL && !(_PyUnicode_Check(null) || null == Py_None)) {
+            if (null != NULL && !(PyStr_Check(null) || null == Py_None)) {
                 PyErr_SetString(PyExc_TypeError, "Null must be string or NoneType");
                 return NULL;
             }
@@ -118,7 +118,7 @@ namespace Giraffez {
         PyObject* AddAttribute(TD_Attribute key, PyObject *value) {
             if PyLong_Check(value) {
                 TConn::AddAttribute(key, (int)PyLong_AsLong(value));
-            } else if (_PyUnicode_Check(value)) {
+            } else if (PyStr_Check(value)) {
                 TConn::AddAttribute(key, PyUnicode_AsUTF8(value));
             } else {
                 // TODO: err

@@ -17,42 +17,44 @@
 from .constants import *
 from .errors import *
 
-from ._teradata import Cmd, RequestEnded, StatementEnded, TeradataError
+from ._teradata import Cmd, RequestEnded, StatementEnded, StatementInfoEnded, TeradataError
 
 from .connection import Connection
-from .fmt import truncate
+from .fmt import format_indent, truncate
 from .logging import log
-from .sql import parse_statement, prepare_statement
+from .sql import parse_statement, prepare_statement, Statement
 from .types import Columns, Row
 from .utils import suppress_context
 
 
-__all__ = ['TeradataCmd']
-
-
-def read_sql(s, config=None, key_file=None, panic=True, log_level=None):
-    stats = []
-    with TeradataCmd(config=config, key_file=key_file, log_level=log_level) as cmd:
-        statements = parse_statement(s)
-        for statement in statements:
-            try:
-                cmd.execute(statement)
-                stats.append((statement, None))
-            except TeradataError as error:
-                stats.append((statement, error))
-                if panic:
-                    raise error
+__all__ = ['TeradataCmd', 'Cursor']
 
 
 class Cursor(object):
-    def __init__(self, conn, command, multi_statement=False, prepare_only=False,
-            coerce_floats=True, parse_dates=False):
+    """
+    The class returned by :meth:`giraffez.Cmd.execute` for iterating
+    through Terdata CLIv2 results.
+
+    :param `giraffez.Cmd` conn: The underlying database connection
+    :param str command: The SQL command to be executed
+    :param bool multi_statement: Execute in parallel statement mode
+    :param bool prepare_only: Execute in prepare mode
+    :param bool coerce_floats: Coerce Teradata Decimal types
+        automatically into Python floats
+    :param bool parse_dates: Returns date/time types as giraffez
+        date/time types (instead of Python strings)
+    """
+    def __init__(self, conn, command, multi_statement=False, header=False,
+            prepare_only=False, coerce_floats=True, parse_dates=False,
+            panic=True):
         self.conn = conn
         self.command = command
         self.multi_statement = multi_statement
+        self.header = header
         self.prepare_only = prepare_only
         self.coerce_floats = coerce_floats
         self.parse_dates = parse_dates
+        self.panic = panic
         self.processor = lambda x, y: Row(x, y)
         if not self.coerce_floats:
             self.conn.set_encoding(DECIMAL_AS_STRING)
@@ -60,53 +62,119 @@ class Cursor(object):
             self.conn.set_encoding(DATETIME_AS_GIRAFFE_TYPES)
         self.columns = None
         if self.multi_statement:
-            self.statements = [command]
+            self.statements = [Statement(command)]
         else:
             self.statements = parse_statement(command)
-        self.statements.reverse()
-        self._execute(self.statements.pop())
+        self._cur = 0
+        self._execute(self.statements[self._cur])
+        if self.prepare_only:
+            self.columns = self._columns()
 
     def _columns(self):
         columns = self.conn.columns()
-        log.debug(self.conn.columns(debug=True))
+        log.debug("Debug[2]", self.conn.columns(debug=True))
         for column in columns:
             log.verbose("Debug[1]", repr(column))
         return columns
 
     def _execute(self, statement):
-        self.conn.execute(statement, prepare_only=self.prepare_only)
-        self.columns = self._columns()
+        with statement:
+            try:
+                self.conn.execute(statement, prepare_only=self.prepare_only)
+            except TeradataError as error:
+                if self.panic:
+                    message = "Statement:\n{}".format(format_indent(truncate(statement), indent="  ", initial="  "))
+                    raise suppress_context(TeradataError("{}\n\n{} ".format(error, message)))
+                statement._error = error
 
     def _fetchone(self):
         try:
-            return self.conn.fetchone()
-        except StatementEnded:
-            # Multi-statement requests still emit the StatementEnded parcel
-            # and therefore must be continually read until the RequestEnded
-            # parcel is received.
-            if self.multi_statement:
-                try:
+            row = self.conn.fetchone()
+            self.statements[self._cur].count += 1
+            return row
+        except TeradataError as error:
+            if error.code == TD_ERROR_REQUEST_EXHAUSTED:
+                if self.multi_statement:
                     return self._fetchone()
-                except RequestEnded:
+                # In some cases CLIv2 returns RequestExhausted instead of
+                # StatementEnded. For example, when the statement caused
+                # a Teradata syntax error, instead of receiving a
+                # StatementEnded parcel, it will return this error when
+                # attempting to fetch the next parcel.
+                if self._cur == len(self.statements)-1:
                     raise StopIteration
-            if not self.statements:
-                raise StopIteration
-            self.columns = None
-            self._execute(self.statements.pop())
+                self._cur += 1
+                self._execute(self.statements[self._cur])
+                return self._fetchone()
+            raise
+        except StatementInfoEnded:
+            # Indicates that new columns were received so get them and
+            # fetch the next parcel.
+            self.columns = self._columns()
+            self.statements[self._cur].columns = self.columns
+            if self.header:
+                return self.processor(self.columns, self.columns.names)
             return self._fetchone()
+        except StatementEnded:
+            if self.multi_statement:
+                return self._fetchone()
+            # Statement has no more parcels so we fetch the next one
+            # to determine if there might be more statements or if the
+            # request might be closed.
+            if self._cur == len(self.statements)-1:
+                raise StopIteration
+            self._cur += 1
+            self._execute(self.statements[self._cur])
+            return self._fetchone()
+        except RequestEnded:
+            raise StopIteration
 
     def readall(self):
+        """
+        Exhausts the current connection by iterating over all rows and
+        returning the total.
+
+        .. code-block:: python
+
+            with giraffez.Cmd() as cmd:
+                results = cmd.execute("select * from dbc.dbcinfo")
+                print(results.readall())
+        """
         n = 0
         for row in self:
             n += 1
         return n
 
     def items(self):
+        """
+        Sets the current encoder output to Python `dict` and returns
+        the cursor.  This makes it possible to set the output encoding
+        and iterate over the results:
+
+        .. code-block:: python
+
+            with giraffez.Cmd() as cmd:
+                for row in cmd.execute(query).items():
+                    print(row)
+
+        Or can be passed as a parameter to an object that consumes an iterator:
+
+        .. code-block:: python
+
+            result = cmd.execute(query)
+            list(result.items())
+        """
         self.conn.set_encoding(ROW_ENCODING_DICT)
         self.processor = lambda x, y: y
         return self
 
     def values(self):
+        """
+        Set the current encoder output to :class:`giraffez.Row` objects
+        and returns the cursor.  This is the default value so it is not
+        necessary to select this unless the encoder settings have been
+        changed already.
+        """
         self.conn.set_encoding(ROW_ENCODING_LIST)
         self.processor = lambda x, y: Row(x, y)
         return self
@@ -124,9 +192,9 @@ class Cursor(object):
         return self.processor(self.columns, data)
 
     def __repr__(self):
-        return "Cursor(n_stmts={}, multi={}, prepare={}, coerce_floats={}, parse_dates={})".format(
+        return "Cursor(statements={}, multi_statement={}, prepare={}, coerce_floats={}, parse_dates={}, panic={})".format(
             len(self.statements), self.multi_statement, self.prepare_only, self.coerce_floats,
-            self.parse_dates)
+            self.parse_dates, self.panic)
 
 
 class TeradataCmd(Connection):
@@ -144,7 +212,8 @@ class TeradataCmd(Connection):
     :param int log_level: Specify the desired level of output from the job.
         Possible values are :code:`giraffez.SILENCE` :code:`giraffez.INFO` (default),
         :code:`giraffez.VERBOSE` and :code:`giraffez.DEBUG`
-    :param str config: Specify an alternate configuration file to be read from, when previous paramaters are omitted.
+    :param str config: Specify an alternate configuration file to be read from, when
+        previous paramaters are omitted.
     :param str key_file: Specify an alternate key file to use for configuration decryption
     :param string dsn: Specify a connection name from the configuration file to be
         used, in place of the default.
@@ -153,6 +222,8 @@ class TeradataCmd(Connection):
         command :code:`giraffez config --unlock <connection>` changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
     :param string silent: Suppress log output. Used internally only.
+    :param bool panic: If :code:`True`, when an error is encountered it will be
+        raised.
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
     :raises `giraffez.errors.TeradataError`: if the connection cannot be established
 
@@ -166,12 +237,11 @@ class TeradataCmd(Connection):
            results = cmd.execute('select * from dbc.dbcinfo')
            # continue executing statements and processing results
 
-    Use in this manner guarantees proper exit-handling and disconnection 
-    when operation is completed.
+    Using the ``with`` context ensures proper exit-handling and disconnection.
     """
 
-    def __init__(self, host=None, username=None, password=None, log_level=INFO, panic=False,
-            config=None, key_file=None, dsn=None, protect=False, silent=False):
+    def __init__(self, host=None, username=None, password=None, log_level=INFO, config=None,
+            key_file=None, dsn=None, protect=False, silent=False, panic=True):
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect, silent=silent)
 
@@ -185,8 +255,8 @@ class TeradataCmd(Connection):
         if getattr(self, 'cmd', None):
             self.cmd.close()
 
-    def execute(self, command, coerce_floats=True, parse_dates=False, multi_statement=False,
-            sanitize=True, silent=False, prepare_only=False):
+    def execute(self, command, coerce_floats=True, parse_dates=False, header=False, sanitize=True,
+            silent=False, panic=None,  multi_statement=False, prepare_only=False):
         """
         Execute commands using CLIv2.
 
@@ -194,20 +264,31 @@ class TeradataCmd(Connection):
         :param bool coerce_floats: Coerce Teradata decimal types into Python floats
         :param bool parse_dates: Parses Teradata datetime types into Python datetimes
         :param bool multi_statement: Execute in multi-statement mode
-        :param bool sanitize: Whether or not to call :func:`~giraffez.sql.prepare_statement` on the command
+        :param bool header: Include row header
+        :param bool sanitize: Whether or not to call :func:`~giraffez.sql.prepare_statement`
+            on the command
         :param bool silent: Silence console logging (within this function only)
         :param bool prepare_only: Only prepare the command (no results)
+        :param bool panic: If :code:`True`, when an error is encountered it will be
+            raised.
         :return: the results of each statement in the command
         :rtype: :class:`~giraffez.types.Rows`
         :raises `giraffez.errors.TeradataError`: if the query is invalid
         :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
         """
-        self.options("panic", self.panic)
+        if panic is None:
+            panic = self.panic
+        self.options("panic", panic)
         self.options("multi-statement mode", multi_statement, 3)
-        if log.level >= VERBOSE:
-            self.options("query", command, 2)
+        if ' ' not in command and file_exists(command):
+            self.options("file", command, 2)
+            with open(command, 'r') as f:
+                command = f.read()
         else:
-            self.options("query", truncate(command), 2)
+            if log.level >= VERBOSE:
+                self.options("query", command, 2)
+            else:
+                self.options("query", truncate(command), 2)
         if not silent or not self.silent:
             log.info("Command", "Executing ...")
             log.info(self.options)
@@ -215,8 +296,9 @@ class TeradataCmd(Connection):
             command = prepare_statement(command) # accounts for comments and newlines
             log.debug("Debug[2]", "Command (sanitized): {!r}".format(command))
         self.cmd.set_encoding(ENCODER_SETTINGS_DEFAULT)
-        return Cursor(self.cmd, command, multi_statement=multi_statement,
-            prepare_only=prepare_only, coerce_floats=coerce_floats, parse_dates=parse_dates)
+        return Cursor(self.cmd, command, multi_statement=multi_statement, header=header,
+            prepare_only=prepare_only, coerce_floats=coerce_floats, parse_dates=parse_dates,
+            panic=panic)
 
     def exists(self, object_name, silent=False):
         """
@@ -251,4 +333,4 @@ class TeradataCmd(Connection):
         :return: the columns of the table
         :rtype: :class:`~giraffez.types.Columns`
         """
-        return self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True).columns;
+        return self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True).columns
