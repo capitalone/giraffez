@@ -27,7 +27,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if defined(WIN32) || defined(WIN64)
+#ifndef __GIRAFFEZ_STRPTIME_H
+#define __GIRAFFEZ_STRPTIME_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <ctype.h>
 #include <string.h>
 #include <time.h>
@@ -79,13 +85,12 @@ static const char *am_pm[2] = {
   "AM", "PM"
 };
 
-static const u_char *conv_num (const unsigned char *, int *,
-                               unsigned int, unsigned int);
-static const u_char *find_string (const u_char *, int *, const char * const *,
-                                  const char * const *, int);
+static const uint8_t *conv_num (const unsigned char *buf, int *dest,
+                               unsigned int llim, unsigned int ulim);
+static const uint8_t *find_string (const uint8_t *bp, int *tgt, const char * const *n1,
+                                  const char * const *n2, int c);
 
-
-const char *
+static const char *
 strptime (const char *buf, const char *fmt, struct tm *tm)
 {
   unsigned char c;
@@ -93,7 +98,7 @@ strptime (const char *buf, const char *fmt, struct tm *tm)
   int alt_format, i, split_year = 0, neg = 0, offs;
   const char *new_fmt;
 
-  bp = (const u_char *)buf;
+  bp = (const uint8_t *)buf;
 
   while (bp != NULL && (c = *fmt++) != '\0') {
     /* Clear 'alternate' modifier prior to new conversion. */
@@ -173,7 +178,7 @@ literal:
     case 'x':  /* The date, using the locale's format. */
       new_fmt = "%m/%d/%y";
       recurse:
-      bp = (const u_char *)strptime((const char *)bp, new_fmt, tm);
+      bp = (const uint8_t *)strptime((const char *)bp, new_fmt, tm);
       LEGAL_ALT(ALT_E);
       continue;
 
@@ -507,7 +512,7 @@ literal:
 }
 
 
-static const u_char *
+static const uint8_t *
 conv_num (const unsigned char *buf, int *dest,
           unsigned int llim, unsigned int ulim)
 {
@@ -535,8 +540,8 @@ conv_num (const unsigned char *buf, int *dest,
   return buf;
 }
 
-static const u_char *
-find_string (const u_char *bp, int *tgt, const char * const *n1,
+static const uint8_t *
+find_string (const uint8_t *bp, int *tgt, const char * const *n1,
              const char * const *n2, int c)
 {
   int i;
@@ -556,4 +561,9 @@ find_string (const u_char *bp, int *tgt, const char * const *n1,
   /* Nothing matched */
   return NULL;
 }
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

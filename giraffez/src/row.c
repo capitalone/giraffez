@@ -371,9 +371,9 @@ PyObject* teradata_item_from_pyobject(const TeradataEncoder *e, const GiraffeCol
         case GD_DATE:
             return teradata_dateint_from_pystring(item, column->Length, data, length);
         case GD_TIME:
-            return teradata_char_from_pystring(item, column->Length, data, length);
+            return teradata_datetime_from_pystring(item, column->Length, data, length);
         case GD_TIMESTAMP:
-            return teradata_char_from_pystring(item, column->Length, data, length);
+            return teradata_datetime_from_pystring(item, column->Length, data, length);
         default:
             return teradata_char_from_pystring(item, column->Length, data, length);
     }

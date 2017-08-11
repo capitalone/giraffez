@@ -38,13 +38,12 @@ from .config import Config
 from .cmd import TeradataCmd
 from .encoders import null_handler, TeradataEncoder
 from .encrypt import create_key_file
-from .export import TeradataExport
+from .export import TeradataBulkExport
 from .fmt import format_table, replace_cr
 from .io import ArchiveFileReader, FileReader, Reader, Writer, \
     file_delimiter, file_exists, home_file
 from .logging import colors, log, setup_logging
-from .load import TeradataLoad
-from .mload import TeradataMLoad
+from .load import TeradataBulkLoad
 from .parser import Argument, Command
 from .shell import GiraffeShell
 from .sql import parse_statement
@@ -213,7 +212,7 @@ class ExportCommand(Command):
             args.no_header = True
 
         register_graceful_shutdown_signal()
-        with TeradataExport(log_level=args.log_level, config=args.conf, key_file=args.key,
+        with TeradataBulkExport(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as export:
             if args.delimiter is not None:
                 export.delimiter = args.delimiter
@@ -340,11 +339,11 @@ class FmtCommand(Command):
                 sys.stdout.write(processor(line))
 
 
-class LoadCommand(Command):
-    name = "load"
-    description = "Load data into Teradata (CLIv2)"
-    usage = "giraffez load <input_file> <table> [options]"
-    help = "Load data to Teradata table (CLIv2)"
+class InsertCommand(Command):
+    name = "insert"
+    description = "Insert data into Teradata (CLIv2)"
+    usage = "giraffez insert <input_file> <table> [options]"
+    help = "Insert data to Teradata table (CLIv2)"
 
     arguments = [
         Argument("input_file", help="Input file"),
@@ -370,7 +369,7 @@ class LoadCommand(Command):
             args.delimiter = file_delimiter(args.input_file)
 
         register_graceful_shutdown_signal()
-        with TeradataLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
+        with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn, panic=args.no_panic) as load:
             load.options("source", args.input_file, 0)
             load.options("output", args.table, 1)
@@ -381,10 +380,10 @@ class LoadCommand(Command):
             log.info("Results", "{} errors; {} rows in {}".format(result['errors'], result['count'], readable_time(time.time() - start_time)))
 
 
-class MLoadCommand(Command):
-    name = "mload"
+class LoadCommand(Command):
+    name = "load"
     description = "Load data into Teradata (MultiLoad)"
-    usage = "giraffez mload <input_file> <table> [options]"
+    usage = "giraffez load <input_file> <table> [options]"
     help = "Load data to existing Teradata table (MultiLoad)"
 
     arguments = [
@@ -395,7 +394,9 @@ class MLoadCommand(Command):
         Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
         Argument("-y", "--drop-all", default=False, help="Drop tables"),
         Argument("--quote-char", default='"', help="One-character string used to quote fields containing special characters"),
-        Argument("--coerce-floats", default=False, help="Allow floating-point numbers to be converted to fixed-precision numbers.")
+        Argument("--coerce-floats", default=False, help="Allow floating-point numbers to be converted to fixed-precision numbers."),
+        Argument("--parse-dates", default=False, help=("Enable automatic conversion of "
+            "dates/timestamps")),
     ]
 
     def run(self, args):
@@ -415,45 +416,45 @@ class MLoadCommand(Command):
                 "INSTEAD!").format(MLOAD_THRESHOLD), UserWarning)
 
         register_graceful_shutdown_signal()
-        with TeradataMLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
-                dsn=args.dsn) as mload:
-            mload.encoding = args.encoding
-            mload.coerce_floats = args.coerce_floats
-            mload.table = args.table
-            mload.null = args.null
-            mload.delimiter = args.delimiter
+        with TeradataBulkLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
+                dsn=args.dsn) as load:
+            load.encoding = args.encoding
+            load.coerce_floats = args.coerce_floats
+            load.table = args.table
+            load.null = args.null
+            load.delimiter = args.delimiter
             if args.drop_all is True:
-                mload.cleanup()
+                load.cleanup()
             else:
-                existing_tables = list(filter(lambda x: mload.mload.exists(x), mload.tables))
+                existing_tables = list(filter(lambda x: load.mload.exists(x), load.tables))
                 if len(existing_tables) > 0:
                     log.info("MLoad", "Previous work tables found:")
                     for i, table in enumerate(existing_tables, 1):
                         log.info('  {}: "{}"'.format(i, table))
                     if prompt_bool("Do you want to drop these tables?", default=True):
-                        mload.cleanup()
+                        load.cleanup()
                         #for table in existing_tables:
                             #log.info("MLoad", "Dropping table '{}'...".format(table))
-                            #mload.cmd.drop_table(table, silent=True)
+                            #load.cmd.drop_table(table, silent=True)
                     else:
                         log.fatal("Cannot continue without dropping previous job tables. Exiting ...")
             log.info("MLoad", "Executing ...")
             log.info('  source      => "{}"'.format(args.input_file))
             log.info('  output      => "{}"'.format(args.table))
             start_time = time.time()
-            exit_code = mload.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char)
+            exit_code = load.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char)
             total_time = time.time() - start_time
             log.info("MLoad", "Teradata PT request finished with exit code '{}'".format(exit_code))
             log.info("Results", "...")
-            log.info('  Successful   => "{}"'.format(mload.applied_count))
-            log.info('  Unsuccessful => "{}"'.format(mload.error_count))
-            log.info("Results", "{} rows in {}".format(mload.total_count, readable_time(total_time - mload.idle_time)))
-            log.info("Results", "Time spent idle: {}".format(readable_time(mload.idle_time)))
+            log.info('  Successful   => "{}"'.format(load.applied_count))
+            log.info('  Unsuccessful => "{}"'.format(load.error_count))
+            log.info("Results", "{} rows in {}".format(load.total_count, readable_time(total_time - load.idle_time)))
+            log.info("Results", "Time spent idle: {}".format(readable_time(load.idle_time)))
             log.info("Results", "Total time spent: {}".format(readable_time(total_time)))
             if exit_code != 0:
                 with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
                         dsn=args.dsn, silent=True) as cmd:
-                    result = list(cmd.execute("select a.errorcode, a.errorfield, count(*) over (partition by a.errorcode, a.errorfield) as errorcount, b.errortext, min(substr(a.hostdata, 0, 30000)) as hostdata from ud441.giraffez_100k2_e1 a join dbc.errormsgs b on a.errorcode = b.errorcode qualify row_number() over (partition by a.errorcode, a.errorfield order by a.errorcode asc)=1 group by 1,2,4".format(args.table)))
+                    result = list(cmd.execute("select a.errorcode, a.errorfield, count(*) over (partition by a.errorcode, a.errorfield) as errorcount, b.errortext, min(substr(a.hostdata, 0, 30000)) as hostdata from {} a join dbc.errormsgs b on a.errorcode = b.errorcode qualify row_number() over (partition by a.errorcode, a.errorfield order by a.errorcode asc)=1 group by 1,2,4".format(args.table)))
                     if len(result) == 0:
                         log.info("No error information available.")
                         return

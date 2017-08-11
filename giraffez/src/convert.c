@@ -544,6 +544,17 @@ error:
     return NULL;
 }
 
+PyObject* teradata_datetime_from_pystring(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
+    PyObject *ret = NULL, *temp = NULL;
+    if (!PyUnicode_Check(s) && !PyBytes_Check(s)) {
+        Py_RETURN_ERROR((temp = PyObject_Str(s)));
+        s = temp;
+    }
+    ret = teradata_char_from_pystring(s, column_length, buf, packed_length);
+    Py_XDECREF(temp);
+    return ret;
+}
+
 PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length, unsigned char **buf, uint16_t *packed_length) {
     int fill;
     const char *str;

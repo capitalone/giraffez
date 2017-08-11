@@ -32,7 +32,7 @@ __title__ = 'giraffez'
 __version__ = '2.0.0rc1'
 __authors__ = ['Christopher Marshall', 'Kyle Travis']
 __license__ = 'Apache 2.0'
-__all__     = ['Export', 'MLoad', 'Load', 'Cmd', 'Config', 'Secret']
+__all__     = ['BulkExport', 'BulkLoad', 'Cmd', 'Config', 'Secret']
 
 
 try:
@@ -68,14 +68,13 @@ from .errors import (
     ConnectionLock
 )
 from .encoders import TeradataEncoder as Encoder
-from .export import TeradataExport as Export
+from .export import TeradataBulkExport as BulkExport
 from .io import (
     Reader,
     Writer
 )
-from .load import TeradataLoad as Load
+from .load import TeradataBulkLoad as BulkLoad
 from .logging import log, setup_logging
-from .mload import TeradataMLoad as MLoad
 from .secret import Secret
 from .types import Column, Columns, Date, Decimal, Time, Timestamp
 from .utils import register_graceful_shutdown_signal

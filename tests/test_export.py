@@ -8,9 +8,9 @@ from giraffez.errors import *
 from giraffez.types import Columns
 
 @pytest.mark.usefixtures('config')
-class TestExport(object):
+class TestBulkExport(object):
     def test_export_results(self, mocker):
-        connect_mock = mocker.patch('giraffez.Export._connect')
+        connect_mock = mocker.patch('giraffez.BulkExport._connect')
         query = "select * from db1.info"
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -24,7 +24,7 @@ class TestExport(object):
         ]
         expected_results = ["|".join(row) for row in rows]
 
-        export = giraffez.Export()
+        export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
         export.export.status.return_value = 0
         export.export.get_buffer.side_effect = [expected_results]
@@ -46,9 +46,9 @@ class TestExport(object):
         assert export.export.close.called == True
 
     def test_invalid_credentials(self, mocker):
-        connect_mock = mocker.patch('giraffez.Export._connect')
+        connect_mock = mocker.patch('giraffez.BulkExport._connect')
         query = "select * from db1.info"
-        export = giraffez.Export()
+        export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
         export.export.status.return_value = TD_ERROR_INVALID_USER
         export.export.initiate.side_effect = InvalidCredentialsError("...")
@@ -58,13 +58,13 @@ class TestExport(object):
             export.close()
 
     def test_header(self, mocker):
-        connect_mock = mocker.patch('giraffez.Export._connect')
+        connect_mock = mocker.patch('giraffez.BulkExport._connect')
         columns = [
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
         ]
-        export = giraffez.Export()
+        export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
         export.export.columns.return_value = Columns(columns)
 
@@ -77,13 +77,13 @@ class TestExport(object):
         pass
 
     def test_parse_sql(self, mocker):
-        connect_mock = mocker.patch('giraffez.Export._connect')
+        connect_mock = mocker.patch('giraffez.BulkExport._connect')
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
-        export = giraffez.Export()
+        export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
         export.export.columns.return_value = columns
 

@@ -51,13 +51,13 @@ class MainCommand(Command):
     commands = [
         "commandline.CmdCommand",
         "commandline.ConfigCommand",
-        "commandline.ExportCommand", 
+        "commandline.ExportCommand",
         "commandline.FmtCommand",
-        "commandline.LoadCommand", 
-        "commandline.MLoadCommand", 
-        "commandline.RunCommand", 
-        "commandline.ShellCommand", 
-        "commandline.SecretCommand", 
+        "commandline.InsertCommand",
+        "commandline.LoadCommand",
+        "commandline.RunCommand",
+        "commandline.ShellCommand",
+        "commandline.SecretCommand",
     ]
 
     default = False

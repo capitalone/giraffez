@@ -5,238 +5,46 @@ import pytest
 import giraffez
 from giraffez.constants import *
 from giraffez.errors import *
-from giraffez.types import *
+from giraffez.types import Columns
 
-@pytest.mark.usefixtures('config', 'tmpfiles')
-class TestLoad(object):
-    def test_load_from_file(self, mocker, tmpfiles):
-        mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd.execute")
 
+@pytest.mark.usefixtures('config')
+class TestMLoad(object):
+    def test_bulkload_results(self, mocker):
+        bulkload_connect_mock = mocker.patch('giraffez.BulkLoad._connect')
+        table = "db1.info"
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
         ])
-
-        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
-
-        mock_columns.return_value = columns
-
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col3"]))
-            f.write("\n")
-            rows = []
-            for i in range(100):
-                rows.append("|".join(["value1", "value2", "value3"]))
-            f.write("\n".join(rows))
-
-        with giraffez.Load() as load:
-            result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-        assert result.get('count') == 100
-
-    def test_load_from_file_quoted(self, mocker, tmpfiles):
-        mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd.execute")
-
-        columns = Columns([
-            ("col1", VARCHAR_NN, 50, 0, 0),
-            ("col2", VARCHAR_N, 50, 0, 0),
-            ("col3", VARCHAR_N, 50, 0, 0),
-        ])
-
-        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
-
-        mock_columns.return_value = columns
-
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col3"]))
-            f.write("\n")
-            rows = []
-            for i in range(99):
-                rows.append("|".join(["value1", "value2", "value3"]))
-            rows.append("|".join(["value1",'"value2|withpipe"', "value3"]))
-            f.write("\n".join(rows))
-
-        with giraffez.Load() as load:
-            result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-        assert result.get('count') == 100
-
-    def test_load_from_file_single_quoted(self, mocker, tmpfiles):
-        mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd.execute")
-
-        columns = Columns([
-            ("col1", VARCHAR_NN, 50, 0, 0),
-            ("col2", VARCHAR_N, 50, 0, 0),
-            ("col3", VARCHAR_N, 50, 0, 0),
-        ])
-
-        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
-
-        mock_columns.return_value = columns
-
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col3"]))
-            f.write("\n")
-            rows = []
-            for i in range(99):
-                rows.append("|".join(["value1", "value2", "value3"]))
-            rows.append("|".join(["value1","'value2|withpipe'", "value3"]))
-            f.write("\n".join(rows))
-
-        with giraffez.Load() as load:
-            result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|", quotechar="'")
-        assert result.get('count') == 100
-
-
-    def test_load_from_file_nonstandard_quote(self, mocker, tmpfiles):
-        mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd.execute")
-
-        columns = Columns([
-            ("col1", VARCHAR_NN, 50, 0, 0),
-            ("col2", VARCHAR_N, 50, 0, 0),
-            ("col3", VARCHAR_N, 50, 0, 0),
-        ])
-
-        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
-
-        mock_columns.return_value = columns
-
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col3"]))
-            f.write("\n")
-            rows = []
-            for i in range(99):
-                rows.append("|".join(["value1", "value2", "value3"]))
-            rows.append("|".join(['va"lue1','$value2|withpipe"and"quote$', "value3"]))
-            f.write("\n".join(rows))
-
-        with giraffez.Load() as load:
-            result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|", quotechar="$")
-        assert result.get('count') == 100
-
-        
-    def test_load_from_file_error(self, mocker, tmpfiles):
-        mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd.execute")
-
-        columns = Columns([
-            ("col1", VARCHAR_NN, 50, 0, 0),
-            ("col2", VARCHAR_N, 50, 0, 0),
-            ("col3", VARCHAR_N, 50, 0, 0),
-        ])
-
-        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
-
-        mock_columns.return_value = columns
-
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col3"]))
-            f.write("\n")
-            f.write("|".join(["value1", "value2", "value3", "value4"]))
-            f.write("\n")
-
-        with giraffez.Load() as load:
-            load.panic = False
-            result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-
-    def test_load_from_file_error_panic(self, mocker, tmpfiles):
-        mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd.execute")
-
-        columns = Columns([
-            ("col1", VARCHAR_NN, 50, 0, 0),
-            ("col2", VARCHAR_N, 50, 0, 0),
-            ("col3", VARCHAR_N, 50, 0, 0),
-        ])
-
-        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
-
-        mock_columns.return_value = columns
-
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col3"]))
-            f.write("\n")
-            f.write("|".join(["value1", "value2", "value3", "value4"]))
-            f.write("\n")
-
-        with giraffez.Load() as load:
-            with pytest.raises(GiraffeEncodeError):
-                result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-                print(result)
-
-    def test_load_from_file_invalid_header(self, mocker, tmpfiles):
-        mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd.execute")
-
-        columns = Columns([
-            ("col1", VARCHAR_NN, 50, 0, 0),
-            ("col2", VARCHAR_N, 50, 0, 0),
-            ("col3", VARCHAR_N, 50, 0, 0),
-        ])
-
-        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
-
-        mock_columns.return_value = columns
-
-        # Invalid column (blank string)
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col3", "", ""]))
-            f.write("\n")
-            f.write("|".join(["value1", "value2", "value3"]))
-            f.write("\n")
-
-        with giraffez.Load() as load:
-            with pytest.raises(GiraffeError):
-                result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-                print(result)
-
-        # Invalid column (wrong name)
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col4"]))
-            f.write("\n")
-            f.write("|".join(["value1", "value2", "value3"]))
-            f.write("\n")
-
-        with giraffez.Load() as load:
-            with pytest.raises(GiraffeError):
-                result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-                print(result)
-
-        # Too many columns (duplicate name)
-        with open(tmpfiles.load_file, 'w') as f:
-            f.write("|".join(["col1", "col2", "col3", "col3"]))
-            f.write("\n")
-            f.write("|".join(["value1", "value2", "value3"]))
-            f.write("\n")
-
-        with giraffez.Load() as load:
-            with pytest.raises(GiraffeEncodeError):
-                result = load.from_file("db1.test", tmpfiles.load_file, delimiter="|")
-                print(result)
-
-    def test_load_insert_no_specify_fields(self, mocker):
-        mock_connect = mocker.patch("giraffez.Cmd._connect")
-        mock_execute = mocker.patch("giraffez.Cmd.execute")
-
-        columns = Columns([
-            ("col1", VARCHAR_NN, 50, 0, 0),
-            ("col2", VARCHAR_N, 50, 0, 0),
-            ("col3", VARCHAR_N, 50, 0, 0),
-        ])
-
-        mock_columns = mocker.patch("giraffez.Cmd.fetch_columns")
-
-        mock_columns.return_value = columns
-
         rows = [
-            ("value1", "value3"),
-            ("value1", "value3"),
-            ("value1", "value3"),
+            ["value1", "value2", "value3"],
+            ["value1", "value2", "value3"],
+            ["value1", "value2", "value3"],
         ]
+        load = giraffez.BulkLoad()
+        load.mload = mocker.MagicMock()
+        load.mload.status.return_value = 0
+        load.mload.put_row.return_value = 0
+        load.mload.exists.return_value = False
+        load.mload.checkpoint.return_value = 0
+        load.mload.get_event.side_effect = [
+            b'\x00\x00',
+            b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80',
+            b'\x00\x00\x00\x00',
+            b'\x00\x00',
+        ]
+        load.table = table
+        for row in rows:
+            load.load_row(row)
+        exit_code = load.finish()
+        load.close()
 
-        with giraffez.Load() as load:
-            with pytest.raises(GiraffeEncodeError):
-                load.insert("db1.test", rows)
+        bulkload_connect_mock.assert_called_with('db1', 'user123', 'pass456')
+
+        assert load.mload.initiate.called == True
+        assert load.mload.put_row.call_count == 3
+        assert load.mload.end_acquisition.called == True
+        assert load.mload.apply_rows.called == True
+        assert load.mload.close.called == True

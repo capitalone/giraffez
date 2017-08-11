@@ -33,7 +33,7 @@ extern "C" {
 #include "_stdint.h"
 #include "_strptime.c"
 
-const char *strptime(const char *buf, const char *fmt, struct tm *tm);
+extern const char *strptime(const char *buf, const char *fmt, struct tm *tm);
 
 #else
 #include <stdint.h>

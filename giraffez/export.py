@@ -34,15 +34,15 @@ from .utils import get_version_info, show_warning, suppress_context
 from ._compat import *
 
 
-__all__ = ['TeradataExport']
+__all__ = ['TeradataBulkExport']
 
 
-class TeradataExport(Connection):
+class TeradataBulkExport(Connection):
     """
     The class for using the Teradata Parallel Transport API to quickly export
     large amounts of data.
 
-    Exposed under the alias :class:`giraffez.Export`.
+    Exposed under the alias :class:`giraffez.BulkExport`.
 
     :param str query: Either SQL query to execute and return results of, **or** the
         name of a table to export in its entirety
@@ -79,7 +79,7 @@ class TeradataExport(Connection):
     def __init__(self, query=None, host=None, username=None, password=None,
             log_level=INFO, config=None, key_file=None, dsn=None, protect=False,
             coerce_floats=True):
-        super(TeradataExport, self).__init__(host, username, password, log_level, config, key_file,
+        super(TeradataBulkExport, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
 
         # Attributes used with property getter/setters

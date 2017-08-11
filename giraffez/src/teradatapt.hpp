@@ -79,14 +79,6 @@ namespace Giraffez {
             Py_RETURN_NONE;
         }
 
-        void ClearSchemaList() {
-            TConn::ClearSchemaList();
-        }
-
-        void SetInputSchema(teradata::client::API::Schema *schema) {
-            TConn::SetInputSchema(schema);
-        }
-
         void AddAttribute(TD_Attribute key, const char *value) {
             TConn::AddAttribute(key, (char*)value);
         }
@@ -344,7 +336,6 @@ namespace Giraffez {
             Py_ssize_t len, i;
             table_schema = new Schema((char*)"input");
             // TODO: either use this or SetInputSchema
-            this->ClearSchemaList();
             if (column_list == NULL || column_list == Py_None) {
                 for (j=0; j<encoder->Columns->length; j++) {
                     column = &encoder->Columns->array[j];
