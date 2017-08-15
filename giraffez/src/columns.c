@@ -199,6 +199,7 @@ GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t lengt
     StatementInfo *s;
     GiraffeColumn *column;
     GiraffeColumns *columns;
+    unsigned char *ext, *start;
     size_t i;
     columns = (GiraffeColumns*)malloc(sizeof(GiraffeColumns));
     columns_init(columns, 1);
@@ -207,10 +208,8 @@ GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t lengt
     columns->raw->data = malloc(sizeof(char) * length);
     memcpy(columns->raw->data, *data, length);
     columns->raw->length = length;
-
     s = (StatementInfo*)malloc(sizeof(StatementInfo));
     stmt_info_init(s, 1);
-    unsigned char *ext, *start;
     start = *data;
     while ((*data - start) < length) {
         c = (StatementInfoColumn*)malloc(sizeof(StatementInfoColumn));

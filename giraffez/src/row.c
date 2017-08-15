@@ -219,7 +219,11 @@ PyObject* teradata_item_to_pyobject(const TeradataEncoder *e, unsigned char **da
     return NULL;
 }
 
+#ifdef _MSC_VER
+static __inline PyObject* pack_none(const GiraffeColumn *column, unsigned char **buf, uint16_t *len) {
+#else
 static inline PyObject* pack_none(const GiraffeColumn *column, unsigned char **buf, uint16_t *len) {
+#endif
     switch (column->GDType) {
         case GD_VARCHAR:
             memset(*buf, 0, 2);
@@ -267,7 +271,6 @@ PyObject* teradata_row_from_pybytes(const TeradataEncoder *e, PyObject *row, uns
     len = PyBytes_Size(row);
     memcpy(*data, str, len);
     *length += len;
-    /**length += pack_string(data, str, len);*/
     Py_RETURN_NONE;
 }
 
@@ -315,6 +318,8 @@ PyObject* teradata_row_from_pytuple(const TeradataEncoder *e, PyObject *row, uns
     PyObject *item = NULL;
     GiraffeColumn *column;
     Py_ssize_t i, slength;
+    int nullable;
+    unsigned char *ind;
     if (!(PyTuple_Check(row) || PyList_Check(row))) {
         return teradata_row_from_unknown(e, row, data, length);
     }
@@ -325,8 +330,7 @@ PyObject* teradata_row_from_pytuple(const TeradataEncoder *e, PyObject *row, uns
         PyErr_Format(EncoderError, "Wrong number of items in row, expected %d but got %d", e->Columns->length, slength);
         return NULL;
     }
-    int nullable;
-    unsigned char *ind = *data;
+    ind = *data;
     indicator_clear(&ind, e->Columns->header_length);
     *data += e->Columns->header_length;
     *length += e->Columns->header_length;

@@ -756,6 +756,10 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
     PyObject *str = NULL;
     PyObject *dot = PyUnicode_FromString(".");
     PyObject *parts;
+    Py_ssize_t ll = PyList_Size(parts);
+    const char *x = "", *y = "";
+    PyObject *a, *s;
+    PyObject *upper, *lower, *lower1, *shift;
     if (PyUnicode_Check(item)) {
         str = item;
         Py_INCREF(str);
@@ -768,10 +772,7 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
         return NULL;
     }
     Py_DECREF(dot);
-
-    Py_ssize_t ll = PyList_Size(parts);
-    const char *x = "", *y = "";
-    PyObject *a, *s;
+    ll = PyList_Size(parts);
     if (ll == 1) {
         if ((a = PyList_GetItem(parts, 0)) == NULL) {
             Py_XDECREF(str);
@@ -799,7 +800,6 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
             return NULL;
         }
     }
-
     memcpy(decbuf, x, strlen(x));
     if (column_scale > strlen(y)) {
         memcpy(decbuf+strlen(x), y, strlen(y));
@@ -808,9 +808,7 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
     } else {
         snprintf(decbuf+strlen(x), column_scale + 1, "%s", y);
     }
-
     Py_DECREF(parts);
-
     if ((s = PyLong_FromString(decbuf, NULL, 10)) == NULL) {
         PyErr_Clear();
         PyErr_Format(EncoderError, "value is not a valid decimal: %R", str);
@@ -818,8 +816,6 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
         return NULL;
     }
     Py_XDECREF(str);
-
-    PyObject *upper, *lower, *lower1, *shift;
     shift = PyLong_FromLong(64);
     switch (column_length) {
         case DECIMAL8:

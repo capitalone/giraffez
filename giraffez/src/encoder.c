@@ -119,14 +119,14 @@ int encoder_set_encoding(TeradataEncoder *e, uint32_t settings) {
 }
 
 PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
+    PyObject *tmp = NULL;
+    const char *delimiter = NULL;
     if (obj == NULL) {
         Py_RETURN_NONE;
     }
     Py_XDECREF(e->Delimiter);
     Py_INCREF(obj);
     e->Delimiter = obj;
-    PyObject *tmp = NULL;
-    const char *delimiter = NULL;
     if (PyStr_Check(obj)) {
         if ((delimiter = PyUnicode_AsUTF8(obj)) == NULL) {
             return NULL;
@@ -152,14 +152,14 @@ PyObject* encoder_set_delimiter(TeradataEncoder *e, PyObject *obj) {
 }
 
 PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
+    PyObject *tmp = NULL;
+    char *null = NULL;
     if (obj == NULL) {
         Py_RETURN_NONE;
     }
     Py_XDECREF(e->NullValue);
     Py_INCREF(obj);
     e->NullValue = obj;
-    PyObject *tmp = NULL;
-    char *null = NULL;
     if (PyStr_Check(obj)) {
         if ((null = PyUnicode_AsUTF8(obj)) == NULL) {
             return NULL;
