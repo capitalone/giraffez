@@ -343,6 +343,12 @@ serialize_only_tests = [
         "expected_value": "1.20000",
     },
     {
+        "name": "decimal_32_scale_extra_trailing_digits",
+        "column": Decimal(5, 2),
+        "input_value": b'\x00\x78\x00\x00\x00',
+        "expected_value": "1.20123",
+    },
+    {
         "name": "decimal_32_scale_less_trailing_zero",
         "column": Decimal(5, 4),
         "input_value": b'\x00\xe0\x2e\x00\x00',
