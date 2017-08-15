@@ -256,7 +256,7 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
     PyObject *row = NULL;
     size_t count;
     if (__teradata_execute(conn, command) != OK) {
-        PyErr_Format(TeradataError, "%d: CLIv2[execute_init]: %s", conn->dbc->msg_text);
+        PyErr_Format(TeradataError, "%d: CLIv2[execute_init]: %s", conn->result, conn->dbc->msg_text);
         return NULL;
     }
     conn->dbc->i_sess_id = conn->dbc->o_sess_id;

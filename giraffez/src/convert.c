@@ -531,7 +531,7 @@ PyObject* teradata_varchar_from_pystring(PyObject *s, unsigned char **buf, uint1
         goto error;
     }
     if (length > TD_ROW_MAX_SIZE) {
-        PyErr_Format(EncoderError, "VARCHAR field value length %d exceeds maximum allowed.", length);
+        PyErr_Format(EncoderError, "VARCHAR field value length %ld exceeds maximum allowed.", length);
         goto error;
     }
     *packed_length += pack_string(buf, str, length);
@@ -581,10 +581,10 @@ PyObject* teradata_char_from_pystring(PyObject *s, const uint16_t column_length,
         goto error;
     }
     if (length > TD_ROW_MAX_SIZE) {
-        PyErr_Format(EncoderError, "CHAR field value length %d exceeds maximum allowed.", length);
+        PyErr_Format(EncoderError, "CHAR field value length %ld exceeds maximum allowed.", length);
         goto error;
     } else if (length > column_length) {
-        PyErr_Format(EncoderError, "CHAR field value length %d exceeds column length %d.", length, column_length);
+        PyErr_Format(EncoderError, "CHAR field value length %ld exceeds column length %d.", length, column_length);
         goto error;
     }
     memcpy(*buf, str, length);
@@ -738,7 +738,7 @@ PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_l
 
     memset(&tm, '\0', sizeof(tm));
     if (strptime(str, "%Y-%m-%d", &tm) == NULL) {
-        PyErr_Format(EncoderError, "Unable to parse date string '%s', format must be '%Y-%m-%d'.", str);
+        PyErr_Format(EncoderError, "Unable to parse date string '%s', format must be '%%Y-%%m-%%d'.", str);
         return NULL;
     }
     l += (tm.tm_year+1900) * 10000;
@@ -812,7 +812,9 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
     Py_DECREF(parts);
     if ((s = PyLong_FromString(decbuf, NULL, 10)) == NULL) {
         PyErr_Clear();
-        PyErr_Format(EncoderError, "value is not a valid decimal: %R", str);
+        PyObject *repr = PyObject_Repr(str);
+        PyErr_Format(EncoderError, "value is not a valid decimal: %s", PyUnicode_AsUTF8(repr));
+        Py_XDECREF(repr);
         Py_XDECREF(str);
         return NULL;
     }

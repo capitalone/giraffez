@@ -327,7 +327,7 @@ PyObject* teradata_row_from_pytuple(const TeradataEncoder *e, PyObject *row, uns
         return NULL;
     }
     if (e->Columns->length != (size_t)slength) {
-        PyErr_Format(EncoderError, "Wrong number of items in row, expected %d but got %d", e->Columns->length, slength);
+        PyErr_Format(EncoderError, "Wrong number of items in row, expected %lu but got %ld", e->Columns->length, slength);
         return NULL;
     }
     ind = *data;
