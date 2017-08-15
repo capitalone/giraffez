@@ -14,19 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GIRAFFE_NOT_FOUND = False
-try:
-    from . import _encoder
-except ImportError:
-    GIRAFFE_NOT_FOUND = True
-
 import collections
 
-from .config import *
 from .constants import *
 from .errors import *
-from .logging import *
-from .utils import *
+
+from ._teradata import InvalidCredentialsError
+from .config import Config
+from .logging import log
+from .utils import show_warning, suppress_context
 
 
 __all__ = ['Connection']
@@ -34,25 +30,20 @@ __all__ = ['Connection']
 
 class Connection(object):
     def __init__(self, host=None, username=None, password=None, log_level=INFO, config=None,
-            key_file=None, dsn=None, protect=False, mload_session=False):
-        if GIRAFFE_NOT_FOUND:
-            raise GiraffeNotFound("giraffez module was not compiled with package")
+            key_file=None, dsn=None, protect=False, silent=False):
         #: Log level initially set to SILENCE to ensure that using the
         #: Python API does not produce log output unless expressly set
         log.level = log_level
 
         self.config = config
+        self.key_file = key_file
         self.dsn = dsn
         self.protect = protect
-
         self.host = host
+        self.silent = silent
 
         #: Stores options for log output
         self.options = ConnectionOptions()
-
-        #: Attribute identifies mload sessions to suppress duplicate log
-        #: output since mload requires two Connection objects
-        self.mload_session = mload_session
 
         if host is None or username is None or password is None:
             if host or username or password:
@@ -71,30 +62,30 @@ class Connection(object):
             if password is None:
                 raise suppress_context(ConfigurationError("Connection '{}' missing password value".format(self.dsn)))
         try:
-            if not self.mload_session:
+            if not self.silent:
                 log.info("Connection", "Connecting to data source '{}' ...".format(self.dsn))
             self._connect(host, username, password)
-            if not self.mload_session:
+            if not self.silent:
                 log.info("Connection", "Connection to '{}' established successfully.".format(self.dsn))
         except InvalidCredentialsError as error:
             if self.protect:
-                Config.lock_connection(self.config, self.dsn)
+                Config.lock_connection(self.config, self.dsn, self.key)
             raise error
 
-    def _connect(self, host, username, password):
+    def _close(self, exc=None):
         pass
 
-    def close(self):
+    def _connect(self, host, username, password):
         pass
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc, exc_tb):
-        if not self.mload_session:
+        if not self.silent:
             log.info("Connection", "Closing Teradata connection ...")
-        self.close()
-        if not self.mload_session:
+        self._close(exc)
+        if not self.silent:
             log.info("Connection", "Connection to '{}' closed.".format(self.dsn))
 
 

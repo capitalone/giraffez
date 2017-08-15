@@ -18,14 +18,10 @@ import textwrap
 
 from .constants import *
 from .errors import *
-from .logging import *
-from .utils import *
+
+from .logging import log
 
 from ._compat import *
-
-
-__all__ = ['escape_quotes', 'format_indent', 'format_table', 'safe_name', 'quote_string',
-    'replace_cr', 'truncate']
 
 
 def escape_quotes(s):
@@ -54,7 +50,7 @@ def quote_string(s, quote_character="'"):
     return "{0}{1}{0}".format(quote_character, s)
 
 def replace_cr(s):
-    if not isinstance(s, basestring):
+    if not isinstance(s, str):
         return s
     return s.strip().replace('\r', '\n')
 
@@ -68,5 +64,6 @@ def truncate(s, n=7, c=70, placeholder="..."):
         return s
     if char_count > (n * c):
         s = s[0:n*c]
+        lines = s.split('\n')
     lines = "\n".join(lines[0:n])
     return "{} {}".format(lines, placeholder)

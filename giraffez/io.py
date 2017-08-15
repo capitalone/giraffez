@@ -14,24 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import os
 import sys
 import gzip
 import struct
 import csv
 import json
+import io
 
 from .constants import *
 from .errors import *
-from .logging import *
-from .types import *
-from .utils import *
+
+from .logging import log
+from .types import Columns
 
 from ._compat import *
-
-
-__all__ = ['file_delimiter', 'file_exists', 'file_permissions', 'home_file', 'FileReader',
-    'ArchiveFileReader', 'CSVReader', 'JSONReader', 'Reader', 'Writer']
 
 
 def file_exists(path):
@@ -57,6 +56,11 @@ def file_permissions(path):
 def home_file(filename):
     return os.path.join(os.path.expanduser("~"), filename)
 
+def isfile(s):
+    if isinstance(s, (str, bytes)) and ' ' not in s and file_exists(s):
+        return True
+    return False
+
 
 class BaseReader(object):
     def __init__(self, path, mode='rt'):
@@ -66,9 +70,9 @@ class BaseReader(object):
         with open(path, "rb") as f:
             data = f.read(2)
             if data == GZIP_MAGIC:
-                _open = gzip.open
+                _open = lambda p, m: io.BufferedReader(gzip.open(p, m))
             else:
-                _open = open
+                _open = lambda p, m: io.open(p, m)
         self.fd = _open(abspath, mode)
         self._header = None
 
@@ -85,14 +89,14 @@ class BaseReader(object):
         return next(self.fd)
 
     @classmethod
-    def read_all(cls, path):
-        with cls(path, "rb") as f:
+    def read_all(cls, path, mode='rt'):
+        with cls(path, mode) as f:
             return f.read()
 
     @classmethod
     def read_header(cls, path):
         with cls(path, 'rb') as f:
-            return f.read(len(GIRAFFE_MAGIC))
+            return f.read(len(GIRAFFE_MAGIC) + 2)
 
     def __iter__(self):
         while True:
@@ -110,6 +114,8 @@ class BaseReader(object):
 
 
 class FileReader(BaseReader):
+    encoding = "str"
+
     @classmethod
     def check_length(cls, path, length):
         with cls(path, "rb") as f:
@@ -120,12 +126,16 @@ class FileReader(BaseReader):
 
 
 class CSVReader(FileReader):
+    encoding = "csv"
+
     def __init__(self, path, delimiter=None, quotechar='"'):
         super(CSVReader, self).__init__(path)
-        delimiter = file_delimiter(path)
-        if delimiter is None:
+        self.delimiter = delimiter
+        if self.delimiter is None:
+            self.delimiter = file_delimiter(path)
+        if self.delimiter is None:
             raise GiraffeError("Delimiter could not be inferred.")
-        self.reader = csv.reader(self.fd, delimiter=delimiter, quotechar=quotechar)
+        self.reader = csv.reader(self.fd, delimiter=self.delimiter, quotechar=quotechar)
         self._header = next(self.reader)
 
     def readline(self):
@@ -137,13 +147,15 @@ class CSVReader(FileReader):
 
 
 class JSONReader(FileReader):
+    encoding = "dict"
+
     def __init__(self, path):
         super(JSONReader, self).__init__(path)
         self._header = json.loads(next(self.fd)).keys()
         self.fd.seek(0)
 
     def readline(self):
-        return json.loads(next(self.fd)).values()
+        return list(json.loads(next(self.fd)).values())
 
 
 class ArchiveFileReader(BaseReader):
@@ -169,7 +181,7 @@ class ArchiveFileReader(BaseReader):
 class Reader(object):
     def __new__(cls, path, **kwargs):
         data = FileReader.read_header(path)
-        if data == GIRAFFE_MAGIC:
+        if data[0:3] == GIRAFFE_MAGIC:
             return ArchiveFileReader(path)
         with open(path) as f:
             data = f.readline().strip()
@@ -183,7 +195,8 @@ class Reader(object):
 
 
 class Writer(object):
-    def __init__(self, path=None, mode='', archive=False, use_gzip=False):
+    def __init__(self, path=None, mode='wt', use_gzip=False):
+        self.mode = mode
         if path is None:
             self.name = "stdout"
             if 'b' in mode:
@@ -195,18 +208,11 @@ class Writer(object):
             abspath = os.path.abspath(path)
             if not os.path.exists(os.path.dirname(abspath)):
                 os.makedirs(os.path.dirname(abspath))
-            if archive:
-                mode = 'b'
-            else:
-                mode = 't'
             if use_gzip:
-                _open = gzip.open
+                _open = lambda p, m: io.BufferedWriter(gzip.open(p, m))
             else:
-                _open = open
-            self.fd = _open(abspath, "w{}".format(mode))
-            if archive:
-                self.write(GIRAFFE_MAGIC)
-                self.writen = self.write
+                _open = lambda p, m: io.open(p, m)
+            self.fd = _open(abspath, mode)
 
     @property
     def is_stdout(self):

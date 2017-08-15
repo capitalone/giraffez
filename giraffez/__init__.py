@@ -29,33 +29,52 @@ user-friendly and very fast.
 """
 
 __title__ = 'giraffez'
-__version__ = '1.1.9'
+__version__ = '2.0.0rc1'
 __authors__ = ['Christopher Marshall', 'Kyle Travis']
 __license__ = 'Apache 2.0'
-__all__     = ['Export', 'MLoad', 'Load', 'Cmd', 'Config', 'Secret']
+__all__     = ['BulkExport', 'BulkLoad', 'Cmd', 'Config', 'Secret']
 
 
+try:
+    from . import _teradata
+    from . import _teradatapt
+except ImportError as error:
+    raise Exception("""{}.
+
+This indicates that either the giraffez C extensions did not compile
+correctly, or more likely, there is an issue with the environment or
+installation of the Teradata dependencies. Both the Teradata Call-Level
+Interface Version 2 and Teradata Parallel Transporter API require
+several environment variables to be set to find the shared library
+files and error message catalog.
+
+For more information, refer to this section in the giraffez
+documentation:
+    http://www.capitalone.io/giraffez/intro.html#environment.
+""".format(error))
+
+from ._teradata import TeradataError
+from ._teradatapt import (
+    EncoderError,
+    TeradataError as TeradataPTError
+)
 from .cmd import TeradataCmd as Cmd
 from .config import Config
 from .constants import SILENCE, VERBOSE, DEBUG, INFO
 from .errors import (
-    GeneralError,
     GiraffeError,
-    MultiLoadError,
-    TeradataError,
     GiraffeTypeError,
-    GiraffeEncodeError,
     InvalidCredentialsError,
     ConnectionLock
 )
-from .export import TeradataExport as Export
+from .encoders import TeradataEncoder as Encoder
+from .export import TeradataBulkExport as BulkExport
 from .io import (
     Reader,
     Writer
 )
-from .load import TeradataLoad as Load
+from .load import TeradataBulkLoad as BulkLoad
 from .logging import log, setup_logging
-from .mload import TeradataMLoad as MLoad
 from .secret import Secret
 from .types import Column, Columns, Date, Decimal, Time, Timestamp
 from .utils import register_graceful_shutdown_signal
@@ -72,7 +91,7 @@ being serialized into json.
 from json import JSONEncoder
 
 def _default(self, obj):
-    return getattr(obj.__class__, "to_json", _default.default)(obj)
+    return getattr(obj.__class__, "__json__", _default.default)(obj)
 
 _default.default = JSONEncoder().default  # Save unmodified default.
 JSONEncoder.default = _default # replacement

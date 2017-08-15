@@ -1,6 +1,25 @@
 giraffez Changelog
 ======================
 
+Version 2.0.0
+-------------
+Aug 10 2017
+
+- Improvement: New C serializer (faster MLoad encoding)
+- Improvement: TeradataCmd API, there is now only one execute method
+  that handles all cases (single statement, multiple statement (sync),
+  multiple statement (async), file input)
+- Improvement: TeradataMLoad API, no longer need to call finish method
+- Improvement: TeradataExport API, convenient methods for returning
+  different result types (dict, list, and str)
+- Fix #37
+
+Version 1.1.9
+-------------
+Jul 6 2017
+
+- Fix #34
+
 Version 1.1.8
 -------------
 Feb 28 2017
@@ -71,7 +90,8 @@ Version 1.0.4
 -------------
 Sep 5 2016
 
-- Improve build tools and add graceful shutdown (no longer registered by default)
+- Improve build tools and add graceful shutdown (no longer registered by
+  default)
 - Fix MOD_DEF macros not working in MSVC 10 compiler
 - Add missing import in giraffez/parser.py
 - Fix decimal64 overflow on MSVC

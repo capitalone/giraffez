@@ -16,35 +16,17 @@
 
 import sys
 
-GIRAFFE_NOT_FOUND = False
-TDCLI_NOT_FOUND = False
-TPT_NOT_FOUND = False
-try:
-    from . import _encoder
-    try:
-        from ._cli import Cmd
-    except ImportError:
-        TDCLI_NOT_FOUND = True
-    try:
-        from ._tpt import Export
-        from ._tpt import Load
-    except ImportError:
-        TPT_NOT_FOUND = True
-except ImportError:
-    GIRAFFE_NOT_FOUND = True
-
-
-from .config import *
 from .constants import *
-from .encrypt import *
 from .errors import *
-from .io import *
-from .logging import *
-from .parser import *
-from .utils import *
 
-
-__all__ = ['GIRAFFE_NOT_FOUND', 'MainCommand', 'TDCLI_NOT_FOUND', 'TPT_NOT_FOUND']
+from . import _teradata
+from . import _teradatapt
+from .config import Config, message_write_default
+from .encrypt import create_key_file
+from .io import home_file
+from .logging import colors, log
+from .parser import Argument, Command
+from .utils import prompt_bool
 
 
 class MainCommand(Command):
@@ -69,13 +51,13 @@ class MainCommand(Command):
     commands = [
         "commandline.CmdCommand",
         "commandline.ConfigCommand",
-        "commandline.ExportCommand", 
+        "commandline.ExportCommand",
         "commandline.FmtCommand",
-        "commandline.LoadCommand", 
-        "commandline.MLoadCommand", 
-        "commandline.RunCommand", 
-        "commandline.ShellCommand", 
-        "commandline.SecretCommand", 
+        "commandline.InsertCommand",
+        "commandline.LoadCommand",
+        "commandline.RunCommand",
+        "commandline.ShellCommand",
+        "commandline.SecretCommand",
     ]
 
     default = False
@@ -120,7 +102,7 @@ class MainCommand(Command):
                 self.run()
             else:
                 raise error
-        except InvalidCredentialsError as error:
+        except (_teradata.InvalidCredentialsError, _teradatapt.InvalidCredentialsError) as error:
             if args.protect:
                 Config.lock_connection(args.conf, args.dsn, args.key)
             raise error

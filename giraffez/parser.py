@@ -20,13 +20,14 @@ import argparse
 
 from .constants import *
 from .errors import *
-from .logging import *
-from .utils import *
+
+from .logging import log
+from .utils import get_version_info, import_string
 
 from ._compat import *
 
 
-__all__ = ["Command", "Argument"]
+__all__ = ["Argument", "Command"]
 
 
 class Argument(object):

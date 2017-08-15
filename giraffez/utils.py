@@ -26,7 +26,8 @@ import warnings
 
 from .constants import *
 from .errors import *
-from .logging import *
+
+from .logging import log
 
 from ._compat import *
 
@@ -104,6 +105,13 @@ def readable_time(t):
     else:
         return "{:.3f}s".format(t)
 
+def register_shutdown_signal():
+    """
+    Registers a simple shutdown handler using C signals.
+    """
+    from ._teradata import register_shutdown_signal as _register
+    _register()
+
 def register_graceful_shutdown_signal():
     """
     Registers graceful shutdown handler using C signals. The first
@@ -111,11 +119,11 @@ def register_graceful_shutdown_signal():
     exiting, and the second will shutdown whether the connections
     have been closed or not.
     """
-    from ._common import register_graceful_shutdown_signal as _register
+    from ._teradata import register_graceful_shutdown_signal as _register
     _register()
 
 def show_warning(message, category):
-    def send_warnings_to_log(message, category, filename, lineno, file=None):
+    def send_warnings_to_log(message, category, filename, lineno, file=None, line=None):
         log.write("{}:{}: {}: {}".format(filename, lineno, category.__name__, message))
     warnings.showwarning = send_warnings_to_log
     warnings.warn(message, category)

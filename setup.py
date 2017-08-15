@@ -10,6 +10,9 @@ from setuptools import setup, Extension as _Extension, find_packages
 from distutils.command.build_ext import build_ext
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 
+develop = False
+if len(sys.argv) > 1 and sys.argv[1] == "develop":
+    develop = True
 
 PY3 = sys.version_info[0] == 3
 
@@ -150,6 +153,8 @@ class Extension(_Extension):
                 self.define_macros.append(('WIN32', 1))
         else:
             self.extra_compile_args = ['-Wfatal-errors']
+        if develop:
+            self.define_macros.append(("DEBUG_LOGGING", 1))
 
     @classmethod
     def set_objects(cls, objects):
@@ -169,48 +174,19 @@ class Extension(_Extension):
         pass
 
 
-class CommonExtension(Extension):
-    name = "giraffez._common"
-    sources = [
-        "giraffez/commonmodule.c",
-    ]
-
-
-class EncoderExtension(Extension):
-    name = "giraffez._encoder"
+class TeradataExtension(Extension):
+    name = "giraffez._teradata"
 
     sources = [
-        "giraffez/encoder/convert.c",
-        "giraffez/encoder/types.c",
-        "giraffez/encoder/unpack.c",
-        "giraffez/encoder/encoderobject.c",
-        "giraffez/encodermodule.c",
+        "giraffez/src/buffer.c",
+        "giraffez/src/columns.c",
+        "giraffez/src/convert.c",
+        "giraffez/src/encoder.c",
+        "giraffez/src/errors.c",
+        "giraffez/src/row.c",
+        "giraffez/src/teradata.c",
+        "giraffez/_teradatamodule.c",
     ]
-
-    depends = [
-        "giraffez/encoder/convert.h",
-        "giraffez/encoder/types.h",
-        "giraffez/encoder/unpack.h",
-        "giraffez/encoder/encoderobject.h",
-        "giraffez/encodermodule.c",
-    ]
-
-
-class CLIExtension(Extension):
-    name = "giraffez._cli"
-
-    sources = [
-        "giraffez/cli/cmdobject.c",
-        "giraffez/climodule.c"
-    ]
-
-    depends = [
-        "giraffez/cli/cmdobject.h",
-        "giraffez/climodule.c"
-    ]
-
-    cli_include_dir = None
-    cli_library_dir = None
 
     def setup(self):
         if TERADATA_HOME is None:
@@ -240,16 +216,11 @@ class CLIExtension(Extension):
         else:
             raise PlatformNotSupported("This following platform is unsupported or unknown: '{}'".format(platform.system()))
 
-        if os.path.isdir(tdcli_inc):
-            self.cli_include_dir = tdcli_inc
-        if os.path.isdir(tdcli_lib):
-            self.cli_library_dir = tdcli_lib
-
-        if not self.cli_include_dir or not self.cli_library_dir:
+        if not os.path.isdir(tdcli_inc) or not os.path.isdir(tdcli_lib):
             raise TeradataNotFound("Cannot find the Teradata CLIv2 files.")
 
-        self.include_dirs.append(self.cli_include_dir)
-        self.library_dirs.append(self.cli_library_dir)
+        self.include_dirs.append(tdcli_inc)
+        self.library_dirs.append(tdcli_lib)
 
         # Set libraries
         if platform.system() == 'Windows':
@@ -260,25 +231,14 @@ class CLIExtension(Extension):
             self.libraries.append("cliv2")
 
 
-class TPTExtension(Extension):
-    name = "giraffez._tpt"
+class TeradataPTExtension(Extension):
+    name = "giraffez._teradatapt"
 
     sources = [
-        "giraffez/tpt/exportobject.cc",
-        "giraffez/tpt/loadobject.cc",
-        "giraffez/tptmodule.cc"
+        "giraffez/_teradataptmodule.cc",
     ]
 
-    depends = [
-        "giraffez/tpt/exportobject.h",
-        "giraffez/tpt/loadobject.h",
-        "giraffez/tptmodule.cc"
-    ]
-
-    depends_on = [EncoderExtension]
-
-    tpt_include_dir = None
-    tpt_library_dir = None
+    depends_on = [TeradataExtension]
 
     def setup(self):
         if TERADATA_HOME is None:
@@ -297,9 +257,14 @@ class TPTExtension(Extension):
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib64")
+                # version 16.10 appears to have yet again change the location
+                if not os.path.isdir(tptapi_lib):
+                    tptapi_lib = os.path.join(TERADATA_HOME, "lib64")
             else:
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
                 tptapi_lib = os.path.join(TERADATA_HOME, "tbuild/lib")
+                if not os.path.isdir(tptapi_lib):
+                    tptapi_lib = os.path.join(TERADATA_HOME, "lib")
         elif platform.system() == 'Darwin':
             if is_64bit():
                 tptapi_inc = os.path.join(TERADATA_HOME, "tbuild/tptapi/inc")
@@ -310,25 +275,23 @@ class TPTExtension(Extension):
         else:
             raise PlatformNotSupported("This following platform is unsupported or unknown: '{}'".format(platform.system()))
 
-        if os.path.isdir(tptapi_inc):
-            self.tpt_include_dir = tptapi_inc
-        if os.path.isdir(tptapi_lib):
-            self.tpt_library_dir = tptapi_lib
-
-        if not self.tpt_include_dir or not self.tpt_library_dir:
+        if not os.path.isdir(tptapi_inc) or not os.path.isdir(tptapi_lib):
             raise TeradataNotFound("Cannot find the Teradata Parallel Transporter API files.")
 
-        self.include_dirs.append(self.tpt_include_dir)
-        self.library_dirs.append(self.tpt_library_dir)
+        self.include_dirs.append(tptapi_inc)
+        self.library_dirs.append(tptapi_lib)
 
         if platform.system() == 'Windows':
             self.libraries.append("telapi")
+            self.libraries.append("wincli32")
         elif platform.system() == 'Linux':
             self.libraries.append("telapi")
             self.libraries.append("pxicu")
+            self.libraries.append("cliv2")
         elif platform.system() == 'Darwin':
             self.libraries.append("telapi")
             self.libraries.append("pxicu")
+            self.libraries.append("cliv2")
 
 
 class BuildExt(build_ext):
@@ -363,19 +326,31 @@ class BuildExt(build_ext):
             include_dirs=ext.include_dirs,
             extra_postargs=ext.extra_compile_args,
             depends=ext.depends)
-        self.cache[ext.name] = objects
+        self.cache[ext.name] = ext
         return objects
 
     def build_extension(self, ext):
         ext.setup()
-        objects = self.compile(ext)
-        ext_path = self.get_ext_fullpath(ext.name)
         if ext.depends_on:
             for dep in ext.depends_on:
                 if dep.name not in self.cache:
-                    objects += self.compile(dep())
+                    d = dep()
+                    ext.include_dirs += d.include_dirs
+                    ext.library_dirs += d.library_dirs
+                    ext.libraries += d.libraries
+                    ext.objects += self.compile(d)
                 else:
-                    objects += self.cache[dep.name]
+                    d = self.cache[dep.name]
+                    ext.include_dirs += d.include_dirs
+                    ext.library_dirs += d.library_dirs
+                    ext.libraries += d.libraries
+                    ext.objects += d.objects
+                ext.include_dirs = list(set(ext.include_dirs))
+                ext.library_dirs = list(set(ext.library_dirs))
+                ext.libraries = list(set(ext.libraries))
+                ext.objects = list(set(ext.objects))
+        ext.objects += self.compile(ext)
+        ext_path = self.get_ext_fullpath(ext.name)
 
         # Return early when a shared object is not being created. This
         # is useful when dealing with Extensions that need to have
@@ -385,7 +360,7 @@ class BuildExt(build_ext):
             return
 
         self.compiler.link_shared_object(
-            objects,
+            ext.objects,
             ext_path,
             libraries=self.get_libraries(ext),
             library_dirs=ext.library_dirs,
@@ -406,7 +381,7 @@ class BuildExt(build_ext):
 
 
 if __name__ == '__main__':
-    ext_modules = [CommonExtension(), EncoderExtension(), CLIExtension(), TPTExtension()]
+    ext_modules = [TeradataExtension(), TeradataPTExtension()]
 
     with open('requirements.txt') as f:
         requirements = f.read().splitlines()

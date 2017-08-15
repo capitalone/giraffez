@@ -25,16 +25,13 @@ import itertools
 import functools
 import threading
 
-from .cmd import *
 from .constants import *
 from .errors import *
-from .fmt import *
-from .logging import *
-from .parser import *
-from .utils import *
 
-
-__all__ = ['GiraffeShell']
+from ._teradata import TeradataError
+from .fmt import format_table, replace_cr
+from .logging import log, setup_logging
+from .utils import get_version_info, timer
 
 
 setup_logging()
@@ -90,6 +87,7 @@ def spinner(f):
 
 def save_history():
     import os
+    # TODO(chris): doesn't work on windows?
     import readline
     path = os.path.expanduser("~/.giraffehistory")
     readline.write_history_file(path)
@@ -119,7 +117,7 @@ class GiraffeShell(_cmd.Cmd):
     @timer
     @spinner
     def command(self, query):
-        return self.cmd.execute_one(query)
+        return self.cmd.execute(query)
 
     def complete_table(self, text, line, begidx, endidx):
         table_values = ["on", "off"]
@@ -155,12 +153,13 @@ class GiraffeShell(_cmd.Cmd):
             return
         if self.table_output and not (line.lower().startswith("show") or line.lower().startswith("help")):
             log.write()
-            result.rows.insert(0, result.columns.names)
-            sys.stdout.write(format_table(result.rows))
+            rows = [replace_cr(row) for row in result]
+            rows.insert(0, result.columns.names)
+            sys.stdout.write(format_table(rows))
             sys.stdout.write("\n")
         else:
             for row in result:
-                log.write("\t".join([str(x) for x in row]))
+                log.write("\t".join([str(replace_cr(x)) for x in row]))
 
     def do_EOF(self, line):
         return True

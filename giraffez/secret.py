@@ -14,12 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .config import *
+from .config import Config
 
 from ._compat import *
-
-
-__all__ = ['Secret']
 
 
 class Secret(object):

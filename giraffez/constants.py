@@ -44,7 +44,7 @@ DEBUG   = 2
 CLI_BLOCK_SIZE = 64260
 MLOAD_THRESHOLD = 100000
 DEFAULT_NULL = "NULL"
-DEFAULT_ENCODING = "text"
+DEFAULT_ENCODING = "str"
 DEFAULT_DELIMITER = "|"
 DEFAULT_CHECKPOINT_INTERVAL = 50000
 
@@ -515,10 +515,17 @@ TD_Evt_ExportCount64            = 23
 TD_Evt_RunStats64               = 24
 TD_Evt_ErrorTable1_64           = 25
 TD_Evt_ApplyCount64             = 26
-TD_Evt_AcquisitionPhaseStats    = 27
-TD_Evt_ApplicationPhaseStat     = 28
-TD_Evt_LoadPhaseStats           = 29
-TD_Evt_ExportPhaseStats         = 30
+TD_Evt_BlockCount64             = 27
+TD_Evt_AcquisitionPhaseStats    = 28
+TD_Evt_ApplicationPhaseStat     = 29
+TD_Evt_LoadPhaseStats           = 30
+TD_Evt_ExportPhaseStats         = 31
+TD_Evt_SessionNodeId            = 32
+TD_Evt_SessionThroughput        = 33
+TD_Evt_ExportNoSpoolMode        = 34
+TD_Evt_QueryBandByteCount       = 35
+TD_Evt_RowsDiscarded            = 37
+TD_Evt_BufferLayout2            = 38
 
 TD_Evt_Version                  = 101
 
@@ -528,17 +535,16 @@ TD_UNAVAILABLE                  = 4
 TD_ERROR                        = 99
 
 # Error codes
-TD_ERR_WORK_TABLE_MISSING       = 2583
-TD_ERR_TRANS_ABORT              = 2631
-TD_ERR_USER_NO_SELECT_ACCESS    = 3523
-TD_ERR_OBJECT_NOT_EXIST         = 3807
-TD_ERR_OBJECT_NOT_TABLE         = 3853
-TD_ERR_OBJECT_NOT_VIEW          = 3854
-
-# CLIv2 Error codes
-CLI_ERR_CANNOT_RELEASE_MLOAD    = 2572
-CLI_ERR_TABLE_MLOAD_EXISTS      = 2574
-CLI_ERR_INVALID_USER            = 8017
+TD_ERROR_REQUEST_EXHAUSTED      = 307
+TD_ERROR_CANNOT_RELEASE_MLOAD   = 2572
+TD_ERROR_TABLE_MLOAD_EXISTS     = 2574
+TD_ERROR_WORK_TABLE_MISSING     = 2583
+TD_ERROR_TRANS_ABORTED          = 2631
+TD_ERROR_USER_NO_SELECT_ACCESS  = 3523
+TD_ERROR_OBJECT_NOT_EXIST       = 3807
+TD_ERROR_OBJECT_NOT_TABLE       = 3853
+TD_ERROR_OBJECT_NOT_VIEW        = 3854
+TD_ERROR_INVALID_USER           = 8017
 
 # Putting the most common message texts here for helping to debug loads. There
 # might be a better way to do this, but may not be worth it to code something
@@ -831,6 +837,8 @@ GD_DECIMAL          = 6
 GD_CHAR             = 7
 GD_VARCHAR          = 8
 GD_DATE             = 9
+GD_TIME             = 10
+GD_TIMESTAMP        = 11
 
 gd_type_map = {
     BLOB_NN: GD_DEFAULT,
@@ -891,10 +899,10 @@ gd_type_map = {
     DATE_N: GD_DATE,
     BYTEINT_NN: GD_BYTEINT,
     BYTEINT_N: GD_BYTEINT,
-    TIME_NN: GD_CHAR,
-    TIME_N: GD_CHAR,
-    TIMESTAMP_NN: GD_CHAR,
-    TIMESTAMP_N: GD_CHAR,
+    TIME_NN: GD_TIME,
+    TIME_N: GD_TIME,
+    TIMESTAMP_NN: GD_TIMESTAMP,
+    TIMESTAMP_N: GD_TIMESTAMP,
     TIME_NNZ: GD_CHAR,
     TIME_NZ: GD_CHAR,
     TIMESTAMP_NNZ: GD_CHAR,
@@ -941,4 +949,41 @@ gd_type_map = {
     XML_TEXT_DEFERRED_N: GD_DEFAULT,
     XML_TEXT_LOCATOR_NN: GD_DEFAULT,
     XML_TEXT_LOCATOR_N: GD_DEFAULT,
+}
+
+# giraffez C Encoder encodings
+ROW_ENCODING_INVALID  = 0x00
+ROW_ENCODING_STRING   = 0x01
+ROW_ENCODING_DICT     = 0x02
+ROW_ENCODING_LIST     = 0x04
+ROW_ENCODING_RAW      = 0x08
+ROW_RETURN_MASK       = 0xff
+
+DATETIME_AS_INVALID        = 0x0000
+DATETIME_AS_STRING         = 0x0100
+DATETIME_AS_GIRAFFE_TYPES  = 0x0200
+DATETIME_RETURN_MASK       = 0xff00
+
+DECIMAL_AS_INVALID          = 0x000000
+DECIMAL_AS_STRING           = 0x010000
+DECIMAL_AS_FLOAT            = 0x020000
+DECIMAL_AS_GIRAFFEZ_DECIMAL = 0x040000
+DECIMAL_RETURN_MASK         = 0xff0000
+
+ENCODER_SETTINGS_DEFAULT = ROW_ENCODING_LIST | DATETIME_AS_STRING | DECIMAL_AS_FLOAT
+ENCODER_SETTINGS_STRING  = ROW_ENCODING_STRING | DATETIME_AS_STRING | DECIMAL_AS_STRING
+ENCODER_SETTINGS_JSON    = ROW_ENCODING_DICT | DATETIME_AS_STRING | DECIMAL_AS_FLOAT
+
+encoder_settings_map = {
+    0x00: 'INVALID',
+    0x01: 'ROW_ENCODING_STRING',
+    0x02: 'ROW_ENCODING_DICT',
+    0x04: 'ROW_ENCODING_LIST',
+    0x08: 'ROW_ENCODING_RAW',
+    0x08: 'ROW_ENCODING_RAW',
+    0x0100: 'DATETIME_AS_STRING',
+    0x0200: 'DATETIME_AS_GIRAFFE_TYPES',
+    0x010000: 'DECIMAL_AS_STRING',
+    0x020000: 'DECIMAL_AS_FLOAT',
+    0x040000: 'DECIMAL_AS_GIRAFFEZ_DECIMAL',
 }

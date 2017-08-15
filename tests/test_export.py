@@ -8,15 +8,15 @@ from giraffez.errors import *
 from giraffez.types import Columns
 
 @pytest.mark.usefixtures('config')
-class TestExport(object):
+class TestBulkExport(object):
     def test_export_results(self, mocker):
-        connect_mock = mocker.patch('giraffez.Export._connect')
+        connect_mock = mocker.patch('giraffez.BulkExport._connect')
         query = "select * from db1.info"
-        columns = [
+        columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
-        ]
+        ])
         rows = [
             ["value1", "value2", "value3"],
             ["value1", "value2", "value3"],
@@ -24,17 +24,16 @@ class TestExport(object):
         ]
         expected_results = ["|".join(row) for row in rows]
 
-        export = giraffez.Export()
+        export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
         export.export.status.return_value = 0
-        export.export.get_buffer_str.side_effect = [expected_results]
+        export.export.get_buffer.side_effect = [expected_results]
         export.export.columns.return_value = columns
 
         export.query = query
         export._initiate()
-        #export.processor = lambda a: a
-        results = list(export.results())
-        export.close()
+        results = list(export.to_list())
+        export._close()
 
         # This ensures that the config was proper mocked
         connect_mock.assert_called_with('db1', 'user123', 'pass456')
@@ -43,57 +42,50 @@ class TestExport(object):
         assert isinstance(export.columns, giraffez.types.Columns) == True
         assert export.export.columns.called == True
         assert len(export.columns) == 3
-        assert export.export.get_buffer_str.call_count == 2
+        #assert export.export.get_buffer.call_count == 2
         assert export.export.close.called == True
 
-    def test_giraffez_not_found(self, mocker):
-        with pytest.raises(GiraffeNotFound):
-            giraffez.export.TPT_NOT_FOUND = True
-            export = giraffez.Export()
-        giraffez.export.TPT_NOT_FOUND = False
-
     def test_invalid_credentials(self, mocker):
-        connect_mock = mocker.patch('giraffez.Export._connect')
-        export = giraffez.Export()
+        connect_mock = mocker.patch('giraffez.BulkExport._connect')
+        query = "select * from db1.info"
+        export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
-        export.export.status.return_value = CLI_ERR_INVALID_USER
+        export.export.status.return_value = TD_ERROR_INVALID_USER
+        export.export.initiate.side_effect = InvalidCredentialsError("...")
         with pytest.raises(InvalidCredentialsError):
-            export._handle_error()
+            export.query = query
+            results = list(export.to_list())
+            export._close()
 
     def test_header(self, mocker):
-        connect_mock = mocker.patch('giraffez.Export._connect')
+        connect_mock = mocker.patch('giraffez.BulkExport._connect')
         columns = [
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
         ]
-        export = giraffez.Export()
+        export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
-        export.export.status.return_value = 0
-        export.export.columns.return_value = columns
+        export.export.columns.return_value = Columns(columns)
 
         export.query = "select * from db1.info"
-        export.close()
+        export._close()
 
         assert export.header == "|".join(x[0] for x in columns)
 
-    def test_protect(self, mocker):
-        pass
-
     def test_parse_sql(self, mocker):
-        connect_mock = mocker.patch('giraffez.Export._connect')
-        columns = [
+        connect_mock = mocker.patch('giraffez.BulkExport._connect')
+        columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
-        ]
-        export = giraffez.Export()
+        ])
+        export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
-        export.export.status.return_value = 0
         export.export.columns.return_value = columns
 
         export.query = """select col1 as ‘c1’, col2 as “c2”from db1.info a\n join db2.info b\n on a.id = b.id"""
-        export.close()
+        export._close()
 
         assert '\n' not in export.query
         assert '‘' not in export.query

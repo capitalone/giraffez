@@ -26,6 +26,7 @@ if PY3:
     from functools import reduce
     import io as StringIO
     import queue
+    import decimal
 
     basestring = (str, bytes)
     xrange = range
@@ -49,6 +50,13 @@ if PY3:
         else:
             return s
 
+    def escape_string(s):
+        if isinstance(s, str):
+            s = s.encode('unicode_escape').decode(default_encoding)
+        elif isinstance(s, bytes):
+            s = s.encode('unicode_escape')
+        return s
+
     def unescape_string(s):
         if isinstance(s, str):
             s = s.encode(default_encoding).decode('unicode_escape')
@@ -56,6 +64,10 @@ if PY3:
             s = s.decode('unicode_escape')
         return s
 else:
+    try:
+        import cdecimal as decimal
+    except ImportError:
+        import decimal
     try:
         import cStringIO as StringIO
     except ImportError:
@@ -70,6 +82,11 @@ else:
 
     ensure_bytes = lambda s: bytes(s)
     ensure_str = identity
+
+    def escape_string(s):
+        if isinstance(s, basestring):
+            s = s.encode('string_escape')
+        return s
 
     def unescape_string(s):
         if isinstance(s, basestring):

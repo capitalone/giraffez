@@ -21,44 +21,50 @@ import argparse
 import itertools
 import subprocess
 import shlex
+import re
+import io
 
 import yaml
 
 try:
-    from . import _encoder
+    from . import _teradata
 except ImportError:
     pass
 
-from .config import *
 from .constants import *
-from .cmd import *
-from .encoders import *
-from .encrypt import *
 from .errors import *
-from .export import *
-from .fmt import *
-from .io import *
-from .logging import *
-from .load import *
-from .mload import *
-from .parser import *
-from .shell import *
-from .sql import *
-from .types import *
-from .utils import *
+
+from .config import Config
+from .cmd import TeradataCmd
+from .encoders import null_handler, TeradataEncoder
+from .encrypt import create_key_file
+from .export import TeradataBulkExport
+from .fmt import format_table, replace_cr
+from .io import ArchiveFileReader, FileReader, Reader, Writer, \
+    file_delimiter, file_exists, home_file
+from .logging import colors, log, setup_logging
+from .load import TeradataBulkLoad
+from .parser import Argument, Command
+from .shell import GiraffeShell
+from .sql import parse_statement
+from .utils import pipeline, prompt_bool, readable_time, \
+    register_shutdown_signal, register_graceful_shutdown_signal, \
+    show_warning, timer
 
 from ._compat import *
 
 
 setup_logging()
 
-# Registers graceful shutdown handler using C signals. This allows for
-# the behavior where Ctrl+C pressed once will attempt to shutdown
-# Teradata connections properly, and pressed again exits the process
-# whether the connections have closed or not. This is in commandline.py
-# because otherwise this would be a default signal handler for any
-# library that imports giraffez.
-register_graceful_shutdown_signal()
+# Registers the standard shutdown handler using C signals. Since parts
+# of the giraffez code will execute without acquiring the GIL, Python's
+# normal Ctrl+C behavior will not work. This signal handler attempts
+# to remedy this by setting a signal handler in C that imitates the
+# desired behavior. The goal is to avoid having to acquire the GIL but
+# this could be changed in the future if the cost of acquiring the GIL
+# in the C extension is shown to be minimal.
+register_shutdown_signal()
+
 
 class CmdCommand(Command):
     name = "cmd"
@@ -69,40 +75,41 @@ class CmdCommand(Command):
     arguments = [
         Argument("query", help="Query command (string or file)"),
         Argument("-t", "--table-output", default=False, help="Print in table format"),
+        Argument("-j", "--json", default=False, help="Export in json format"),
+        Argument("-d", "--delimiter", default='\t', help="Text delimiter"),
+        Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
+        Argument("--header", default=False, help="Do prepend header"),
     ]
 
     def run(self, args):
-        file_name = None
-        if " " not in args.query:
-            if file_exists(args.query):
-                file_name = args.query
-                args.query = FileReader.read_all(file_name)
+        if args.json:
+            args.header = False
+        elif args.table_output:
+            args.header = True
+        args.delimiter = unescape_string(args.delimiter)
         start_time = time.time()
+        register_graceful_shutdown_signal()
         with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as cmd:
+            cmd.options("table_output", args.table_output)
             with Writer() as out:
-                statements = parse_statement(args.query)
-                if file_name:
-                    cmd.options("source", file_name)
-                cmd.options("table_output", args.table_output)
-                for s in statements:
-                    start_time = time.time()
-                    result = cmd.execute_one(s)
-                    if out.is_stdout:
-                        log.info(colors.green(colors.bold("-"*32)))
-                    if not result:
-                        log.info("Results", "{} rows in {}".format(0, readable_time(time.time() - start_time)))
-                        continue
-                    if args.table_output and not (args.query.lower().startswith("show") or \
-                            args.query.lower().startswith("help")):
-                        result.rows.insert(0, result.columns.names)
-                        out.writen("\r{}".format(format_table(result.rows)))
-                    else:
-                        for row in result:
-                            out.writen("\t".join([str(x) for x in row]))
-                    if out.is_stdout:
-                        log.info(colors.green(colors.bold("-"*32)))
-                    log.info("Results", "{} rows in {}".format(len(result), readable_time(time.time() - start_time)))
+                result = cmd.execute(args.query, header=args.header)
+                if out.is_stdout:
+                    log.info(colors.green(colors.bold("-"*32)))
+                if args.json:
+                    for row in result.to_dict():
+                        out.writen(json.dumps(row))
+                elif args.table_output and not (args.query.lower().startswith("show") or \
+                        args.query.lower().startswith("help")):
+                    rows = [replace_cr(row) for row in result]
+                    out.writen("\r{}".format(format_table(rows)))
+                else:
+                    for row in result:
+                        out.writen(args.delimiter.join([replace_cr(str(x)) for x in row]))
+                if out.is_stdout:
+                    log.info(colors.green(colors.bold("-"*32)))
+                count = sum([n.count for n in result.statements])
+                log.info("Results", "{} rows in {}".format(count, readable_time(time.time() - start_time)))
 
 
 class ConfigCommand(Command):
@@ -188,7 +195,7 @@ class ExportCommand(Command):
         Argument("output_file", nargs="?", help="Output file or pipe"),
         Argument("-a", "--archive", default=False, help="Export in archive format (packed binary)"),
         Argument("-z", "--gzip", default=False, help="Use gzip compression (only for archive)"),
-        Argument("-e", "--encoding", default=DEFAULT_ENCODING, help="Export encoding"),
+        Argument("-j", "--json", default=False, help="Export in json format"),
         Argument("-d", "--delimiter", default=DEFAULT_DELIMITER, help="Text delimiter"),
         Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
         Argument("--no-header", default=False, help="Do not prepend header"),
@@ -196,48 +203,44 @@ class ExportCommand(Command):
 
     def run(self, args):
         args.delimiter = unescape_string(args.delimiter)
-        if args.encoding == "archive" or args.archive:
+        if args.archive:
             if not args.output_file:
                 log.write("An output file must be specified when using archive encoding")
                 return
-            args.encoding = "archive"
-            args.archive = True
             args.no_header = False
-        elif args.encoding == "json":
+        elif args.json:
             args.no_header = True
 
-        with TeradataExport(log_level=args.log_level, config=args.conf, key_file=args.key,
+        register_graceful_shutdown_signal()
+        with TeradataBulkExport(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as export:
             if args.delimiter is not None:
                 export.delimiter = args.delimiter
             if args.null is not None:
                 export.null = args.null
-            export.encoding = args.encoding
             export.query = args.query
-
-            with Writer(args.output_file, archive=args.archive, use_gzip=args.gzip) as out:
-                # Call this so the output is in the correct order rather than allowing
-                # results lazily call _initiate
-                export._initiate()
-                export._columns = export._get_columns()
-                export.options("output", out.name, 4)
-                if out.is_stdout:
-                    log.info(colors.green(colors.bold("-"*32)))
-
-                if not args.no_header:
-                    out.writen(export.header)
-
-                start_time = time.time()
-                i = 0
-                if args.archive:
-                    for n, chunk in enumerate(export.results(), 1):
-                        i += _encoder.Encoder.count_rows(chunk)
-                        if n % 50 == 0 and args.output_file:
-                            log.info("\rExport", "Processed {} rows".format(int(round(i, -5))), console=False)
-                        out.writen(chunk)
+            start_time = time.time()
+            if args.archive:
+                with Writer(args.output_file, 'wb', use_gzip=args.gzip) as out:
+                    i = 0
+                    for n in export.to_archive(out):
+                        i += n
+                        log.info("\rExport", "Processed {} rows".format(int(round(i, -5))), console=True)
                     log.info("\rExport", "Processed {} rows".format(i))
-                else:
-                    for i, row in enumerate(export.results(), 1):
+            else:
+                with Writer(args.output_file, use_gzip=args.gzip) as out:
+                    export._initiate()
+                    export.options("output", out.name, 4)
+                    if out.is_stdout:
+                        log.info(colors.green(colors.bold("-"*32)))
+                    if not args.no_header:
+                        out.writen(export.header)
+                    if args.json:
+                        exportfn = export.to_json
+                    else:
+                        exportfn = export.to_str
+                    i = 0
+                    for i, row in enumerate(exportfn(), 1):
                         if i % 100000 == 0 and args.output_file:
                             log.info("\rExport", "Processed {} rows".format(i), console=True)
                         out.writen(row)
@@ -245,7 +248,10 @@ class ExportCommand(Command):
                         log.info("\rExport", "Processed {} rows".format(i))
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
-            log.info("Results", "{} rows in {}".format(i, readable_time(time.time() - start_time)))
+            total_time = time.time() - start_time
+            log.info("Results", "{} rows in {}".format(i, readable_time(total_time - export.idle_time)))
+            log.info("Results", "Time spent idle: {}".format(readable_time(export.idle_time)))
+            log.info("Results", "Total time spent: {}".format(readable_time(total_time)))
 
 
 class ExternalCommand(Command):
@@ -287,74 +293,71 @@ class FmtCommand(Command):
 
     arguments = [
         Argument("input_file", help="Input to be transformed"),
-        Argument("-d", "--delimiter", help="Transform delimiter"),
-        Argument("-n", "--null", help="Transform null ex. 'None to NULL'"),
+        #Argument("-d", "--delimiter", help="Transform delimiter"),
+        #Argument("-n", "--null", help="Transform null ex. 'None to NULL'"),
+        Argument("-r", "--regex", help="search and replace (regex)"),
         Argument("--head", const=9, nargs="?", type=int, help="Only output N rows"),
         Argument("--header", default=False, help="Output table header"),
         Argument("--count", default=False, help="Count the table")
     ]
 
+    @timer
     def run(self, args):
         with Reader(args.input_file) as f:
-            log.verbose("Debug[1]", "File type: ", f)
-            if isinstance(f, ArchiveFileReader):
-                columns = f.columns
-            else:
-                columns = f.header
-            for column in columns:
-                log.verbose("Debug[1]", repr(column))
             if args.count:
+                log.verbose("Debug[1]", "File type: ", f)
+                if isinstance(f, ArchiveFileReader):
+                    columns = f.columns
+                else:
+                    columns = f.header
+                for column in columns:
+                    log.verbose("Debug[1]", repr(column))
                 i = 0
                 for i, line in enumerate(f, 1):
                     pass
                 log.info("Lines: ", i)
-            else:
-                processors = []
-                dst_delimiter = DEFAULT_DELIMITER
-                if args.delimiter:
-                    dst_delimiter = unescape_string(args.delimiter)
-                if isinstance(f, ArchiveFileReader):
-                    encoder = _encoder.Encoder(columns)
-                    processors.append(encoder.unpack_row)
-                if args.null:
-                    src_null, dst_null = args.null.split(" to ", 1)
-                    processors.append(null_handler(src_null))
-                else:
-                    dst_null = DEFAULT_NULL
-                processors.append(python_to_strings(dst_null))
-                processors.append(strings_to_text(dst_delimiter))
-                processor = pipeline(processors)
-                if args.header:
-                    print(dst_delimiter.join(f.header))
-                i = 0
+                return
+            elif args.head:
                 for i, line in enumerate(f, 1):
-                    if args.head and args.head < i:
+                    if args.head < i:
                         break
-                    new_line = processor(line)
-                    print(new_line)
+                    sys.stdout.write(line)
+                return
+        with io.open(args.input_file) as f:
+            if args.header:
+                print(f.header)
+            if args.regex:
+                parts = args.regex.split('/')
+                if len(parts) < 3 or parts[0] != "s":
+                    raise GiraffeError("Regex pattern '{}' not recoginzed.".format(args.regex))
+                pattern = re.compile(parts[1])
+                processor = lambda line: pattern.sub(parts[2], line)
+            i = 0
+            for i, line in enumerate(f, 1):
+                if args.head and args.head < i:
+                    break
+                sys.stdout.write(processor(line))
 
 
-class LoadCommand(Command):
-    name = "load"
-    description = "Load data into Teradata (CLIv2)"
-    usage = "giraffez load <input_file> <table> [options]"
-    help = "Load data to Teradata table (CLIv2)"
+class InsertCommand(Command):
+    name = "insert"
+    description = "Insert data into Teradata (CLIv2)"
+    usage = "giraffez insert <input_file> <table> [options]"
+    help = "Insert data to Teradata table (CLIv2)"
 
     arguments = [
         Argument("input_file", help="Input file"),
         Argument("table", help="Name of table"),
         Argument("-d", "--delimiter", default=None, help="Text delimiter"),
         Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
-        Argument("--quote-char", default='"', help="One-character string used to quote fields containing special characters"),
-        Argument("--date-conversion", default=False),
-        Argument("--disable-date-conversion", default=False, help=("Disable automatic conversion of "
+        Argument("--quote-char", default='"', help=("One-character string used to quote fields "
+            "containing special characters")),
+        Argument("--parse-dates", default=False, help=("Enable automatic conversion of "
             "dates/timestamps")),
+        Argument("-p", "--no-panic", default=False, help="Prevents normal panic behavior on error")
     ]
 
     def run(self, args):
-        if args.date_conversion:
-            show_warning("The '--date-conversion' option is enabled by default", DeprecationWarning)
-
         if not file_exists(args.input_file):
             raise FileNotFound("File '{}' does not exist.".format(args.input_file))
 
@@ -362,26 +365,25 @@ class LoadCommand(Command):
             show_warning(("USING LOAD TO INSERT MORE THAN {} ROWS IS NOT RECOMMENDED - USE MLOAD "
                 "INSTEAD!").format(MLOAD_THRESHOLD), UserWarning)
 
-        date_conversion = not args.disable_date_conversion
-
         if args.delimiter is None:
             args.delimiter = file_delimiter(args.input_file)
 
-        with TeradataLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
-                dsn=args.dsn) as load:
+        register_graceful_shutdown_signal()
+        with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
+                dsn=args.dsn, panic=args.no_panic) as load:
             load.options("source", args.input_file, 0)
             load.options("output", args.table, 1)
             load.options("null", args.null, 5)
             start_time = time.time()
             result = load.from_file(args.table, args.input_file, null=args.null, delimiter=args.delimiter,
-                date_conversion=date_conversion, quotechar=args.quote_char)
+                parse_dates=args.parse_dates, quotechar=args.quote_char)
             log.info("Results", "{} errors; {} rows in {}".format(result['errors'], result['count'], readable_time(time.time() - start_time)))
 
 
-class MLoadCommand(Command):
-    name = "mload"
+class LoadCommand(Command):
+    name = "load"
     description = "Load data into Teradata (MultiLoad)"
-    usage = "giraffez mload <input_file> <table> [options]"
+    usage = "giraffez load <input_file> <table> [options]"
     help = "Load data to existing Teradata table (MultiLoad)"
 
     arguments = [
@@ -392,11 +394,15 @@ class MLoadCommand(Command):
         Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
         Argument("-y", "--drop-all", default=False, help="Drop tables"),
         Argument("--quote-char", default='"', help="One-character string used to quote fields containing special characters"),
-        Argument("--allow-precision-loss", default=False, help="Allow floating-point numbers to be converted to fixed-precision numbers.")
+        Argument("--coerce-floats", default=False, help="Allow floating-point numbers to be converted to fixed-precision numbers."),
+        Argument("--parse-dates", default=False, help=("Enable automatic conversion of "
+            "dates/timestamps")),
     ]
 
     def run(self, args):
-        if args.encoding not in ["archive", "text"]:
+        if args.delimiter is not None:
+            args.delimiter = unescape_string(args.delimiter)
+        if args.encoding not in ["archive", "str"]:
             raise GiraffeError("'{}' is not an encoder.".format(args.encoding))
         if not file_exists(args.input_file):
             raise GiraffeError("File '{}' does not exist.".format(args.input_file))
@@ -409,52 +415,59 @@ class MLoadCommand(Command):
             show_warning(("USING MLOAD TO INSERT LESS THAN {} ROWS IS NOT RECOMMENDED - USE LOAD "
                 "INSTEAD!").format(MLOAD_THRESHOLD), UserWarning)
 
-        with TeradataMLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
-                dsn=args.dsn) as mload:
-            mload.encoding = args.encoding
-            mload.allow_precision_loss = args.allow_precision_loss
-            mload.table = args.table
+        register_graceful_shutdown_signal()
+        with TeradataBulkLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
+                dsn=args.dsn) as load:
+            load.encoding = args.encoding
+            load.coerce_floats = args.coerce_floats
+            load.table = args.table
+            load.null = args.null
+            load.delimiter = args.delimiter
             if args.drop_all is True:
-                mload.cleanup()
+                load.cleanup()
             else:
-                existing_tables = list(filter(lambda x: mload.cmd.exists(x, silent=(log.level < DEBUG)), mload.tables))
+                existing_tables = list(filter(lambda x: load.mload.exists(x), load.tables))
                 if len(existing_tables) > 0:
-                    log.info("MLoad", "Previous work tables found:")
+                    log.info("BulkLoad", "Previous work tables found:")
                     for i, table in enumerate(existing_tables, 1):
                         log.info('  {}: "{}"'.format(i, table))
                     if prompt_bool("Do you want to drop these tables?", default=True):
-                        for table in existing_tables:
-                            log.info("MLoad", "Dropping table '{}'...".format(table))
-                            mload.cmd.drop_table(table, silent=True)
+                        load.cleanup()
+                        #for table in existing_tables:
+                            #log.info("BulkLoad", "Dropping table '{}'...".format(table))
+                            #load.cmd.drop_table(table, silent=True)
                     else:
                         log.fatal("Cannot continue without dropping previous job tables. Exiting ...")
-            log.info("MLoad", "Executing ...")
+            log.info("BulkLoad", "Executing ...")
             log.info('  source      => "{}"'.format(args.input_file))
             log.info('  output      => "{}"'.format(args.table))
             start_time = time.time()
-            exit_code = mload.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char)
-            log.info("MLoad", "Teradata PT request finished with exit code '{}'".format(exit_code))
+            exit_code = load.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char, parse_dates=args.parse_dates)
+            total_time = time.time() - start_time
+            log.info("BulkLoad", "Teradata PT request finished with exit code '{}'".format(exit_code))
             log.info("Results", "...")
-            log.info('  Successful   => "{}"'.format(mload.applied_count))
-            log.info('  Unsuccessful => "{}"'.format(mload.error_count))
-            log.info("Results", "{} rows in {}".format(mload.total_count, readable_time(time.time() - start_time)))
+            log.info('  Successful   => "{}"'.format(load.applied_count))
+            log.info('  Unsuccessful => "{}"'.format(load.error_count))
+            log.info("Results", "{} rows in {}".format(load.total_count, readable_time(total_time - load.idle_time)))
+            log.info("Results", "Time spent idle: {}".format(readable_time(load.idle_time)))
+            log.info("Results", "Total time spent: {}".format(readable_time(total_time)))
             if exit_code != 0:
-                # TODO: such todo
-                if prompt_bool(("Executed with return code {}, would you like to query the "
-                        "error table?").format(exit_code)):
-                    result = mload.cmd.execute_one("select errorcode, errorfield, min(hostdata) as hostdata, count(*) over (partition by errorcode, errorfield) as errorcount from {}_e1 qualify row_number() over (partition by errorcode, errorfield order by errorcode asc)=1 group by 1,2".format(args.table))
+                with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
+                        dsn=args.dsn, silent=True) as cmd:
+                    result = list(cmd.execute("select a.errorcode, a.errorfield, count(*) over (partition by a.errorcode, a.errorfield) as errorcount, b.errortext, min(substr(a.hostdata, 0, 30000)) as hostdata from {}_e1 a join dbc.errormsgs b on a.errorcode = b.errorcode qualify row_number() over (partition by a.errorcode, a.errorfield order by a.errorcode asc)=1 group by 1,2,4".format(args.table)))
                     if len(result) == 0:
                         log.info("No error information available.")
                         return
                     error_table = [("Error Code", "Field", "Error Count", "Error Description")]
                     samples = []
                     for row in result:
-                        msg = MESSAGES.get(int(row[0]), None)
-                        error_table.append((row[0], row[1], row[3], msg))
-                        samples.append(repr(row[2]))
+                        error_table.append((row[0], row[1], row[2], row[3]))
+                        samples.append(repr(row[4]))
+                    #log.level = args.log_level
                     log.info("\n{}\n".format(format_table(error_table)))
                     log.info("Sample Row Error Data:")
                     log.info("\t{}".format("\n".join(samples)))
+                    #log.level = SILENCE
 
 
 class RunCommand(Command):
@@ -501,6 +514,7 @@ class RunCommand(Command):
             "shell": ShellCommand,
             "secret": SecretCommand,
         }
+        register_graceful_shutdown_signal()
         for job in job_config:
             job_type = job.get("type")
             if not job_type:

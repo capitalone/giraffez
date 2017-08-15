@@ -1,0 +1,465 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Quickstart &mdash; giraffez 2.0.0rc1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="giraffez 2.0.0rc1 documentation" href="index.html"/>
+        <link rel="next" title="Advanced Usage" href="usage.html"/>
+        <link rel="prev" title="Commands" href="command-line.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> giraffez
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.0.0rc1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command-line.html">Commands</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#executing-statements">Executing statements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#working-with-cursors">Working with cursors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#accessing-statement-metadata">Accessing statement metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#loading-data-into-a-table">Loading data into a table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exporting-large-amounts-of-data">Exporting large amounts of data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#loading-large-amounts-of-data">Loading large amounts of data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuring-giraffez">Configuring giraffez</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Advanced Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/capitalone/giraffez">GitHub</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">giraffez</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Quickstart</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/quickstart.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="quickstart">
+<h1>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h1>
+<p>Getting started with giraffez begins with ensuring that the giraffez package is imported:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">giraffez</span>
+</pre></div>
+</div>
+<div class="section" id="executing-statements">
+<h2>Executing statements<a class="headerlink" href="#executing-statements" title="Permalink to this headline">¶</a></h2>
+<p>Executing statements is a fundamental part of interacting with Teradata and giraffez makes use of the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata CLIv2</span></a> to provide this critical functionality.  This includes any tasks that are normally executed through official Teradata tools like SQL Assistant or BTEQ.</p>
+<p>The first step to executing a statement is setting up a <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a> object using the <code class="docutils literal"><span class="pre">with</span></code> context.  Using <code class="docutils literal"><span class="pre">with</span></code> is important because it automatically closes the connection when the context ends, and ensures that open connections aren’t littered all over Teradata server.  All examples going forward are going to use and expect this context so let’s set it up:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
+    <span class="c1"># Connection is established</span>
+
+    <span class="c1"># Any code using the connection will go here at this indent level</span>
+    <span class="c1"># since the &#39;with&#39; context maintains the connection for us</span>
+
+<span class="c1"># Connection is closed when leaving context</span>
+</pre></div>
+</div>
+<p>Next, let’s perform a common function of working with any database by querying a table/view in the database:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;select * from dbc.dbcinfo&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This returns a <a class="reference internal" href="api.html#giraffez.cmd.Cursor" title="giraffez.cmd.Cursor"><code class="xref py py-class docutils literal"><span class="pre">Cursor</span></code></a> for the provided query and printing it shows the various options that are set for <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.execute" title="giraffez.cmd.TeradataCmd.execute"><code class="xref py py-meth docutils literal"><span class="pre">execute</span></code></a>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+<span class="go">Cursor(statements=1, multi_statement=False, prepare=False, coerce_floats=True, parse_dates=False)</span>
+</pre></div>
+</div>
+<p>Here we can see that it contains only one query statement and multiple parallel statement mode is disabled. Reading from the cursor is fairly straight forward:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span> <span class="c1"># the same as doing `for row in result.values()`</span>
+<span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="go">{&#39;infodata&#39;: &#39;15.00.05.01c&#39;, &#39;infokey&#39;: &#39;VERSION&#39;}</span>
+<span class="go">{&#39;infodata&#39;: &#39;15.00.05.01&#39;, &#39;infokey&#39;: &#39;RELEASE&#39;}</span>
+<span class="go">{&#39;infodata&#39;: &#39;Standard&#39;, &#39;infokey&#39;: &#39;LANGUAGE SUPPORT MODE&#39;}</span>
+</pre></div>
+</div>
+<p>It is just as easy to execute multiple synchronous statements:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        select * from dbc.dbcinfo;</span>
+<span class="s2">        select count(*) as total from dbc.dbcinfo;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Multiple parallel statement mode is helpful when you need to run insert statements in parallel or need to execute multiple queries at the same time (similar to a union but they are returned as different logical result sets).  Taking advantage of this only requires giving <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.execute" title="giraffez.cmd.TeradataCmd.execute"><code class="xref py py-meth docutils literal"><span class="pre">execute</span></code></a> multiple statements separated by a semi-colon and setting the <code class="docutils literal"><span class="pre">multi_statement</span></code> keyword argument:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        select * from dbc.dbcinfo;</span>
+<span class="s2">        select count(*) as total from dbc.dbcinfo;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">,</span> <span class="n">multi_statement</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The two statements will execute as part of the same request, and yield from the same results iterator:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="go">{&#39;infodata&#39;: &#39;15.00.05.01c&#39;, &#39;infokey&#39;: &#39;VERSION&#39;}</span>
+<span class="go">{&#39;infodata&#39;: &#39;15.00.05.01&#39;, &#39;infokey&#39;: &#39;RELEASE&#39;}</span>
+<span class="go">{&#39;infodata&#39;: &#39;Standard&#39;, &#39;infokey&#39;: &#39;LANGUAGE SUPPORT MODE&#39;}</span>
+<span class="go">{&#39;total&#39;: 3}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="working-with-cursors">
+<h2>Working with cursors<a class="headerlink" href="#working-with-cursors" title="Permalink to this headline">¶</a></h2>
+<p>Executing statements returns a <a class="reference internal" href="api.html#giraffez.cmd.Cursor" title="giraffez.cmd.Cursor"><code class="xref py py-class docutils literal"><span class="pre">cursor-like</span> <span class="pre">object</span></code></a> that enables traversal over the executing statements.  This works in a similar manner to other database client software that also uses a cursor, and just as with libraries like <cite>pyodbc</cite> one must read completely from the cursor to execute the statements and exhaust the records returned by Teradata:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">pass</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<p>In cases where one does not need the data but needs to make sure all statements execute, the <a class="reference internal" href="api.html#giraffez.cmd.Cursor.readall" title="giraffez.cmd.Cursor.readall"><code class="xref py py-meth docutils literal"><span class="pre">readall</span></code></a> method can be used:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">results</span><span class="o">.</span><span class="n">readall</span><span class="p">()</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+<p>The only value returned is the number of rows that were read.</p>
+</div>
+<div class="section" id="accessing-statement-metadata">
+<h2>Accessing statement metadata<a class="headerlink" href="#accessing-statement-metadata" title="Permalink to this headline">¶</a></h2>
+<p>Consider the following set of statements:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        select * dbc.dbcinfo;</span>
+<span class="s2">        select * from dbc.dbcinfo;</span>
+<span class="s2">        select count(*) as total from dbc.dbcinfo;</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="p">,</span> <span class="n">panic</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The first statement will fail due to a syntax error and with panic turned off <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.execute" title="giraffez.cmd.TeradataCmd.execute"><code class="xref py py-meth docutils literal"><span class="pre">execute</span></code></a> will move onto the next statement without raising an exception.  The results end up looking like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="go">{&#39;infodata&#39;: &#39;15.00.05.01c&#39;, &#39;infokey&#39;: &#39;VERSION&#39;}</span>
+<span class="go">{&#39;infodata&#39;: &#39;15.00.05.01&#39;, &#39;infokey&#39;: &#39;RELEASE&#39;}</span>
+<span class="go">{&#39;infodata&#39;: &#39;Standard&#39;, &#39;infokey&#39;: &#39;LANGUAGE SUPPORT MODE&#39;}</span>
+<span class="go">{&#39;total&#39;: 3}</span>
+</pre></div>
+</div>
+<p>The column information can be accessed easily via the <a class="reference internal" href="api.html#giraffez.types.Columns" title="giraffez.types.Columns"><code class="xref py py-class docutils literal"><span class="pre">Columns</span></code></a> object:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">results</span><span class="o">.</span><span class="n">columns</span>
+<span class="go">Column(total integer(4) N -(10)9)</span>
+</pre></div>
+</div>
+<p>However, in the case where there are more than one statement passed to <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.execute" title="giraffez.cmd.TeradataCmd.execute"><code class="xref py py-meth docutils literal"><span class="pre">execute</span></code></a> these will be the columns for the last statement to be executed successfully.  Luckily, getting the columns and other useful metadata (like if an error occured) is pretty easy:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">statement</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">statements</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Statment[{}]:&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">statement</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="go">Statement[1]:</span>
+<span class="go">None</span>
+<span class="go">Statement[2]:</span>
+<span class="go">Column(infokey varchar(60) N X(30))</span>
+<span class="go">Column(infodata varchar(32768) Y X(16384))</span>
+<span class="go">Statement[3]:</span>
+<span class="go">Column(total integer(4) N -(10)9)</span>
+</pre></div>
+</div>
+<p>Other useful metadata is available as well, such as the statement errors:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">statement</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">statements</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Statement[{}]: {!r}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">statement</span><span class="o">.</span><span class="n">error</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="go">Statement[1]: TeradataError(&#39;3706: Syntax error: SELECT * must have a FROM clause.&#39;)</span>
+<span class="go">Statement[2]: None</span>
+<span class="go">Statement[3]: None</span>
+</pre></div>
+</div>
+<p>Additionally, the error is the actual error instance so can be raised:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">statement</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">statements</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">statement</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="k">raise</span> <span class="n">error</span>
+<span class="gt">Traceback (most recent call last):</span>
+  File <span class="nb">&quot;./example.py&quot;</span>, line <span class="m">20</span>, in <span class="n">&lt;module&gt;</span>
+    <span class="k">raise</span> <span class="n">statement</span><span class="o">.</span><span class="n">error</span>
+  File <span class="nb">&quot;../giraffez/cmd.py&quot;</span>, line <span class="m">91</span>, in <span class="n">_execute</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">statement</span><span class="p">),</span> <span class="n">prepare_only</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">prepare_only</span><span class="p">)</span>
+<span class="gr">giraffez.TeradataError</span>: <span class="n">3706: Syntax error: SELECT * must have a FROM clause.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="loading-data-into-a-table">
+<h2>Loading data into a table<a class="headerlink" href="#loading-data-into-a-table" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a> has the method <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-meth docutils literal"><span class="pre">insert</span></code></a> that attempts to provide a simple interface for loading data when performance is not necessarily critical.  It does so by generating insert statements and submitting them in parallel execution mode.  Here is inserting data from a file:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">Cmd</span><span class="p">:</span>
+    <span class="n">stats</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;database.table_name&#39;</span><span class="p">,</span> <span class="s1">&#39;my_data.txt&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This requires a delimited header to be provided as the first line of the file and it returns a <code class="xref py py-class docutils literal"><span class="pre">dict</span></code> with the number of rows inserted and the number of errors encountered:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
+<span class="go">{&#39;count&#39;: 3, &#39;errors&#39;: 0}</span>
+</pre></div>
+</div>
+<p>A more involved example can be found in <a class="reference internal" href="usage.html#session-context-load-insert"><span class="std std-ref">Advanced Usage</span></a> that loads the rows individually using <code class="xref py py-meth docutils literal"><span class="pre">insert</span></code>.</p>
+</div>
+<div class="section" id="exporting-large-amounts-of-data">
+<h2>Exporting large amounts of data<a class="headerlink" href="#exporting-large-amounts-of-data" title="Permalink to this headline">¶</a></h2>
+<p>When exporting a large amount of data from Teradata (many millions of rows), <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code></a> should be used.  It makes use of the bulk driver provided by the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> to retrieve data from Teradata effificently.  This powerful export can be setup without needing to create complex fastexport scripts:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkExport</span><span class="p">(</span><span class="s1">&#39;dbc.dbcinfo&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">export</span><span class="o">.</span><span class="n">to_list</span><span class="p">():</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>More options are detailed over in the API referrence for <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code></a>.</p>
+</div>
+<div class="section" id="loading-large-amounts-of-data">
+<h2>Loading large amounts of data<a class="headerlink" href="#loading-large-amounts-of-data" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> is best utilized for loading large (&gt; ~100k rows) datasets. It makes use of the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> bulk update driver which is generally faster than using something like <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.insert" title="giraffez.cmd.TeradataCmd.insert"><code class="xref py py-meth docutils literal"><span class="pre">insert</span></code></a> (which just generates insert statements).  It also has less of a performance impact on Teradata server when dealing with larger datasets.  While <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> uses the bulk update driver it is not meant to be a direct wrapper of the mload functionality, rather it is a more friendly abstraction but with mload performance.</p>
+<p>Just like with <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.insert" title="giraffez.cmd.TeradataCmd.insert"><code class="xref py py-meth docutils literal"><span class="pre">insert</span></code></a>, fields and delimiter for the input data are inferred from the header (or from a JSON stream):</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
+    <span class="n">load</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;input.txt&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Another important feature is loading rows individually when dealing with information that isn’t being read from a file:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
+    <span class="n">mload</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="s2">&quot;first_name&quot;</span><span class="p">]</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;Hemingway&quot;</span><span class="p">,</span> <span class="s2">&quot;Ernest&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;Chekhov&quot;</span><span class="p">,</span> <span class="s2">&quot;Anton&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;Kafka&quot;</span><span class="p">,</span> <span class="s2">&quot;Franz&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="n">load</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> returns an exit code for every job using the bulk update driver. This exit code can be <code class="docutils literal"><span class="pre">0</span></code>, <code class="docutils literal"><span class="pre">2</span></code>, <code class="docutils literal"><span class="pre">4</span></code>, <code class="docutils literal"><span class="pre">8</span></code>, or <code class="docutils literal"><span class="pre">12</span></code>.  This is intrinsic to how the driver works and any exit code other than 0 indicates some kind of failure to complete and is the same code returned when running a MultiLoad job using Teradata’s official <code class="docutils literal"><span class="pre">mload</span></code> command-line tool.  To remove unnecessary boilerplate, this exit code is implicitly <code class="docutils literal"><span class="pre">0</span></code> when successfully and raises an exception with the exit code should the job be unsuccessful.  While we try very hard to abstract away the rough edges of the MultiLoad protocol, it is sometimes not very clear how the job errored.  In these cases passing keyword <code class="docutils literal"><span class="pre">print_error_table</span></code> allows for convenient access to the error table upon exit:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">,</span> <span class="n">print_error_table</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
+</pre></div>
+</div>
+<p>This would be something you use while troubleshooting a new script but most likely remove once the script is working correctly.  It is important to note that this data is in the error table regardless of this option being set, and will remain there until the job tables are cleaned up.</p>
+</div>
+<div class="section" id="configuring-giraffez">
+<h2>Configuring giraffez<a class="headerlink" href="#configuring-giraffez" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="api.html#giraffez.config.Config" title="giraffez.config.Config"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Config</span></code></a> class is a convenient wrapper for accessing and modifying settings and credentials in your <code class="code docutils literal"><span class="pre">.girafferc</span></code> file.  While most of the time these settings will be set and updated on the command-line, there may be a need to access these settings via Python:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Config</span><span class="p">()</span> <span class="k">as</span> <span class="n">config</span><span class="p">:</span>
+    <span class="n">default_connection</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="s2">&quot;connections.default&quot;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">default_connection</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>However, a more likely scenario is that giraffez will also be used to store other sensitive information in the <code class="code docutils literal"><span class="pre">.girafferc</span></code> file.  <a class="reference internal" href="api.html#giraffez.secret.Secret" title="giraffez.secret.Secret"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Secret</span></code></a> can be used to handle the storage and retrieval of this information, allowing for this sensitive information to be encrypted at rest and still be easily accessible:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Secret</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">secret</span><span class="p">:</span>
+    <span class="n">secret</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;sso.username&quot;</span><span class="p">,</span> <span class="s2">&quot;username&quot;</span><span class="p">)</span>
+    <span class="n">secret</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;sso.password&quot;</span><span class="p">,</span> <span class="s2">&quot;password&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>And using them in a script looks something like:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Secret</span><span class="p">()</span> <span class="k">as</span> <span class="n">secret</span><span class="p">:</span>
+    <span class="n">sso_username</span><span class="p">,</span> <span class="n">sso_password</span> <span class="o">=</span> <span class="n">secret</span><span class="p">(</span><span class="s2">&quot;sso.username, sso.password&quot;</span><span class="p">)</span>
+
+<span class="n">proxy_url</span> <span class="o">=</span> <span class="s2">&quot;https://{0}:{1}@proxy.example.com&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sso_username</span><span class="p">,</span> <span class="n">sso_password</span><span class="p">)</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;https://www.google.com&quot;</span><span class="p">,</span> <span class="n">proxies</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;http&quot;</span><span class="p">:</span> <span class="n">proxy_url</span><span class="p">,</span> <span class="s2">&quot;https&quot;</span><span class="p">:</span> <span class="n">proxy_url</span><span class="p">})</span>
+<span class="k">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="usage.html" class="btn btn-neutral float-right" title="Advanced Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="command-line.html" class="btn btn-neutral" title="Commands" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Capital One Services, LLC.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'2.0.0rc1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

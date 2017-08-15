@@ -10,8 +10,8 @@ import giraffez
 class TestInputOutput(object):
     def test_writer(self, tmpfiles):
         with giraffez.Writer(tmpfiles.output_file) as f:
-            f.write("value1|value2|value3\n")
+            f.write(u"value1|value2|value3\n")
 
     def test_writer_gzip(self, tmpfiles):
-        with giraffez.Writer(tmpfiles.output_file, archive=True, use_gzip=True) as f:
+        with giraffez.Writer(tmpfiles.output_file, 'wb', use_gzip=True) as f:
             f.write(b"value1|value2|value3\n")

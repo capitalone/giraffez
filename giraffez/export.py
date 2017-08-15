@@ -14,54 +14,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-TPT_NOT_FOUND = False
-try:
-    from . import _tpt
-except ImportError:
-    TPT_NOT_FOUND = True
+import time
+import struct
 
-from collections import defaultdict
+from ._teradatapt import Export
 
-from .config import *
-from .connection import *
 from .constants import *
-from .encoders import *
 from .errors import *
-from .fmt import *
-from .io import *
-from .logging import *
-from .parser import *
-from .sql import *
-from .types import *
-from .utils import *
+
+from ._teradatapt import InvalidCredentialsError
+from .config import Config
+from .connection import Connection
+from .encoders import dict_to_json, TeradataEncoder
+from .fmt import truncate
+from .logging import log
+from .sql import parse_statement, remove_curly_quotes
+from .utils import get_version_info, show_warning, suppress_context
 
 from ._compat import *
 
 
-__all__ = ['TeradataExport']
+__all__ = ['TeradataBulkExport']
 
 
-class TeradataExport(Connection):
+class TeradataBulkExport(Connection):
     """
     The class for using the Teradata Parallel Transport API to quickly export
     large amounts of data.
 
-    Exposed under the alias :class:`giraffez.Export`.
+    Exposed under the alias :class:`giraffez.BulkExport`.
 
     :param str query: Either SQL query to execute and return results of, **or** the
         name of a table to export in its entirety
     :param str host: Omit to read from :code:`~/.girafferc` configuration file.
     :param str username: Omit to read from :code:`~/.girafferc` configuration file.
     :param str password: Omit to read from :code:`~/.girafferc` configuration file.
-    :param str delimiter: The delimiter to use when exporting with the 'text'
-        encoding. Defaults to '|'
-    :param str null: The string to use to represent a null value with the
-        'text' encoding. Defaults to 'NULL'
-    :param str encoding: The encoding format in which to export the data.
-        Defaults to 'text'.  Possible values are 'text' - delimited text 
-        output, 'dict' - to output each row as a :code:`dict` object mapping column names
-        to values, 'json' - to output each row as a JSON encoded string, and 
-        'archive' to output in giraffez archive format
     :param int log_level: Specify the desired level of output from the job.
         Possible values are :code:`giraffez.SILENCE` :code:`giraffez.INFO` (default),
         :code:`giraffez.VERBOSE` and :code:`giraffez.DEBUG`
@@ -73,8 +60,9 @@ class TeradataExport(Connection):
         locks the connection used in the configuration file. This can be unlocked using the
         command :code:`giraffez config --unlock <connection>` changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
+    :param bool coerce_floats: Coerce Teradata decimal types into Python floats
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
-    :raises `giraffez.errors.TeradataError`: if the connection cannot be established
+    :raises `giraffez.TeradataError`: if the connection cannot be established
 
     Meant to be used, where possible, with Python's :code:`with` context handler
     to guarantee that connections will be closed gracefully when operation
@@ -82,90 +70,27 @@ class TeradataExport(Connection):
 
     .. code-block:: python
 
-       with giraffez.Export('dbc.dbcinfo') as export:
+       with giraffez.BulkExport('dbc.dbcinfo') as export:
            print(export.header)
-           for row in export.results():
+           for row in export.to_list():
                print(row)
     """
 
     def __init__(self, query=None, host=None, username=None, password=None,
-            delimiter=DEFAULT_DELIMITER, null=DEFAULT_NULL, encoding=DEFAULT_ENCODING,
-            log_level=INFO, config=None, key_file=None, dsn=None, protect=False):
-        if TPT_NOT_FOUND:
-            raise TeradataPTAPINotFound(TeradataPTAPINotFound.__doc__.rstrip())
-        super(TeradataExport, self).__init__(host, username, password, log_level, config, key_file,
+            log_level=INFO, config=None, key_file=None, dsn=None, protect=False,
+            coerce_floats=True):
+        super(TeradataBulkExport, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
-
-        #: Attributes used with property getter/setters
-        self._columns = None
+        # Attributes used with property getter/setters
         self._query = None
         self._encoding = None
-
-        self.delimiter = delimiter
-        self.null = null
-        self.encoding = encoding
+        self._delimiter = None
+        self._null = None
+        self.coerce_floats = coerce_floats
         self.initiated = False
-
-        #: Attributes set via property getter/setters
+        #: The amount of time spent in idle (waiting for server)
+        self.idle_time = 0
         self.query = query
-
-    def _connect(self, host, username, password):
-        self.export = _tpt.Export(host, username, password)
-        self._handle_error()
-
-    def _get_columns(self):
-        if not self.initiated:
-            self._initiate()
-        columns = Columns(self.export.columns())
-        _columns = defaultdict(int)
-        for column in columns:
-            if column.original_name in _columns:
-                column.title = "{}_{}".format(column.original_name, _columns[column.original_name])
-            _columns[column.original_name] += 1
-        for column in columns:
-            log.verbose("Debug[1]", repr(column))
-        self.export.set_columns(columns)
-        return columns
-
-    def _handle_error(self):
-        if self.export.status() >= TD_ERROR:
-            if self.export.status() == CLI_ERR_INVALID_USER:
-                if self.protect:
-                    Config.lock_connection(self.config, self.dsn)
-                raise InvalidCredentialsError(self.export.error_message())
-            raise TeradataError(self.export.error_message())
-
-    def _initiate(self):
-        title, version = get_version_info()
-        query_band = "UTILITYNAME={};VERSION={};".format(title, version)
-        self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
-        log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
-        self.export.initiate()
-        self._handle_error()
-        log.info("Export", "Teradata PT request accepted.")
-        self.export.get_schema()
-        self._handle_error()
-        self.initiated = True
-        if self.encoding == "text":
-            self.processor = identity
-        elif self.encoding == "json":
-            self.processor = dict_to_json
-        elif self.encoding == "dict":
-            self.processor = identity
-        elif self.encoding == "archive":
-            self.processor = identity
-
-        self.options("encoding", self.encoding, 1)
-        if self.encoding == "text":
-            self.options("delimiter", self.delimiter, 2)
-            self.options("null", self.null, 3)
-        log.info("Export", "Executing ...")
-        log.info(self.options)
-
-    def close(self):
-        log.info("Export", "Closing Teradata PT connection ...")
-        self.export.close()
-        log.info("Export", "Teradata PT request complete.")
 
     @property
     def columns(self):
@@ -174,21 +99,25 @@ class TeradataExport(Connection):
 
         :rtype: :class:`~giraffez.types.Columns`
         """
-        if self._columns is None:
-            self._columns = self._get_columns()
-        return self._columns
+        return self.export.columns()
 
     @property
-    def encoding(self):
-        return self._encoding
+    def delimiter(self):
+        return self._delimiter
 
-    @encoding.setter
-    def encoding(self, value):
-        if value == self._encoding:
-            return
-        else:
-            self._encoding = value
-        self.initiated = False
+    @delimiter.setter
+    def delimiter(self, value):
+        self._delimiter = value
+        self.export.set_delimiter(self._delimiter)
+
+    @property
+    def null(self):
+        return self._null
+
+    @null.setter
+    def null(self, value):
+        self._null = value
+        self.export.set_null(self._null)
     
     @property
     def header(self):
@@ -205,8 +134,8 @@ class TeradataExport(Connection):
         """
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
-        if self.encoding == "archive":
-            return self.columns.serialize()
+        if not self.delimiter:
+            self.delimiter = DEFAULT_DELIMITER
         return self.delimiter.join(self.columns.names)
 
     @property
@@ -247,47 +176,119 @@ class TeradataExport(Connection):
         else:
             self._query = statement
         self.initiated = False
-        self.export.add_attribute(TD_SELECT_STMT, statement)
-        # When new query is set refresh columns
-        self._columns = None
+        # Since CLIv2 is used in set_query (instead of relying on the
+        # colums from the TPT Export driver) and set_query will always
+        # happen before calls to initiate, set_query will always fail
+        # with InvalidCredentialsError before initiate despite initiate
+        # presumably failing after this point as well.
+        try:
+            self.export.set_query(statement)
+        except InvalidCredentialsError as error:
+            if args.protect:
+                Config.lock_connection(args.conf, args.dsn, args.key)
+            raise error
 
-    def results(self):
+    def to_archive(self, writer):
         """
-        Generates and yields row results as they are returned from
-        Teradata and processed. 
-        
-        :return: A generator that can be iterated over or coerced into a list.
-        :rtype: iterator (yields ``string`` or ``dict``)
+        Writes export archive files in the Giraffez archive format.
+        This takes a `giraffez.io.Writer` and writes archive chunks to
+        file until all rows for a given statement have been exhausted.
 
         .. code-block:: python
 
-           # iterate over results
-           with giraffez.Export('dbc.dbcinfo') as export:
-               for row in export.results():
-                   print(row)
+            with giraffez.BulkExport("database.table_name") as export:
+                with giraffez.Writer("database.table_name.tar.gz", 'wb', use_gzip=True) as out:
+                    for n in export.to_archive(out):
+                        print("Rows: {}".format(n))
 
-           # retrieve results as a list
-           with giraffez.Export('db.table2') as export:
-               results = list(export.results())
+        :param `giraffez.io.Writer` writer: A writer handling the archive output
+
+        :rtype: iterator (yields ``int``)
         """
+        if 'b' not in writer.mode:
+            raise GiraffeError("Archive writer must be in binary mode")
+        writer.write(GIRAFFE_MAGIC)
+        writer.write(self.columns.serialize())
+        i = 0
+        for n, chunk in enumerate(self._fetchall(ROW_ENCODING_RAW), 1):
+            writer.write(chunk)
+            yield TeradataEncoder.count(chunk)
+
+    def to_dict(self):
+        """
+        Sets the current encoder output to Python `dict` and returns
+        a row iterator.
+
+        :rtype: iterator (yields ``dict``)
+        """
+        return self._fetchall(ROW_ENCODING_DICT)
+
+    def to_json(self):
+        """
+        Sets the current encoder output to json encoded strings and
+        returns a row iterator.
+
+        :rtype: iterator (yields ``str``)
+        """
+        return self._fetchall(ROW_ENCODING_DICT, processor=dict_to_json)
+
+    def to_list(self):
+        """
+        Sets the current encoder output to Python `list` and returns
+        a row iterator.
+
+        :rtype: iterator (yields ``list``)
+        """
+        return self._fetchall(ROW_ENCODING_LIST)
+
+    def to_str(self):
+        """
+        Sets the current encoder output to Python `str` and returns
+        a row iterator.
+
+        :rtype: iterator (yields ``str``)
+        """
+        return self._fetchall(ENCODER_SETTINGS_STRING, coerce_floats=False)
+
+    def _close(self, exc=None):
+        log.info("Export", "Closing Teradata PT connection ...")
+        self.export.close()
+        log.info("Export", "Teradata PT request complete.")
+
+    def _connect(self, host, username, password):
+        self.export = Export(host, username, password)
+        self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
+            *get_version_info()))
+        self.delimiter = DEFAULT_DELIMITER
+        self.null = DEFAULT_NULL
+
+    def _initiate(self):
+        log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
+        start_time = time.time()
+        self.export.initiate()
+        self.idle_time = time.time() - start_time
+        self.initiated = True
+        log.info("Export", "Teradata PT request accepted.")
+        self.options("delimiter", escape_string(self.delimiter or DEFAULT_DELIMITER), 2)
+        self.options("null", self.null or DEFAULT_NULL, 3)
+        log.info("Export", "Executing ...")
+        log.info(self.options)
+
+    def _fetchall(self, encoding, coerce_floats=None, processor=None):
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
         if not self.initiated:
             self._initiate()
-            self._columns = self._get_columns()
-        if self.encoding == "archive":
-            def export_get_buffer():
-                return self.export.get_buffer_raw()
-        elif self.encoding in {"dict", "json"}:
-            def export_get_buffer():
-                return self.export.get_buffer_dict()
-        else:
-            def export_get_buffer():
-                return self.export.get_buffer_str(self.null, self.delimiter)
-
+        self.export.set_encoding(encoding)
+        if processor is None:
+            processor =  identity
+        if coerce_floats is None:
+            coerce_floats = self.coerce_floats
+        if coerce_floats:
+            self.export.set_encoding(DECIMAL_AS_FLOAT)
         while True:
-            data = export_get_buffer()
+            data = self.export.get_buffer()
             if not data:
                 break
             for row in data:
-                yield self.processor(row)
+                yield processor(row)
