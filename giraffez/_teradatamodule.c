@@ -260,7 +260,7 @@ static PyObject* Encoder_count_rows(PyObject *self, PyObject *args) {
 
 static PyObject* Encoder_pack_row(Encoder *self, PyObject *args) {
     PyObject *items;
-    unsigned char *data = NULL;
+    unsigned char *data;
     uint16_t length = 0;
     if (!PyArg_ParseTuple(args, "O", &items)) {
         return NULL;

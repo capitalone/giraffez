@@ -31,8 +31,8 @@ PyObject *EndRequestError;
 
 TeradataErr* __teradata_read_error(char *dataptr) {
     TeradataErr *err;
-    err = (TeradataErr*)malloc(sizeof(TeradataErr));
     struct CliErrorType *e;
+    err = (TeradataErr*)malloc(sizeof(TeradataErr));
     e = (struct CliErrorType*)dataptr;
     err->Code = e->Code;
     err->Msg = e->Msg;
@@ -41,8 +41,8 @@ TeradataErr* __teradata_read_error(char *dataptr) {
 
 TeradataErr* __teradata_read_failure(char *dataptr) {
     TeradataErr *err;
-    err = (TeradataErr*)malloc(sizeof(TeradataErr));
     struct CliFailureType *e;
+    err = (TeradataErr*)malloc(sizeof(TeradataErr));
     e = (struct CliFailureType*)dataptr;
     err->Code = e->Code;
     err->Msg = e->Msg;
