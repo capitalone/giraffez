@@ -52,3 +52,8 @@ htmlcov/
 .coverage
 tests/tmp/
 .eggs/*
+
+# Sphinx documentation
+docs/_build/
+docs/.doctrees
+docs/.buildinfo
