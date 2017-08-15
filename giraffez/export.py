@@ -81,34 +81,16 @@ class TeradataBulkExport(Connection):
             coerce_floats=True):
         super(TeradataBulkExport, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
-
         # Attributes used with property getter/setters
         self._query = None
         self._encoding = None
         self._delimiter = None
         self._null = None
-
         self.coerce_floats = coerce_floats
-
         self.initiated = False
-
-        self.query = query
-
         #: The amount of time spent in idle (waiting for server)
         self.idle_time = 0
-        self.processor = identity
-
-    def _connect(self, host, username, password):
-        self.export = Export(host, username, password)
-        self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
-            *get_version_info()))
-        self.delimiter = DEFAULT_DELIMITER
-        self.null = DEFAULT_NULL
-
-    def close(self, exc=None):
-        log.info("Export", "Closing Teradata PT connection ...")
-        self.export.close()
-        log.info("Export", "Teradata PT request complete.")
+        self.query = query
 
     @property
     def columns(self):
@@ -155,18 +137,6 @@ class TeradataBulkExport(Connection):
         if not self.delimiter:
             self.delimiter = DEFAULT_DELIMITER
         return self.delimiter.join(self.columns.names)
-
-    def initiate(self):
-        log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
-        start_time = time.time()
-        self.export.initiate()
-        self.idle_time = time.time() - start_time
-        self.initiated = True
-        log.info("Export", "Teradata PT request accepted.")
-        self.options("delimiter", escape_string(self.delimiter or DEFAULT_DELIMITER), 2)
-        self.options("null", self.null or DEFAULT_NULL, 3)
-        log.info("Export", "Executing ...")
-        log.info(self.options)
 
     @property
     def query(self):
@@ -218,7 +188,7 @@ class TeradataBulkExport(Connection):
                 Config.lock_connection(args.conf, args.dsn, args.key)
             raise error
 
-    def archive(self, writer):
+    def to_archive(self, writer):
         """
         Writes export archive files in the Giraffez archive format.
         This takes a `giraffez.io.Writer` and writes archive chunks to
@@ -226,8 +196,8 @@ class TeradataBulkExport(Connection):
 
         .. code-block:: python
 
-            with TeradataExport("database.table_name") as export:
-                with Writer("database.table_name.tar.gz", 'wb', use_gzip=True) as out:
+            with giraffez.BulkExport("database.table_name") as export:
+                with giraffez.Writer("database.table_name.tar.gz", 'wb', use_gzip=True) as out:
                     for n in export.archive(out):
                         print("Rows: {}".format(n))
 
@@ -237,72 +207,88 @@ class TeradataBulkExport(Connection):
         """
         if 'b' not in writer.mode:
             raise GiraffeError("Archive writer must be in binary mode")
-        self.export.set_encoding(ROW_ENCODING_RAW)
         writer.write(GIRAFFE_MAGIC)
         writer.write(self.columns.serialize())
         i = 0
-        for n, chunk in enumerate(self._fetchall(), 1):
+        for n, chunk in enumerate(self._fetchall(ROW_ENCODING_RAW), 1):
             writer.write(chunk)
             yield TeradataEncoder.count(chunk)
 
-    def json(self):
-        """
-        Sets the current encoder output to json encoded strings and
-        returns a row iterator.
-
-        :rtype: iterator (yields ``str``)
-        """
-        self.processor = dict_to_json
-        self.export.set_encoding(ROW_ENCODING_DICT)
-        if self.coerce_floats:
-            self.export.set_encoding(DECIMAL_AS_FLOAT)
-        return self._fetchall()
-
-    def items(self):
+    def to_dict(self):
         """
         Sets the current encoder output to Python `dict` and returns
         a row iterator.
 
         :rtype: iterator (yields ``dict``)
         """
-        self.processor = identity
-        self.export.set_encoding(ROW_ENCODING_DICT)
-        if self.coerce_floats:
-            self.export.set_encoding(DECIMAL_AS_FLOAT)
-        return self._fetchall()
+        return self._fetchall(ROW_ENCODING_DICT)
 
-    def strings(self):
+    def to_json(self):
         """
-        Sets the current encoder output to Python `str` and returns
-        a row iterator.
+        Sets the current encoder output to json encoded strings and
+        returns a row iterator.
 
         :rtype: iterator (yields ``str``)
         """
-        self.processor = identity
-        self.export.set_encoding(ROW_ENCODING_STRING|DATETIME_AS_STRING|DECIMAL_AS_STRING)
-        return self._fetchall()
+        return self._fetchall(ROW_ENCODING_DICT, processor=dict_to_json)
 
-    def values(self):
+    def to_list(self):
         """
         Sets the current encoder output to Python `list` and returns
         a row iterator.
 
         :rtype: iterator (yields ``list``)
         """
-        self.processor = identity
-        self.export.set_encoding(ROW_ENCODING_LIST)
-        if self.coerce_floats:
-            self.export.set_encoding(DECIMAL_AS_FLOAT)
-        return self._fetchall()
+        return self._fetchall(ROW_ENCODING_LIST)
 
-    def _fetchall(self):
+    def to_str(self):
+        """
+        Sets the current encoder output to Python `str` and returns
+        a row iterator.
+
+        :rtype: iterator (yields ``str``)
+        """
+        return self._fetchall(ENCODER_SETTINGS_STRING, coerce_floats=False)
+
+    def _close(self, exc=None):
+        log.info("Export", "Closing Teradata PT connection ...")
+        self.export.close()
+        log.info("Export", "Teradata PT request complete.")
+
+    def _connect(self, host, username, password):
+        self.export = Export(host, username, password)
+        self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
+            *get_version_info()))
+        self.delimiter = DEFAULT_DELIMITER
+        self.null = DEFAULT_NULL
+
+    def _initiate(self):
+        log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
+        start_time = time.time()
+        self.export.initiate()
+        self.idle_time = time.time() - start_time
+        self.initiated = True
+        log.info("Export", "Teradata PT request accepted.")
+        self.options("delimiter", escape_string(self.delimiter or DEFAULT_DELIMITER), 2)
+        self.options("null", self.null or DEFAULT_NULL, 3)
+        log.info("Export", "Executing ...")
+        log.info(self.options)
+
+    def _fetchall(self, encoding, coerce_floats=None, processor=None):
         if self.query is None:
             raise GiraffeError("Must set target table or query.")
         if not self.initiated:
-            self.initiate()
+            self._initiate()
+        self.export.set_encoding(encoding)
+        if processor is None:
+            processor =  identity
+        if coerce_floats is None:
+            coerce_floats = self.coerce_floats
+        if coerce_floats:
+            self.export.set_encoding(DECIMAL_AS_FLOAT)
         while True:
             data = self.export.get_buffer()
             if not data:
                 break
             for row in data:
-                yield self.processor(row)
+                yield processor(row)

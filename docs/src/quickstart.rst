@@ -182,12 +182,12 @@ Additionally, the error is the actual error instance so can be raised:
 Loading data into a table
 -------------------------
 
-:class:`giraffez.Load <giraffez.load.TeradataLoad>` is a subclass of :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` and it aims to provide an easier to use abstraction for loading small amounts of data.  The most straight-forward way to use it is reading delimited data from a file:
+:class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` has the method :meth:`insert <giraffez.cmd.TeradataCmd>` that attempts to provide a simple interface for loading data when performance is not necessarily critical.  It does so by generating insert statements and submitting them in parallel execution mode.  Here is inserting data from a file:
 
 .. code-block:: python
 
-    with giraffez.Load() as load:
-        stats = load.from_file('database.table_name', 'my_data.txt')
+    with giraffez.Cmd() as Cmd:
+        stats = load.insert('database.table_name', 'my_data.txt')
 
 This requires a delimited header to be provided as the first line of the file and it returns a :class:`dict` with the number of rows inserted and the number of errors encountered:
 
@@ -196,17 +196,17 @@ This requires a delimited header to be provided as the first line of the file an
     >>> print(stats)
     {'count': 3, 'errors': 0}
 
-A more involved example can be found in :ref:`Advanced Usage <session-context-load-insert>` that loads the rows individually using :meth:`insert <giraffez.Load.insert>`.
+A more involved example can be found in :ref:`Advanced Usage <session-context-load-insert>` that loads the rows individually using :meth:`insert <giraffez.Cmd.insert>`.
 
 
 Exporting large amounts of data
 -------------------------------
 
-When exporting a large amount of data from Teradata (many millions of rows), :class:`giraffez.Export <giraffez.export.TeradataExport>` should be used.  It makes use of the bulk driver provided by the :ref:`Teradata Parallel Transporter API <teradata-libraries>` to retrieve data from Teradata effificently.  This powerful export can be setup without needing to create complex fastexport scripts:
+When exporting a large amount of data from Teradata (many millions of rows), :class:`giraffez.BulkExport <giraffez.export.TeradataBulkExport>` should be used.  It makes use of the bulk driver provided by the :ref:`Teradata Parallel Transporter API <teradata-libraries>` to retrieve data from Teradata effificently.  This powerful export can be setup without needing to create complex fastexport scripts:
 
 .. code-block:: python
 
-    with giraffez.Export('dbc.dbcinfo') as export:
+    with giraffez.BulkExport('dbc.dbcinfo') as export:
         for row in export.values():
             print(row)
 
@@ -216,29 +216,20 @@ More options are detailed over in the API referrence for :class:`giraffez.Export
 Loading large amounts of data
 -----------------------------
 
-:class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` is best utilized for loading large (> ~100k rows) datasets. It makes use of the :ref:`Teradata Parallel Transporter API <teradata-libraries>` bulk update driver which is generally faster than :class:`giraffez.Load <giraffez.load.TeradataLoad>` and has less of a performance impact on Teradata server when dealing with larger datasets.
+:class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` is best utilized for loading large (> ~100k rows) datasets. It makes use of the :ref:`Teradata Parallel Transporter API <teradata-libraries>` bulk update driver which is generally faster than using something like :meth:`insert <giraffez.cmd.TeradataCmd.insert>` (which just generates insert statements).  It also has less of a performance impact on Teradata server when dealing with larger datasets.  While :class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` uses the bulk update driver it is not meant to be a direct wrapper of the mload functionality, rather it is a more friendly abstraction but with mload performance.
 
-Just like with :class:`giraffez.Load <giraffez.load.TeradataLoad>`, fields and delimiter for the input data are inferred from the header:
+Just like with :meth:`insert <giraffez.cmd.TeradataCmd.insert>`, fields and delimiter for the input data are inferred from the header (or from a JSON stream):
 
 .. code-block:: python
    
-    with giraffez.MLoad("database.table_name") as mload:
-        exit_code = mload.from_file("input.txt")
-
-And an exit code is returned, indicating the result:
-
-.. code-block:: python
-
-    >>> print(exit_code)
-    12
-
-The exit code is returned from :ref:`Teradata Parallel Transporter API <teradata-libraries>` and can be ``0``, ``2``, ``4``, ``8``, or ``12``.  This is intrinsic to how the driver works and any exit code other than 0 indicates some kind of failure to complete and is the same code returned when running a MultiLoad job using Teradata's ``mload`` command-line tool.
+    with giraffez.BulkLoad("database.table_name") as load:
+        load.from_file("input.txt")
 
 Another important feature is loading rows individually when dealing with information that isn't being read from a file:
 
 .. code-block:: python
    
-    with giraffez.MLoad("database.table_name") as mload:
+    with giraffez.BulkLoad("database.table_name") as load:
         mload.columns = ["last_name", "first_name"]
         rows = [
             ("Hemingway", "Ernest"),
@@ -246,11 +237,14 @@ Another important feature is loading rows individually when dealing with informa
             ("Kafka", "Franz")
         ]
         for row in rows:
-            mload.load_row(row)
-        exit_code = mload.finish()
-        print("finished load with code {0}".format(exit_code))
-        if exit_code == 0:
-            mload.cleanup()
+            load.put(row)
+
+:ref:`Teradata Parallel Transporter API <teradata-libraries>` returns an exit code for every job using the bulk update driver. This exit code can be ``0``, ``2``, ``4``, ``8``, or ``12``.  This is intrinsic to how the driver works and any exit code other than 0 indicates some kind of failure to complete and is the same code returned when running a MultiLoad job using Teradata's official ``mload`` command-line tool.  To remove unnecessary boilerplate, this exit code is implicitly ``0`` when successfully and raises an exception with the exit code should the job be unsuccessful.  While we try very hard to abstract away the rough edges of the MultiLoad protocol, it is sometimes not very clear how the job errored.  In these cases passing keyword ``print_error_table`` allows for convenient access to the error table upon exit:
+.. code-block:: python
+   
+    with giraffez.BulkLoad("database.table_name", print_error_table=True) as load:
+
+This would be something you use while troubleshooting a new script but most likely remove once the script is working correctly.  It is important to note that this data is in the error table regardless of this option being set, and will remain there until the job tables are cleaned up.
 
 
 Configuring giraffez

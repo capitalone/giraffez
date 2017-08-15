@@ -37,9 +37,9 @@ class TestMLoad(object):
         ]
         load.table = table
         for row in rows:
-            load.load_row(row)
+            load.put(row)
         exit_code = load.finish()
-        load.close()
+        load._close()
 
         bulkload_connect_mock.assert_called_with('db1', 'user123', 'pass456')
 

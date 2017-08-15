@@ -415,7 +415,7 @@ class Date(datetime.datetime):
         except ValueError as error:
             return None
 
-    def to_json(self):
+    def __json__(self):
         return unicode(self.to_string())
 
     def to_string(self):
@@ -435,7 +435,7 @@ class Date(datetime.datetime):
 
 
 class Decimal(decimal.Decimal):
-    def to_json(self):
+    def __json__(self):
         return self.__str__()
 
 
@@ -515,11 +515,11 @@ class Row(object):
     def __repr__(self):
         return "Row({})".format(self.items())
 
-    def to_json(self):
-        return self.__str__()
+    def __json__(self):
+        return self.items()
 
     def __str__(self):
-        return self.items()
+        return str(self.items())
 
 
 class Time(datetime.time):
@@ -557,9 +557,12 @@ class Timestamp(Date):
 
     @classmethod
     def from_string(cls, s):
-        format = TIME_FORMATS.get(len(s.strip()))
+        s = s.strip()
+        format = TIME_FORMATS.get(len(s))
         if format is not None:
             try:
+                if len(s) > 26:
+                    s = s[:26]
                 ts = cls.strptime(str(s), format)
                 ts._original_length = len(s)
                 return ts

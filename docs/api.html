@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; giraffez 2.0.0 documentation</title>
+  <title>API Reference &mdash; giraffez 2.0.0rc1 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.0 documentation" href="index.html"/>
+    <link rel="top" title="giraffez 2.0.0rc1 documentation" href="index.html"/>
         <link rel="next" title="Frequently Asked Questions" href="FAQ.html"/>
         <link rel="prev" title="Advanced Usage" href="usage.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                2.0.0
+                2.0.0rc1
               </div>
             
           
@@ -103,7 +103,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#module-giraffez.encrypt">giraffez.encrypt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-giraffez.export">giraffez.export</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-giraffez.load">giraffez.load</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-giraffez.mload">giraffez.mload</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-giraffez.secret">giraffez.secret</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-giraffez.types">giraffez.types</a></li>
 </ul>
@@ -179,7 +178,7 @@
 <span id="giraffez-cmd"></span><h2>giraffez.cmd<a class="headerlink" href="#module-giraffez.cmd" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="giraffez.cmd.TeradataCmd">
-<em class="property">class </em><code class="descclassname">giraffez.cmd.</code><code class="descname">TeradataCmd</code><span class="sig-paren">(</span><em>host=None</em>, <em>username=None</em>, <em>password=None</em>, <em>log_level=0</em>, <em>panic=True</em>, <em>config=None</em>, <em>key_file=None</em>, <em>dsn=None</em>, <em>protect=False</em>, <em>silent=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">giraffez.cmd.</code><code class="descname">TeradataCmd</code><span class="sig-paren">(</span><em>host=None</em>, <em>username=None</em>, <em>password=None</em>, <em>log_level=0</em>, <em>config=None</em>, <em>key_file=None</em>, <em>dsn=None</em>, <em>protect=False</em>, <em>silent=False</em>, <em>panic=True</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd" title="Permalink to this definition">¶</a></dt>
 <dd><p>The class for connecting to Teradata and executing commands and 
 queries using CLIv2.</p>
 <p>Exposed under the alias <code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code>.</p>
@@ -205,6 +204,8 @@ locks the connection used in the configuration file. This can be unlocked using 
 command <code class="code docutils literal"><span class="pre">giraffez</span> <span class="pre">config</span> <span class="pre">--unlock</span> <span class="pre">&lt;connection&gt;</span></code> changing the connection password,
 or via the <a class="reference internal" href="#giraffez.config.Config.unlock_connection" title="giraffez.config.Config.unlock_connection"><code class="xref py py-meth docutils literal"><span class="pre">unlock_connection()</span></code></a> method.</li>
 <li><strong>silent</strong> (<em>string</em>) – Suppress log output. Used internally only.</li>
+<li><strong>panic</strong> (<em>bool</em>) – If <code class="code docutils literal"><span class="pre">True</span></code>, when an error is encountered it will be
+raised.</li>
 </ul>
 </td>
 </tr>
@@ -227,7 +228,7 @@ is complete:</p>
 <p>Using the <code class="docutils literal"><span class="pre">with</span></code> context ensures proper exit-handling and disconnection.</p>
 <dl class="method">
 <dt id="giraffez.cmd.TeradataCmd.execute">
-<code class="descname">execute</code><span class="sig-paren">(</span><em>command</em>, <em>coerce_floats=True</em>, <em>parse_dates=False</em>, <em>multi_statement=False</em>, <em>header=False</em>, <em>sanitize=True</em>, <em>silent=False</em>, <em>prepare_only=False</em>, <em>panic=None</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd.execute" title="Permalink to this definition">¶</a></dt>
+<code class="descname">execute</code><span class="sig-paren">(</span><em>command</em>, <em>coerce_floats=True</em>, <em>parse_dates=False</em>, <em>header=False</em>, <em>sanitize=True</em>, <em>silent=False</em>, <em>panic=None</em>, <em>multi_statement=False</em>, <em>prepare_only=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd.execute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Execute commands using CLIv2.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -239,7 +240,8 @@ is complete:</p>
 <li><strong>parse_dates</strong> (<em>bool</em>) – Parses Teradata datetime types into Python datetimes</li>
 <li><strong>multi_statement</strong> (<em>bool</em>) – Execute in multi-statement mode</li>
 <li><strong>header</strong> (<em>bool</em>) – Include row header</li>
-<li><strong>sanitize</strong> (<em>bool</em>) – Whether or not to call <code class="xref py py-func docutils literal"><span class="pre">prepare_statement()</span></code> on the command</li>
+<li><strong>sanitize</strong> (<em>bool</em>) – Whether or not to call <code class="xref py py-func docutils literal"><span class="pre">prepare_statement()</span></code>
+on the command</li>
 <li><strong>silent</strong> (<em>bool</em>) – Silence console logging (within this function only)</li>
 <li><strong>prepare_only</strong> (<em>bool</em>) – Only prepare the command (no results)</li>
 <li><strong>panic</strong> (<em>bool</em>) – If <code class="code docutils literal"><span class="pre">True</span></code>, when an error is encountered it will be
@@ -312,6 +314,55 @@ followed by a <code class="code docutils literal"><span class="pre">show</span> 
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="giraffez.cmd.TeradataCmd.insert">
+<code class="descname">insert</code><span class="sig-paren">(</span><em>table_name</em>, <em>rows</em>, <em>fields=None</em>, <em>delimiter=None</em>, <em>null='NULL'</em>, <em>parse_dates=False</em>, <em>quotechar='&quot;'</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd.insert" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a text file into the specified <code class="code docutils literal"><span class="pre">table_name</span></code> or Insert Python <code class="code docutils literal"><span class="pre">list</span></code> rows into the specified <code class="code docutils literal"><span class="pre">table_name</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>table_name</strong> (<em>str</em>) – The name of the destination table</li>
+<li><strong>rows</strong> (<em>list</em>) – A list of rows or the name of an input file. Each row
+must be a <code class="code docutils literal"><span class="pre">list</span></code> of field values.</li>
+<li><strong>fields</strong> (<em>list</em>) – The names of the target fields, in the order that
+the data will be presented (defaults to <code class="code docutils literal"><span class="pre">None</span></code> for all columns
+in the table).</li>
+<li><strong>delimiter</strong> (<em>str</em>) – The delimiter used by the input file (or <code class="code docutils literal"><span class="pre">None</span></code>
+to infer it from the header).</li>
+<li><strong>null</strong> (<em>str</em>) – The string used to indicated nulled values in the
+file (defaults to <code class="code docutils literal"><span class="pre">'NULL'</span></code>).</li>
+<li><strong>quotechar</strong> (<em>str</em>) – The character used to quote fields containing special
+characters, like the delimiter.”</li>
+<li><strong>parse_dates</strong> (<em>bool</em>) – If <code class="code docutils literal"><span class="pre">True</span></code>, attempts to coerce date fields
+into a standard format (defaults to <code class="code docutils literal"><span class="pre">False</span></code>).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first simple">
+<li><a class="reference internal" href="#giraffez.errors.GiraffeEncodeError" title="giraffez.errors.GiraffeEncodeError"><strong>giraffez.errors.GiraffeEncodeError</strong></a> – if the number of values in a row does not match
+the length of <code class="code docutils literal"><span class="pre">fields</span></code></li>
+<li><a class="reference internal" href="#giraffez.errors.GiraffeError" title="giraffez.errors.GiraffeError"><strong>giraffez.errors.GiraffeError</strong></a> – if <code class="code docutils literal"><span class="pre">panic</span></code> is set and the insert statement
+caused an error.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dictionary containing counts of applied rows and errors</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>For most insertions, this will be faster and produce less strain on
+Teradata than using <a class="reference internal" href="#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">TeradataBulkLoad</span></code></a> (<code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code>).</p>
+<p>Requires that any input file be a properly delimited text file, with a
+header that corresponds to the target fields for insertion. Valid delimiters
+include ‘|’, ‘,’, and ‘t’ (tab) or a properly encoded JSON stream.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -338,17 +389,20 @@ date/time types (instead of Python strings)</li>
 </tbody>
 </table>
 <dl class="method">
-<dt id="giraffez.cmd.Cursor.as_rows">
-<code class="descname">as_rows</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.Cursor.as_rows" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the current encoder output to <code class="xref py py-class docutils literal"><span class="pre">giraffez.Row</span></code> objects
-and returns the cursor.  This is the default value so it is not
-necessary to select this unless the encoder settings have been
-changed already.</p>
+<dt id="giraffez.cmd.Cursor.readall">
+<code class="descname">readall</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.Cursor.readall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exhausts the current connection by iterating over all rows and
+returning the total.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;select * from dbc.dbcinfo&quot;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">readall</span><span class="p">())</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="method">
-<dt id="giraffez.cmd.Cursor.items">
-<code class="descname">items</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.Cursor.items" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.cmd.Cursor.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.Cursor.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the current encoder output to Python <cite>dict</cite> and returns
 the cursor.  This makes it possible to set the output encoding
 and iterate over the results:</p>
@@ -365,15 +419,12 @@ and iterate over the results:</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="giraffez.cmd.Cursor.readall">
-<code class="descname">readall</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.Cursor.readall" title="Permalink to this definition">¶</a></dt>
-<dd><p>Exhausts the current connection by iterating over all rows and 
-returning the total.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;select * from dbc.dbcinfo&quot;</span><span class="p">)</span>
-    <span class="k">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">readall</span><span class="p">())</span>
-</pre></div>
-</div>
+<dt id="giraffez.cmd.Cursor.to_list">
+<code class="descname">to_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.Cursor.to_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the current encoder output to <code class="xref py py-class docutils literal"><span class="pre">giraffez.Row</span></code> objects
+and returns the cursor.  This is the default value so it is not
+necessary to select this unless the encoder settings have been
+changed already.</p>
 </dd></dl>
 
 </dd></dl>
@@ -650,7 +701,6 @@ that may not be in the appropriate Python type to be encoded.</p>
 <p>Exposed under the alias <code class="xref py py-class docutils literal"><span class="pre">giraffez.Encoder</span></code>.</p>
 <p>:param list or <code class="xref py py-class docutils literal"><span class="pre">giraffez.Columns</span></code> columns: Columns used for encoding.
 :param int encoding: Constant value representing the settings used by underlying C encoder.</p>
-<p>TODO: Example???</p>
 </dd></dl>
 
 </div>
@@ -734,11 +784,11 @@ permissions are read and modified.</p>
 <div class="section" id="module-giraffez.export">
 <span id="giraffez-export"></span><h2>giraffez.export<a class="headerlink" href="#module-giraffez.export" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="giraffez.export.TeradataExport">
-<em class="property">class </em><code class="descclassname">giraffez.export.</code><code class="descname">TeradataExport</code><span class="sig-paren">(</span><em>query=None</em>, <em>host=None</em>, <em>username=None</em>, <em>password=None</em>, <em>log_level=0</em>, <em>config=None</em>, <em>key_file=None</em>, <em>dsn=None</em>, <em>protect=False</em>, <em>coerce_floats=True</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataExport" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.export.TeradataBulkExport">
+<em class="property">class </em><code class="descclassname">giraffez.export.</code><code class="descname">TeradataBulkExport</code><span class="sig-paren">(</span><em>query=None</em>, <em>host=None</em>, <em>username=None</em>, <em>password=None</em>, <em>log_level=0</em>, <em>config=None</em>, <em>key_file=None</em>, <em>dsn=None</em>, <em>protect=False</em>, <em>coerce_floats=True</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataBulkExport" title="Permalink to this definition">¶</a></dt>
 <dd><p>The class for using the Teradata Parallel Transport API to quickly export
 large amounts of data.</p>
-<p>Exposed under the alias <code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code>.</p>
+<p>Exposed under the alias <code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -781,33 +831,9 @@ is complete:</p>
         <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 </pre></div>
 </div>
-<dl class="method">
-<dt id="giraffez.export.TeradataExport.archive">
-<code class="descname">archive</code><span class="sig-paren">(</span><em>writer</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataExport.archive" title="Permalink to this definition">¶</a></dt>
-<dd><p>Writes export archive files in the Giraffez archive format.
-This takes a <cite>giraffez.io.Writer</cite> and writes archive chunks to
-file until all rows for a given statement have been exhausted.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">TeradataExport</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
-    <span class="k">with</span> <span class="n">Writer</span><span class="p">(</span><span class="s2">&quot;database.table_name.tar.gz&quot;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">,</span> <span class="n">use_gzip</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">export</span><span class="o">.</span><span class="n">archive</span><span class="p">(</span><span class="n">out</span><span class="p">):</span>
-            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Rows: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
-</pre></div>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>writer</strong> (<em>giraffez.io.Writer</em>) – A writer handling the archive output</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">iterator (yields <code class="docutils literal"><span class="pre">int</span></code>)</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="attribute">
-<dt id="giraffez.export.TeradataExport.columns">
-<code class="descname">columns</code><a class="headerlink" href="#giraffez.export.TeradataExport.columns" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.export.TeradataBulkExport.columns">
+<code class="descname">columns</code><a class="headerlink" href="#giraffez.export.TeradataBulkExport.columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieve columns if necessary, and return them.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -820,8 +846,8 @@ file until all rows for a given statement have been exhausted.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="giraffez.export.TeradataExport.header">
-<code class="descname">header</code><a class="headerlink" href="#giraffez.export.TeradataExport.header" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.export.TeradataBulkExport.header">
+<code class="descname">header</code><a class="headerlink" href="#giraffez.export.TeradataBulkExport.header" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the header for the resulting data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -842,44 +868,14 @@ has not been specified</td>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="giraffez.export.TeradataExport.idle_time">
-<code class="descname">idle_time</code><em class="property"> = None</em><a class="headerlink" href="#giraffez.export.TeradataExport.idle_time" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.export.TeradataBulkExport.idle_time">
+<code class="descname">idle_time</code><em class="property"> = None</em><a class="headerlink" href="#giraffez.export.TeradataBulkExport.idle_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>The amount of time spent in idle (waiting for server)</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="giraffez.export.TeradataExport.items">
-<code class="descname">items</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataExport.items" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets the current encoder output to Python <cite>dict</cite> and returns
-a row iterator.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">iterator (yields <code class="docutils literal"><span class="pre">dict</span></code>)</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="giraffez.export.TeradataExport.json">
-<code class="descname">json</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataExport.json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets the current encoder output to json encoded strings and
-returns a row iterator.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">iterator (yields <code class="docutils literal"><span class="pre">str</span></code>)</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="attribute">
-<dt id="giraffez.export.TeradataExport.query">
-<code class="descname">query</code><a class="headerlink" href="#giraffez.export.TeradataExport.query" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.export.TeradataBulkExport.query">
+<code class="descname">query</code><a class="headerlink" href="#giraffez.export.TeradataBulkExport.query" title="Permalink to this definition">¶</a></dt>
 <dd><table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -893,10 +889,49 @@ returns a row iterator.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="giraffez.export.TeradataExport.strings">
-<code class="descname">strings</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataExport.strings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets the current encoder output to Python <cite>str</cite> and returns
+<dt id="giraffez.export.TeradataBulkExport.to_archive">
+<code class="descname">to_archive</code><span class="sig-paren">(</span><em>writer</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataBulkExport.to_archive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes export archive files in the Giraffez archive format.
+This takes a <cite>giraffez.io.Writer</cite> and writes archive chunks to
+file until all rows for a given statement have been exhausted.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkExport</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Writer</span><span class="p">(</span><span class="s2">&quot;database.table_name.tar.gz&quot;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">,</span> <span class="n">use_gzip</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">export</span><span class="o">.</span><span class="n">archive</span><span class="p">(</span><span class="n">out</span><span class="p">):</span>
+            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Rows: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>writer</strong> (<em>giraffez.io.Writer</em>) – A writer handling the archive output</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">iterator (yields <code class="docutils literal"><span class="pre">int</span></code>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="giraffez.export.TeradataBulkExport.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataBulkExport.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the current encoder output to Python <cite>dict</cite> and returns
 a row iterator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">iterator (yields <code class="docutils literal"><span class="pre">dict</span></code>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="giraffez.export.TeradataBulkExport.to_json">
+<code class="descname">to_json</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataBulkExport.to_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the current encoder output to json encoded strings and
+returns a row iterator.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -908,8 +943,8 @@ a row iterator.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="giraffez.export.TeradataExport.values">
-<code class="descname">values</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataExport.values" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.export.TeradataBulkExport.to_list">
+<code class="descname">to_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataBulkExport.to_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the current encoder output to Python <cite>list</cite> and returns
 a row iterator.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -922,114 +957,32 @@ a row iterator.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="giraffez.export.TeradataBulkExport.to_str">
+<code class="descname">to_str</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.export.TeradataBulkExport.to_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the current encoder output to Python <cite>str</cite> and returns
+a row iterator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">iterator (yields <code class="docutils literal"><span class="pre">str</span></code>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
 <div class="section" id="module-giraffez.load">
 <span id="giraffez-load"></span><h2>giraffez.load<a class="headerlink" href="#module-giraffez.load" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="giraffez.load.TeradataLoad">
-<em class="property">class </em><code class="descclassname">giraffez.load.</code><code class="descname">TeradataLoad</code><span class="sig-paren">(</span><em>host=None</em>, <em>username=None</em>, <em>password=None</em>, <em>log_level=0</em>, <em>panic=True</em>, <em>config=None</em>, <em>key_file=None</em>, <em>dsn=None</em>, <em>protect=False</em>, <em>silent=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataLoad" title="Permalink to this definition">¶</a></dt>
-<dd><p>The class for inserting into Teradata tables using CLIv2.</p>
-<p>Exposed under the alias <code class="xref py py-class docutils literal"><span class="pre">giraffez.Load</span></code>.</p>
-<p>This class should be used for inserting into Teradata tables in all but
-very large (&gt; ~100k rows) cases.</p>
-<p>See <a class="reference internal" href="#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">TeradataCmd</span></code></a> for constructor arguments.</p>
-<p>Meant to be used, where possible, with python’s <code class="code docutils literal"><span class="pre">with</span></code> context handler
-to guarantee that connections will be closed gracefully when operation
-is complete:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
-    <span class="n">load</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;database.my_table&#39;</span><span class="p">,</span> <span class="s1">&#39;myfile.txt&#39;</span><span class="p">)</span>
-    <span class="c1"># continue executing statements and processing results</span>
-</pre></div>
-</div>
-<p>Use in this manner guarantees proper exit-handling and disconnection
-when operation is completed (or interrupted).</p>
-<dl class="method">
-<dt id="giraffez.load.TeradataLoad.from_file">
-<code class="descname">from_file</code><span class="sig-paren">(</span><em>table_name</em>, <em>input_file_name</em>, <em>delimiter=None</em>, <em>null='NULL'</em>, <em>parse_dates=False</em>, <em>quotechar='&quot;'</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataLoad.from_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load a text file into the specified <code class="code docutils literal"><span class="pre">table_name</span></code></p>
-<p>For most insertions, this will be faster and produce less strain on
-Teradata than using <code class="xref py py-class docutils literal"><span class="pre">TeradataMLoad</span></code> (<code class="xref py py-class docutils literal"><span class="pre">giraffez.MLoad</span></code>).</p>
-<p>Requires that the input file be a properly delimited text file, with a
-header that corresponds to the target fields for insertion. Valid delimiters
-include ‘|’, ‘,’, and ‘t’ (tab).</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>table_name</strong> (<em>str</em>) – The name of the destination table</li>
-<li><strong>input_file_name</strong> (<em>str</em>) – The name of the file to read rows from</li>
-<li><strong>delimiter</strong> (<em>str</em>) – The delimiter used by the input file (or <code class="code docutils literal"><span class="pre">None</span></code>
-to infer it from the header).</li>
-<li><strong>quotechar</strong> (<em>str</em>) – The character used to quote fields containing special characters,
-like the delimiter.”</li>
-<li><strong>null</strong> (<em>str</em>) – The string used to indicated nulled values in the
-file (defaults to <code class="code docutils literal"><span class="pre">'NULL'</span></code>).</li>
-<li><strong>date_conversion</strong> (<em>bool</em>) – If <code class="code docutils literal"><span class="pre">True</span></code>, attempts to coerce date fields
-into a standard format (defaults to <code class="code docutils literal"><span class="pre">False</span></code>).</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dictionary containing counts of applied rows and errors</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="giraffez.load.TeradataLoad.insert">
-<code class="descname">insert</code><span class="sig-paren">(</span><em>table_name</em>, <em>rows</em>, <em>fields=None</em>, <em>parse_dates=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataLoad.insert" title="Permalink to this definition">¶</a></dt>
-<dd><p>Insert Python <code class="code docutils literal"><span class="pre">list</span></code> rows into the specified <code class="code docutils literal"><span class="pre">table_name</span></code></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>table_name</strong> (<em>str</em>) – The name of the destination table</li>
-<li><strong>rows</strong> (<em>list</em>) – A list of rows. Each row must be a <code class="code docutils literal"><span class="pre">list</span></code> of
-field values.</li>
-<li><strong>fields</strong> (<em>list</em>) – The names of the target fields, in the order that
-the data will be presented (defaults to <code class="code docutils literal"><span class="pre">None</span></code> for all columns in the table).</li>
-<li><strong>date_conversion</strong> (<em>bool</em>) – If <code class="code docutils literal"><span class="pre">True</span></code>, attempts to coerce date fields
-into a standard format (defaults to <code class="code docutils literal"><span class="pre">True</span></code>).</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dictionary containing counts of applied rows and errors</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">dict</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
-<li><a class="reference internal" href="#giraffez.errors.GiraffeEncodeError" title="giraffez.errors.GiraffeEncodeError"><strong>giraffez.errors.GiraffeEncodeError</strong></a> – if the number of values in a row does not match
-the length of <code class="code docutils literal"><span class="pre">fields</span></code></li>
-<li><a class="reference internal" href="#giraffez.errors.GiraffeError" title="giraffez.errors.GiraffeError"><strong>giraffez.errors.GiraffeError</strong></a> – if <code class="code docutils literal"><span class="pre">panic</span></code> is set and the insert statement
-caused an error.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-giraffez.mload">
-<span id="giraffez-mload"></span><h2>giraffez.mload<a class="headerlink" href="#module-giraffez.mload" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="giraffez.mload.TeradataMLoad">
-<em class="property">class </em><code class="descclassname">giraffez.mload.</code><code class="descname">TeradataMLoad</code><span class="sig-paren">(</span><em>table=None</em>, <em>host=None</em>, <em>username=None</em>, <em>password=None</em>, <em>log_level=0</em>, <em>config=None</em>, <em>key_file=None</em>, <em>dsn=None</em>, <em>protect=False</em>, <em>coerce_floats=False</em>, <em>cleanup=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.mload.TeradataMLoad" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad">
+<em class="property">class </em><code class="descclassname">giraffez.load.</code><code class="descname">TeradataBulkLoad</code><span class="sig-paren">(</span><em>table=None</em>, <em>host=None</em>, <em>username=None</em>, <em>password=None</em>, <em>log_level=0</em>, <em>config=None</em>, <em>key_file=None</em>, <em>dsn=None</em>, <em>protect=False</em>, <em>coerce_floats=False</em>, <em>cleanup=False</em>, <em>print_error_table=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataBulkLoad" title="Permalink to this definition">¶</a></dt>
 <dd><p>The class for using the TPT API’s UPDATE (MLoad) driver to insert a
 large (&gt; ~100k rows) amount of data into an existing Teradata table.</p>
-<p>Exposed under the alias <code class="xref py py-class docutils literal"><span class="pre">giraffez.MLoad</span></code>.</p>
+<p>Exposed under the alias <code class="xref py py-class docutils literal"><span class="pre">giraffez.Load</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1054,6 +1007,8 @@ or via the <a class="reference internal" href="#giraffez.config.Config.unlock_co
 <li><strong>coerce_floats</strong> (<em>bool</em>) – Coerce Teradata decimal types into Python floats</li>
 <li><strong>cleanup</strong> (<em>bool</em>) – MLoad will attempt to cleanup all work tables
 when context exits.</li>
+<li><strong>print_error_table</strong> (<em>bool</em>) – Prints a user-friendly version of the mload
+error table to stderr.</li>
 </ul>
 </td>
 </tr>
@@ -1072,18 +1027,18 @@ executed on the table, and the load job will be re-attempted.</p>
 to guarantee that connections will be closed gracefully when operation
 is complete.</p>
 <dl class="method">
-<dt id="giraffez.mload.TeradataMLoad.checkpoint">
-<code class="descname">checkpoint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.mload.TeradataMLoad.checkpoint" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.checkpoint">
+<code class="descname">checkpoint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.checkpoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Execute a checkpoint while loading rows. Called automatically
 when loading from a file. Updates the exit code of the driver to
 reflect errors.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="giraffez.mload.TeradataMLoad.cleanup">
-<code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.mload.TeradataMLoad.cleanup" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.cleanup">
+<code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.cleanup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Drops any existing work tables, as returned by
-<a class="reference internal" href="#giraffez.mload.TeradataMLoad.tables" title="giraffez.mload.TeradataMLoad.tables"><code class="xref py py-meth docutils literal"><span class="pre">tables()</span></code></a>.</p>
+<code class="xref py py-meth docutils literal"><span class="pre">tables()</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1095,8 +1050,8 @@ reflect errors.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="giraffez.mload.TeradataMLoad.columns">
-<code class="descname">columns</code><a class="headerlink" href="#giraffez.mload.TeradataMLoad.columns" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.columns">
+<code class="descname">columns</code><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>The list of columns in use.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1124,8 +1079,8 @@ has not been set.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="giraffez.mload.TeradataMLoad.finish">
-<code class="descname">finish</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.mload.TeradataMLoad.finish" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.finish">
+<code class="descname">finish</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.finish" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finishes the load job. <strong>Called automatically when loading from a
 file, but must be called at the end of the job after loading rows
 individually.</strong></p>
@@ -1140,8 +1095,8 @@ individually.</strong></p>
 </dd></dl>
 
 <dl class="method">
-<dt id="giraffez.mload.TeradataMLoad.from_file">
-<code class="descname">from_file</code><span class="sig-paren">(</span><em>filename</em>, <em>table=None</em>, <em>null=None</em>, <em>delimiter=None</em>, <em>panic=True</em>, <em>quotechar='&quot;'</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.mload.TeradataMLoad.from_file" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.from_file">
+<code class="descname">from_file</code><span class="sig-paren">(</span><em>filename</em>, <em>table=None</em>, <em>null=None</em>, <em>delimiter=None</em>, <em>panic=True</em>, <em>quotechar='&quot;'</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.from_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load from a file into the target table, handling each step of the
 load process.</p>
 <p>Can load from text files, and properly formatted giraffez archive
@@ -1175,7 +1130,7 @@ is incremented.</li>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The output of the call to
-<a class="reference internal" href="#giraffez.mload.TeradataMLoad.finish" title="giraffez.mload.TeradataMLoad.finish"><code class="xref py py-meth docutils literal"><span class="pre">finish()</span></code></a></p>
+<code class="xref py py-meth docutils literal"><span class="pre">finish()</span></code></p>
 </td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
@@ -1191,14 +1146,20 @@ are format errors in the row values.</li>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="giraffez.mload.TeradataMLoad.idle_time">
-<code class="descname">idle_time</code><em class="property"> = None</em><a class="headerlink" href="#giraffez.mload.TeradataMLoad.idle_time" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.idle_time">
+<code class="descname">idle_time</code><em class="property"> = None</em><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.idle_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>The amount of time spent in idle (waiting for server)</p>
 </dd></dl>
 
+<dl class="attribute">
+<dt id="giraffez.load.TeradataBulkLoad.print_error_table">
+<code class="descname">print_error_table</code><em class="property"> = None</em><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.print_error_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the error table when there is an issue, good for troubleshooting jobs</p>
+</dd></dl>
+
 <dl class="method">
-<dt id="giraffez.mload.TeradataMLoad.load_row">
-<code class="descname">load_row</code><span class="sig-paren">(</span><em>items</em>, <em>panic=True</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.mload.TeradataMLoad.load_row" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.put">
+<code class="descname">put</code><span class="sig-paren">(</span><em>items</em>, <em>panic=True</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.put" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load a single row into the target table.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1227,8 +1188,8 @@ connecting to Teradata.</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="giraffez.mload.TeradataMLoad.release">
-<code class="descname">release</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.mload.TeradataMLoad.release" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.release">
+<code class="descname">release</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.release" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attempt release of target mload table.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1236,15 +1197,15 @@ connecting to Teradata.</li>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#giraffez.errors.GiraffeError" title="giraffez.errors.GiraffeError"><strong>giraffez.errors.GiraffeError</strong></a> – if table was not set by
 the constructor, the <code class="code docutils literal"><span class="pre">TeradataMLoad.table</span></code>, or
-<a class="reference internal" href="#giraffez.mload.TeradataMLoad.from_file" title="giraffez.mload.TeradataMLoad.from_file"><code class="xref py py-meth docutils literal"><span class="pre">from_file()</span></code></a>.</td>
+<code class="xref py py-meth docutils literal"><span class="pre">from_file()</span></code>.</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="giraffez.mload.TeradataMLoad.table">
-<code class="descname">table</code><a class="headerlink" href="#giraffez.mload.TeradataMLoad.table" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.table">
+<code class="descname">table</code><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.table" title="Permalink to this definition">¶</a></dt>
 <dd><p>The name of the target table.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1256,8 +1217,8 @@ has not been set.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Setter:</th><td class="field-body"><p class="first">Set the name of the target table, if the table name
 was not given to the constructor of the
-<a class="reference internal" href="#giraffez.mload.TeradataMLoad" title="giraffez.mload.TeradataMLoad"><code class="xref py py-class docutils literal"><span class="pre">TeradataMLoad</span></code></a> instance or
-<a class="reference internal" href="#giraffez.mload.TeradataMLoad.from_file" title="giraffez.mload.TeradataMLoad.from_file"><code class="xref py py-meth docutils literal"><span class="pre">from_file()</span></code></a>. The value given
+<code class="xref py py-class docutils literal"><span class="pre">TeradataMLoad</span></code> instance or
+<code class="xref py py-meth docutils literal"><span class="pre">from_file()</span></code>. The value given
 must include all qualifiers such as database name.</p>
 <p>Raises <a class="reference internal" href="#giraffez.errors.GiraffeError" title="giraffez.errors.GiraffeError"><code class="xref py py-class docutils literal"><span class="pre">GiraffeError</span></code></a> if the MLoad connection has
 already been initiated, or the <a class="reference internal" href="#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">TeradataCmd</span></code></a> connection cannot
@@ -1274,8 +1235,8 @@ retrieved from Teradata</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="giraffez.mload.TeradataMLoad.tables">
-<code class="descname">tables</code><a class="headerlink" href="#giraffez.mload.TeradataMLoad.tables" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.tables">
+<code class="descname">tables</code><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.tables" title="Permalink to this definition">¶</a></dt>
 <dd><p>The names of the work tables used for loading.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1286,15 +1247,15 @@ with the added suffixes, “_wt”, “_log”, “_e1”, and “_e2”</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#giraffez.errors.GiraffeError" title="giraffez.errors.GiraffeError"><strong>giraffez.errors.GiraffeError</strong></a> – if table was not set by
 the constructor, the <code class="code docutils literal"><span class="pre">TeradataMLoad.table</span></code>, or
-<a class="reference internal" href="#giraffez.mload.TeradataMLoad.from_file" title="giraffez.mload.TeradataMLoad.from_file"><code class="xref py py-meth docutils literal"><span class="pre">from_file()</span></code></a>.</td>
+<code class="xref py py-meth docutils literal"><span class="pre">from_file()</span></code>.</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="giraffez.mload.TeradataMLoad.total_count">
-<code class="descname">total_count</code><a class="headerlink" href="#giraffez.mload.TeradataMLoad.total_count" title="Permalink to this definition">¶</a></dt>
+<dt id="giraffez.load.TeradataBulkLoad.total_count">
+<code class="descname">total_count</code><a class="headerlink" href="#giraffez.load.TeradataBulkLoad.total_count" title="Permalink to this definition">¶</a></dt>
 <dd><p>The number of rows applied, plus the number of rows in error.</p>
 </dd></dl>
 
@@ -1646,7 +1607,7 @@ functions which expect dictionaries.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.0',
+            VERSION:'2.0.0rc1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

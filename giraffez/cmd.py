@@ -26,7 +26,7 @@ from ._teradata import Cmd, RequestEnded, StatementEnded, StatementInfoEnded, Te
 from .connection import Connection
 from .encoders import check_input, null_handler, python_to_sql
 from .fmt import format_indent, truncate
-from .io import CSVReader, JSONReader, Reader
+from .io import CSVReader, JSONReader, Reader, isfile
 from .logging import log
 from .sql import parse_statement, prepare_statement, Statement
 from .types import Columns, Row
@@ -156,7 +156,7 @@ class Cursor(object):
             n += 1
         return n
 
-    def items(self):
+    def to_dict(self):
         """
         Sets the current encoder output to Python `dict` and returns
         the cursor.  This makes it possible to set the output encoding
@@ -179,7 +179,7 @@ class Cursor(object):
         self.processor = lambda x, y: y
         return self
 
-    def values(self):
+    def to_list(self):
         """
         Set the current encoder output to :class:`giraffez.Row` objects
         and returns the cursor.  This is the default value so it is not
@@ -255,16 +255,8 @@ class TeradataCmd(Connection):
             key_file=None, dsn=None, protect=False, silent=False, panic=True):
         super(TeradataCmd, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect, silent=silent)
-
         self.panic = panic
         self.silent = silent
-
-    def _connect(self, host, username, password):
-        self.cmd = Cmd(host, username, password)
-
-    def close(self, exc=None):
-        if getattr(self, 'cmd', None):
-            self.cmd.close()
 
     def execute(self, command, coerce_floats=True, parse_dates=False, header=False, sanitize=True,
             silent=False, panic=None,  multi_statement=False, prepare_only=False):
@@ -291,7 +283,7 @@ class TeradataCmd(Connection):
             panic = self.panic
         self.options("panic", panic)
         self.options("multi-statement mode", multi_statement, 3)
-        if ' ' not in command and file_exists(command):
+        if isfile(command):
             self.options("file", command, 2)
             with open(command, 'r') as f:
                 command = f.read()
@@ -300,7 +292,7 @@ class TeradataCmd(Connection):
                 self.options("query", command, 2)
             else:
                 self.options("query", truncate(command), 2)
-        if not silent or not self.silent:
+        if not silent and not self.silent:
             log.info("Command", "Executing ...")
             log.info(self.options)
         if sanitize:
@@ -346,32 +338,41 @@ class TeradataCmd(Connection):
         """
         return self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True).columns
 
-    def from_file(self, table_name, input_file_name, delimiter=None, null=DEFAULT_NULL,
-            parse_dates=False, quotechar='"'):
+    def insert(self, table_name, rows, fields=None, delimiter=None, null=DEFAULT_NULL, parse_dates=False, quotechar='"'):
         """
-        Load a text file into the specified :code:`table_name`
-
-        For most insertions, this will be faster and produce less strain on
-        Teradata than using :class:`~giraffez.load.TeradataMLoad` (:class:`giraffez.MLoad`).
-
-        Requires that the input file be a properly delimited text file, with a
-        header that corresponds to the target fields for insertion. Valid delimiters
-        include '|', ',', and '\\t' (tab).
+        Load a text file into the specified :code:`table_name` or Insert Python :code:`list` rows into the specified :code:`table_name`
 
         :param str table_name: The name of the destination table
-        :param str input_file_name: The name of the file to read rows from
+        :param list rows: A list of rows or the name of an input file. Each row
+            must be a :code:`list` of field values.
+        :param list fields: The names of the target fields, in the order that
+            the data will be presented (defaults to :code:`None` for all columns
+            in the table).
         :param str delimiter: The delimiter used by the input file (or :code:`None`
             to infer it from the header).
-        :param str quotechar: The character used to quote fields containing special characters,
-            like the delimiter."
         :param str null: The string used to indicated nulled values in the
             file (defaults to :code:`'NULL'`).
-        :param bool date_conversion: If :code:`True`, attempts to coerce date fields
+        :param str quotechar: The character used to quote fields containing special
+            characters, like the delimiter."
+        :param bool parse_dates: If :code:`True`, attempts to coerce date fields
             into a standard format (defaults to :code:`False`).
+        :raises `giraffez.errors.GiraffeEncodeError`: if the number of values in a row does not match
+            the length of :code:`fields`
+        :raises `giraffez.errors.GiraffeError`: if :code:`panic` is set and the insert statement
+            caused an error.
         :return: A dictionary containing counts of applied rows and errors
         :rtype: dict
+
+        For most insertions, this will be faster and produce less strain on
+        Teradata than using :class:`~giraffez.load.TeradataBulkLoad` (:class:`giraffez.BulkLoad`).
+
+        Requires that any input file be a properly delimited text file, with a
+        header that corresponds to the target fields for insertion. Valid delimiters
+        include '|', ',', and '\\t' (tab) or a properly encoded JSON stream.
         """
-        with Reader(input_file_name, delimiter=delimiter, quotechar=quotechar) as f:
+        if not isfile(rows):
+            return self._insert(table_name, rows, fields, parse_dates)
+        with Reader(rows, delimiter=delimiter, quotechar=quotechar) as f:
             preprocessor = null_handler(null)
             rows = (preprocessor(l) for l in f)
             if isinstance(f, CSVReader):
@@ -379,32 +380,22 @@ class TeradataCmd(Connection):
                 self.options("quote char", f.reader.dialect.quotechar, 2)
             elif isinstance(f, JSONReader):
                 self.options("encoding", "json", 1)
-            return self.insert(table_name, rows, fields=f.header, parse_dates=parse_dates)
+            return self._insert(table_name, rows, f.header, parse_dates)
 
-    def insert(self, table_name, rows, fields=None, parse_dates=False):
-        """
-        Insert Python :code:`list` rows into the specified :code:`table_name`
+    def _close(self, exc=None):
+        if getattr(self, 'cmd', None):
+            self.cmd.close()
 
-        :param str table_name: The name of the destination table
-        :param list rows: A list of rows. Each row must be a :code:`list` of
-            field values.
-        :param list fields: The names of the target fields, in the order that
-            the data will be presented (defaults to :code:`None` for all columns in the table).
-        :param bool date_conversion: If :code:`True`, attempts to coerce date fields
-            into a standard format (defaults to :code:`True`).
-        :return: A dictionary containing counts of applied rows and errors
-        :rtype: dict
-        :raises `giraffez.errors.GiraffeEncodeError`: if the number of values in a row does not match
-            the length of :code:`fields`
-        :raises `giraffez.errors.GiraffeError`: if :code:`panic` is set and the insert statement
-            caused an error.
-        """
+    def _connect(self, host, username, password):
+        self.cmd = Cmd(host, username, password)
+
+    def _insert(self, table_name, rows, fields=None, parse_dates=False):
         global _columns_cache
         with _columns_cache_lock:
             if table_name in _columns_cache:
                 columns = _columns_cache[table_name]
             else:
-                columns = self.fetch_columns(table_name, silent=False)
+                columns = self.fetch_columns(table_name, silent=True)
                 if not columns:
                     raise GiraffeError("Fetch columns failed '{}'".format(table_name))
                 _columns_cache[table_name] = columns
@@ -425,7 +416,7 @@ class TeradataCmd(Connection):
                 except GiraffeError as error:
                     if self.panic:
                         raise error
-                    log.info("Load", error)
+                    log.info("Command", error)
                     stats['errors'] += 1
                     continue
                 if len(current_block + stmt) > CLI_BLOCK_SIZE:
@@ -435,7 +426,7 @@ class TeradataCmd(Connection):
                 stats['count'] += 1
             if current_block:
                 yield current_block
-        log.info("Load", "Executing ...")
+        log.info("Command", "Executing ...")
         for i, block in enumerate(_fetch()):
             self.execute(block, sanitize=True, multi_statement=True, silent=True)
             if i == 0:

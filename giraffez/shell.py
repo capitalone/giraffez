@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# XXX: still necessary? i think it is because of the std lib 'cmd'
 from __future__ import absolute_import
 
 import cmd as _cmd
@@ -88,6 +87,7 @@ def spinner(f):
 
 def save_history():
     import os
+    # TODO(chris): doesn't work on windows?
     import readline
     path = os.path.expanduser("~/.giraffehistory")
     readline.write_history_file(path)

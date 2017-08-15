@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Commands &mdash; giraffez 2.0.0 documentation</title>
+  <title>Commands &mdash; giraffez 2.0.0rc1 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.0 documentation" href="index.html"/>
+    <link rel="top" title="giraffez 2.0.0rc1 documentation" href="index.html"/>
         <link rel="next" title="Quickstart" href="quickstart.html"/>
         <link rel="prev" title="Introduction" href="intro.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                2.0.0
+                2.0.0rc1
               </div>
             
           
@@ -97,8 +97,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#cmd">cmd</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#export">export</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#fmt">fmt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#insert">insert</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#load">load</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#mload">mload</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#run">run</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#shell">shell</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#secret">secret</a></li>
@@ -284,29 +284,29 @@
 </pre></div>
 </div>
 </div>
+<div class="section" id="insert">
+<span id="insert-command"></span><h2>insert<a class="headerlink" href="#insert" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal"><span class="pre">insert</span></code> module provides an interface to insert data into an existing Teradata table using the Teradata CLIv2 driver.</p>
+<p>Initiating a load into an existing table can be done like so:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">giraffez</span> <span class="n">insert</span> <span class="n">source_file</span><span class="o">.</span><span class="n">txt</span> <span class="n">database</span><span class="o">.</span><span class="n">table_name</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal"><span class="pre">insert</span></code> command necessitates that a header is present in the source file. The delimiter for the rows of the file is inferred from the content of the header, as well as the names and order of the table’s target columns.  By default, delimiters within “double quotes” are ignored; use <code class="docutils literal"><span class="pre">--quote-char</span></code> to change the default quote character.</p>
+</div>
 <div class="section" id="load">
 <span id="load-command"></span><h2>load<a class="headerlink" href="#load" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal"><span class="pre">load</span></code> module provides an interface to insert data into an existing Teradata table using the Teradata CLIv2 driver.</p>
+<p>The <code class="docutils literal"><span class="pre">load</span></code> module provides an interface to insert data into an existing Teradata table using the Teradata PT API’s Update driver (aka mload). It is designed to be as user-friendly as the export module by handling many of the “nuances” of mload. Much like the export module, you are not required to make a script file.</p>
+<p>Another important difference between giraffez and mload is that you do not need to define the input or destination schema for the target table. giraffez infers the target columns from the header of the source file you give it.</p>
 <p>Initiating a load into an existing table can be done like so:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">giraffez</span> <span class="n">load</span> <span class="n">source_file</span><span class="o">.</span><span class="n">txt</span> <span class="n">database</span><span class="o">.</span><span class="n">table_name</span>
 </pre></div>
 </div>
-<p>The <code class="docutils literal"><span class="pre">load</span></code> command necessitates that a header is present in the source file. The delimiter for the rows of the file is inferred from the content of the header, as well as the names and order of the table’s target columns.  By default, delimiters within “double quotes” are ignored; use <code class="docutils literal"><span class="pre">--quote-char</span></code> to change the default quote character.</p>
-</div>
-<div class="section" id="mload">
-<span id="mload-command"></span><h2>mload<a class="headerlink" href="#mload" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal"><span class="pre">mload</span></code> module provides an interface to insert data into an existing Teradata table using the Teradata PT API’s Update driver (aka mload). It is designed to be as user-friendly as the export module by handling many of the “nuances” of mload. Much like the export module, you are not required to make a script file.</p>
-<p>Another important difference between giraffez and mload is that you do not need to define the input or destination schema for the target table. giraffez infers the target columns from the header of the source file you give it.</p>
-<p>Initiating a load into an existing table can be done like so:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">giraffez</span> <span class="n">mload</span> <span class="n">source_file</span><span class="o">.</span><span class="n">txt</span> <span class="n">database</span><span class="o">.</span><span class="n">table_name</span>
-</pre></div>
-</div>
-<p>As with <code class="docutils literal"><span class="pre">load</span></code>, the <code class="docutils literal"><span class="pre">mload</span></code> command uses the data file’s header to determine the columns used in the destination table.  By default, delimiters within “double quotes” are ignored; use <code class="docutils literal"><span class="pre">--quote-char</span></code> to change the default quote character.</p>
+<p>As with <code class="docutils literal"><span class="pre">insert</span></code>, the <code class="docutils literal"><span class="pre">load</span></code> command uses the data file’s header to determine the columns used in the destination table.  By default, delimiters within “double quotes” are ignored; use <code class="docutils literal"><span class="pre">--quote-char</span></code> to change the default quote character.</p>
 <p>During the process of a load, you may be prompted to drop existing work tables for the target table. giraffez will handle the management of these auxiliary tables for you, but by default you will be prompted for a decision before they are dropped. To automatically answer “yes” for these questions (and drop the auxilliary tables should they already exist), specify the <code class="docutils literal"><span class="pre">-y</span></code> (or <code class="docutils literal"><span class="pre">--drop-all</span></code>) flag with the command:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">giraffez</span> <span class="n">load</span> <span class="n">source_file</span><span class="o">.</span><span class="n">txt</span> <span class="n">database</span><span class="o">.</span><span class="n">table_name</span> <span class="o">-</span><span class="n">y</span>
 </pre></div>
 </div>
-<p>The <code class="docutils literal"><span class="pre">mload</span></code> command is also used to <a class="reference internal" href="usage.html#archiving"><span class="std std-ref">reload archived data</span></a>.</p>
+<p>The <code class="docutils literal"><span class="pre">load</span></code> command is also used to <a class="reference internal" href="usage.html#archiving"><span class="std std-ref">reload archived data</span></a>.</p>
 </div>
 <div class="section" id="run">
 <span id="run-command"></span><h2>run<a class="headerlink" href="#run" title="Permalink to this headline">¶</a></h2>
@@ -406,7 +406,7 @@ giraffez&gt; select * from dbc.dbcinfo
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.0',
+            VERSION:'2.0.0rc1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

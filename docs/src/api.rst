@@ -44,12 +44,6 @@ giraffez.load
 .. automodule:: giraffez.load
     :members:
 
-giraffez.mload
-##############
-
-.. automodule:: giraffez.mload
-    :members:
-
 giraffez.secret
 ###############
 

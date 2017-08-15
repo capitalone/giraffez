@@ -36,11 +36,10 @@ class Connection(object):
         log.level = log_level
 
         self.config = config
+        self.key_file = key_file
         self.dsn = dsn
         self.protect = protect
-
         self.host = host
-
         self.silent = silent
 
         #: Stores options for log output
@@ -73,10 +72,10 @@ class Connection(object):
                 Config.lock_connection(self.config, self.dsn, self.key)
             raise error
 
-    def _connect(self, host, username, password):
+    def _close(self, exc=None):
         pass
 
-    def close(self, exc=None):
+    def _connect(self, host, username, password):
         pass
 
     def __enter__(self):
@@ -85,7 +84,7 @@ class Connection(object):
     def __exit__(self, exc_type, exc, exc_tb):
         if not self.silent:
             log.info("Connection", "Closing Teradata connection ...")
-        self.close(exc)
+        self._close(exc)
         if not self.silent:
             log.info("Connection", "Connection to '{}' closed.".format(self.dsn))
 

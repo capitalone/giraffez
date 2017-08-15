@@ -31,9 +31,9 @@ class TestBulkExport(object):
         export.export.columns.return_value = columns
 
         export.query = query
-        export.initiate()
-        results = list(export.values())
-        export.close()
+        export._initiate()
+        results = list(export.to_list())
+        export._close()
 
         # This ensures that the config was proper mocked
         connect_mock.assert_called_with('db1', 'user123', 'pass456')
@@ -54,8 +54,8 @@ class TestBulkExport(object):
         export.export.initiate.side_effect = InvalidCredentialsError("...")
         with pytest.raises(InvalidCredentialsError):
             export.query = query
-            results = list(export.values())
-            export.close()
+            results = list(export.to_list())
+            export._close()
 
     def test_header(self, mocker):
         connect_mock = mocker.patch('giraffez.BulkExport._connect')
@@ -69,12 +69,9 @@ class TestBulkExport(object):
         export.export.columns.return_value = Columns(columns)
 
         export.query = "select * from db1.info"
-        export.close()
+        export._close()
 
         assert export.header == "|".join(x[0] for x in columns)
-
-    def test_protect(self, mocker):
-        pass
 
     def test_parse_sql(self, mocker):
         connect_mock = mocker.patch('giraffez.BulkExport._connect')
@@ -88,7 +85,7 @@ class TestBulkExport(object):
         export.export.columns.return_value = columns
 
         export.query = """select col1 as ‘c1’, col2 as “c2”from db1.info a\n join db2.info b\n on a.id = b.id"""
-        export.close()
+        export._close()
 
         assert '\n' not in export.query
         assert '‘' not in export.query

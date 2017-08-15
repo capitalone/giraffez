@@ -61,19 +61,22 @@ typedef struct TeradataEncoder {
     char           *NullValueStr;
     buffer_t       *buffer;
 
-    GiraffeColumns *(*UnpackStmtInfoFunc)(unsigned char**,const uint32_t);
-    PyObject       *(*PackRowFunc)(const struct TeradataEncoder*,PyObject*,unsigned char**,uint16_t*);
-    PyObject       *(*PackItemFunc)(const struct TeradataEncoder*,const GiraffeColumn*,PyObject*,unsigned char**,uint16_t*);
-    PyObject       *(*UnpackRowsFunc)(const struct TeradataEncoder*,unsigned char**,const uint32_t);
-    PyObject       *(*UnpackRowFunc)(const struct TeradataEncoder*,unsigned char**,const uint16_t);
-    PyObject       *(*UnpackItemFunc)(const struct TeradataEncoder*,unsigned char**,const GiraffeColumn*);
-    PyObject       *(*UnpackDecimalFunc)(const char*,const int);
-    PyObject       *(*UnpackDateFunc)(unsigned char**);
-    PyObject       *(*UnpackTimeFunc)(unsigned char**,const uint64_t);
-    PyObject       *(*UnpackTimestampFunc)(unsigned char**,const uint64_t);
+    GiraffeColumns *(*UnpackStmtInfoFunc)  (unsigned char**, const uint32_t);
+
+    PyObject *(*PackRowFunc)  (const struct TeradataEncoder*, PyObject*, unsigned char**, uint16_t*);
+    PyObject *(*PackItemFunc) (const struct TeradataEncoder*, const GiraffeColumn*, PyObject*, unsigned char**, uint16_t*);
+
+    PyObject *(*UnpackRowsFunc) (const struct TeradataEncoder*, unsigned char**, const uint32_t);
+    PyObject *(*UnpackRowFunc)  (const struct TeradataEncoder*, unsigned char**, const uint16_t);
+    PyObject *(*UnpackItemFunc) (const struct TeradataEncoder*, unsigned char**, const GiraffeColumn*);
+
+    PyObject *(*UnpackDecimalFunc)   (const char*, const int);
+    PyObject *(*UnpackDateFunc)      (unsigned char**);
+    PyObject *(*UnpackTimeFunc)      (unsigned char**, const uint64_t);
+    PyObject *(*UnpackTimestampFunc) (unsigned char**, const uint64_t);
 } TeradataEncoder;
 
-typedef PyObject *(*EncoderFunc)(const TeradataEncoder*,unsigned char**,const uint16_t);
+typedef PyObject *(*EncoderFunc)(const TeradataEncoder*, unsigned char**, const uint16_t);
 
 TeradataEncoder* encoder_new(GiraffeColumns *columns, uint32_t settings);
 int              encoder_set_encoding(TeradataEncoder *e, uint32_t settings);

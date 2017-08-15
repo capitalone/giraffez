@@ -56,6 +56,11 @@ def file_permissions(path):
 def home_file(filename):
     return os.path.join(os.path.expanduser("~"), filename)
 
+def isfile(s):
+    if isinstance(s, (str, bytes)) and ' ' not in s and file_exists(s):
+        return True
+    return False
+
 
 class BaseReader(object):
     def __init__(self, path, mode='rt'):
@@ -150,7 +155,7 @@ class JSONReader(FileReader):
         self.fd.seek(0)
 
     def readline(self):
-        return json.loads(next(self.fd))
+        return list(json.loads(next(self.fd)).values())
 
 
 class ArchiveFileReader(BaseReader):

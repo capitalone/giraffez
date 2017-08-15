@@ -129,8 +129,7 @@ namespace Giraffez {
             char *data = NULL;
             TD_Length length = 0;
             if ((status = TConn::Checkpoint(&data, &length)) != TD_END_METHOD) {
-                // TODO: should this return an error?
-                return this->HandleError();
+                return Py_BuildValue("i", status);
             }
             return PyBytes_FromStringAndSize(data, length);
         }

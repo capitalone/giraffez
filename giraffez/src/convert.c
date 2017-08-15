@@ -738,7 +738,7 @@ PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_l
 
     memset(&tm, '\0', sizeof(tm));
     if (strptime(str, "%Y-%m-%d", &tm) == NULL) {
-        PyErr_Format(EncoderError, "Unable to parse date string '%s'.", str);
+        PyErr_Format(EncoderError, "Unable to parse date string '%s', format must be '%Y-%m-%d'.", str);
         return NULL;
     }
     l += (tm.tm_year+1900) * 10000;

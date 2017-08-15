@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Quickstart &mdash; giraffez 2.0.0 documentation</title>
+  <title>Quickstart &mdash; giraffez 2.0.0rc1 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.0 documentation" href="index.html"/>
+    <link rel="top" title="giraffez 2.0.0rc1 documentation" href="index.html"/>
         <link rel="next" title="Advanced Usage" href="usage.html"/>
         <link rel="prev" title="Commands" href="command-line.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                2.0.0
+                2.0.0rc1
               </div>
             
           
@@ -313,9 +313,9 @@
 </div>
 <div class="section" id="loading-data-into-a-table">
 <h2>Loading data into a table<a class="headerlink" href="#loading-data-into-a-table" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="api.html#giraffez.load.TeradataLoad" title="giraffez.load.TeradataLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Load</span></code></a> is a subclass of <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a> and it aims to provide an easier to use abstraction for loading small amounts of data.  The most straight-forward way to use it is reading delimited data from a file:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
-    <span class="n">stats</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;database.table_name&#39;</span><span class="p">,</span> <span class="s1">&#39;my_data.txt&#39;</span><span class="p">)</span>
+<p><a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a> has the method <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-meth docutils literal"><span class="pre">insert</span></code></a> that attempts to provide a simple interface for loading data when performance is not necessarily critical.  It does so by generating insert statements and submitting them in parallel execution mode.  Here is inserting data from a file:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">Cmd</span><span class="p">:</span>
+    <span class="n">stats</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;database.table_name&#39;</span><span class="p">,</span> <span class="s1">&#39;my_data.txt&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This requires a delimited header to be provided as the first line of the file and it returns a <code class="xref py py-class docutils literal"><span class="pre">dict</span></code> with the number of rows inserted and the number of errors encountered:</p>
@@ -327,30 +327,24 @@
 </div>
 <div class="section" id="exporting-large-amounts-of-data">
 <h2>Exporting large amounts of data<a class="headerlink" href="#exporting-large-amounts-of-data" title="Permalink to this headline">¶</a></h2>
-<p>When exporting a large amount of data from Teradata (many millions of rows), <a class="reference internal" href="api.html#giraffez.export.TeradataExport" title="giraffez.export.TeradataExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code></a> should be used.  It makes use of the bulk driver provided by the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> to retrieve data from Teradata effificently.  This powerful export can be setup without needing to create complex fastexport scripts:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="s1">&#39;dbc.dbcinfo&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
+<p>When exporting a large amount of data from Teradata (many millions of rows), <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code></a> should be used.  It makes use of the bulk driver provided by the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> to retrieve data from Teradata effificently.  This powerful export can be setup without needing to create complex fastexport scripts:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkExport</span><span class="p">(</span><span class="s1">&#39;dbc.dbcinfo&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">export</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
         <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>More options are detailed over in the API referrence for <a class="reference internal" href="api.html#giraffez.export.TeradataExport" title="giraffez.export.TeradataExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code></a>.</p>
+<p>More options are detailed over in the API referrence for <code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code>.</p>
 </div>
 <div class="section" id="loading-large-amounts-of-data">
 <h2>Loading large amounts of data<a class="headerlink" href="#loading-large-amounts-of-data" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="api.html#giraffez.mload.TeradataMLoad" title="giraffez.mload.TeradataMLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.MLoad</span></code></a> is best utilized for loading large (&gt; ~100k rows) datasets. It makes use of the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> bulk update driver which is generally faster than <a class="reference internal" href="api.html#giraffez.load.TeradataLoad" title="giraffez.load.TeradataLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Load</span></code></a> and has less of a performance impact on Teradata server when dealing with larger datasets.</p>
-<p>Just like with <a class="reference internal" href="api.html#giraffez.load.TeradataLoad" title="giraffez.load.TeradataLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Load</span></code></a>, fields and delimiter for the input data are inferred from the header:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">MLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mload</span><span class="p">:</span>
-    <span class="n">exit_code</span> <span class="o">=</span> <span class="n">mload</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;input.txt&quot;</span><span class="p">)</span>
+<p><a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> is best utilized for loading large (&gt; ~100k rows) datasets. It makes use of the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> bulk update driver which is generally faster than using something like <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.insert" title="giraffez.cmd.TeradataCmd.insert"><code class="xref py py-meth docutils literal"><span class="pre">insert</span></code></a> (which just generates insert statements).  It also has less of a performance impact on Teradata server when dealing with larger datasets.  While <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> uses the bulk update driver it is not meant to be a direct wrapper of the mload functionality, rather it is a more friendly abstraction but with mload performance.</p>
+<p>Just like with <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.insert" title="giraffez.cmd.TeradataCmd.insert"><code class="xref py py-meth docutils literal"><span class="pre">insert</span></code></a>, fields and delimiter for the input data are inferred from the header (or from a JSON stream):</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
+    <span class="n">load</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;input.txt&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>And an exit code is returned, indicating the result:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">exit_code</span><span class="p">)</span>
-<span class="go">12</span>
-</pre></div>
-</div>
-<p>The exit code is returned from <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> and can be <code class="docutils literal"><span class="pre">0</span></code>, <code class="docutils literal"><span class="pre">2</span></code>, <code class="docutils literal"><span class="pre">4</span></code>, <code class="docutils literal"><span class="pre">8</span></code>, or <code class="docutils literal"><span class="pre">12</span></code>.  This is intrinsic to how the driver works and any exit code other than 0 indicates some kind of failure to complete and is the same code returned when running a MultiLoad job using Teradata’s <code class="docutils literal"><span class="pre">mload</span></code> command-line tool.</p>
 <p>Another important feature is loading rows individually when dealing with information that isn’t being read from a file:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">MLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mload</span><span class="p">:</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
     <span class="n">mload</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="s2">&quot;first_name&quot;</span><span class="p">]</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s2">&quot;Hemingway&quot;</span><span class="p">,</span> <span class="s2">&quot;Ernest&quot;</span><span class="p">),</span>
@@ -358,13 +352,14 @@
         <span class="p">(</span><span class="s2">&quot;Kafka&quot;</span><span class="p">,</span> <span class="s2">&quot;Franz&quot;</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
-        <span class="n">mload</span><span class="o">.</span><span class="n">load_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-    <span class="n">exit_code</span> <span class="o">=</span> <span class="n">mload</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
-    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;finished load with code {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exit_code</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">mload</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+        <span class="n">load</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 </pre></div>
 </div>
+<p><a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> returns an exit code for every job using the bulk update driver. This exit code can be <code class="docutils literal"><span class="pre">0</span></code>, <code class="docutils literal"><span class="pre">2</span></code>, <code class="docutils literal"><span class="pre">4</span></code>, <code class="docutils literal"><span class="pre">8</span></code>, or <code class="docutils literal"><span class="pre">12</span></code>.  This is intrinsic to how the driver works and any exit code other than 0 indicates some kind of failure to complete and is the same code returned when running a MultiLoad job using Teradata’s official <code class="docutils literal"><span class="pre">mload</span></code> command-line tool.  To remove unnecessary boilerplate, this exit code is implicitly <code class="docutils literal"><span class="pre">0</span></code> when successfully and raises an exception with the exit code should the job be unsuccessful.  While we try very hard to abstract away the rough edges of the MultiLoad protocol, it is sometimes not very clear how the job errored.  In these cases passing keyword <code class="docutils literal"><span class="pre">print_error_table</span></code> allows for convenient access to the error table upon exit:
+.. code-block:: python</p>
+<blockquote>
+<div>with giraffez.BulkLoad(“database.table_name”, print_error_table=True) as load:</div></blockquote>
+<p>This would be something you use while troubleshooting a new script but most likely remove once the script is working correctly.  It is important to note that this data is in the error table regardless of this option being set, and will remain there until the job tables are cleaned up.</p>
 </div>
 <div class="section" id="configuring-giraffez">
 <h2>Configuring giraffez<a class="headerlink" href="#configuring-giraffez" title="Permalink to this headline">¶</a></h2>
@@ -438,7 +433,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.0',
+            VERSION:'2.0.0rc1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

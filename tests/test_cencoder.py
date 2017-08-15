@@ -45,6 +45,7 @@ Decimal = lambda s, p: ('col1', DECIMAL_NN, decimal_size(s+p), s, p)
 Date = ('col1', DATE_NN, 4, 0, 0)
 Char = lambda s: ('col1', CHAR_NN, s, 0, 0)
 Integer = ('col1', INTEGER_NN, 4, 0, 0)
+Timestamp = lambda s: ('col1', TIMESTAMP_NN, 19, 0, 0)
 Varchar = lambda s: ('col1', VARCHAR_NN, s, 0, 0)
 
 date_tests = [
@@ -327,6 +328,12 @@ serialize_only_tests = [
         "name": "python_datetime_before_1900_01_01",
         "column": Date,
         "input_value": b'\x00Na\xf8\xff',
+        "expected_value": datetime.datetime(1850,6,22,10,12,55),
+    },
+    {
+        "name": "timestamp_0",
+        "column": Timestamp(0),
+        "input_value": b'\x001850-06-22 10:12:55',
         "expected_value": datetime.datetime(1850,6,22,10,12,55),
     },
     {

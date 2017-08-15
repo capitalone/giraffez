@@ -38,7 +38,7 @@ The signal handler used by the giraffez command-line tool is available to the AP
 Working with other packages
 ---------------------------
 
-Results from :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` and :class:`giraffez.Export <giraffez.export.TeradataExport>` can be
+Results from :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` and :class:`giraffez.BulkExport <giraffez.export.TeradataBulkExport>` can be
 used with other packages that accept common Python data structures.
 
 Using :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` with pandas:
@@ -48,7 +48,7 @@ Using :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` with pandas:
     import pandas as pd
     with giraffez.Cmd() as cmd:
         result = cmd.execute("select infokey, character_length(infokey) as nchars from dbc.dbcinfo")
-        df = pd.DataFrame(list(result.items()))
+        df = pd.DataFrame(list(result.to_dict()))
 
 .. code-block:: python
 
@@ -58,13 +58,13 @@ Using :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>` with pandas:
     1                RELEASE       7
     2  LANGUAGE SUPPORT MODE      21
 
-Using :class:`giraffez.Export <giraffez.export.TeradataExport>` with pandas:
+Using :class:`giraffez.BulkExport <giraffez.export.TeradataBulkExport>` with pandas:
 
 .. code-block:: python
 
-    with giraffez.Export() as export:
+    with giraffez.BulkExport() as export:
         export.query = "select infokey, character_length(infokey) as nchars from dbc.dbcinfo"
-        df = pd.DataFrame(list(export.items()))
+        df = pd.DataFrame(list(export.to_dict()))
 
 .. code-block:: python
 
@@ -77,24 +77,24 @@ Using :class:`giraffez.Export <giraffez.export.TeradataExport>` with pandas:
     nchars    11.666667
     dtype: float64
 
-Using :class:`giraffez.Load <giraffez.load.TeradataLoad>` with pandas:
+Using :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>`  to load data from pandas:
 
 .. code-block:: python
 
-    with giraffez.Load("database.table_name") as load:
-        load.insert("database.table_name", df.values.tolist(), fields=df.columns.tolist())
+    with giraffez.Cmd("database.table_name") as Cmd:
+        cmd.insert("database.table_name", df.values.tolist(), fields=df.columns.tolist())
 
-Using :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` with pandas:
+Using :class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` with pandas:
 
 .. code-block:: python
 
-    with giraffez.MLoad("database.table_name") as mload:
-        # TODO: dont specify all columns if not necessary
-        mload.columns = df.columns.tolist()
+    with giraffez.BulkLoad("database.table_name", print_error_table=True) as load:
+        load.columns = df.columns.tolist()
         for row in df.values.tolist():
-            mload.load_row(row)
+            load.put(row)
 
-**Note:** it is extremely important when loading data to make sure that the data types you are using in Python are compatible with the Teradata data type it is being loaded into.  If the type is incorrect it can cause the mload driver to fail with error messages that are sometimes very difficult to diagnose.  It is recommended to work with a small test dataset and a copy of the table when initially creating a `giraffez.MLoad <giraffez.mload.TeradataMLoad>` based script, which will be much easier to troubleshoot.
+
+**Note:** it is extremely important when loading data to make sure that the data types you are using in Python are compatible with the Teradata data type it is being loaded into.  If the type is incorrect it can cause the mload driver to fail with error messages that are sometimes very difficult to diagnose.  It is recommended to work with a small test dataset and a copy of the table when initially creating a `giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` based script, which will be much easier to troubleshoot.
  
 
 Exporting to different formats
@@ -107,13 +107,12 @@ Using the Python standard library `csv <https://docs.python.org/3/library/csv.ht
 
     import csv
 
-    with giraffez.Export('dbc.dbcinfo') as export:
+    with giraffez.BulkExport('dbc.dbcinfo') as export:
         with open("output.csv", "w") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=export.columns.names)
             writer.writeheader()
-            for row in export.values():
+            for row in export.to_dict():
                 writer.writerow(row)
-            writer.writerows(list(export.values()))
 
 Or very similar with :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>`:
 
@@ -123,16 +122,16 @@ Or very similar with :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>`:
         result = cmd.execute("select * from dbc.dbcinfo")
         with open("output.csv", "w") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=result.columns.names)
-            for row in result.items():
+            for row in result.to_dict():
                 writer.writerow(row)
 
 Here is a way to output a stream of JSON, where each row is a JSON encoded string separated by newline characters:
 
 .. code-block:: python
 
-    with giraffez.Export('database.table_name') as export:
+    with giraffez.BulkExport('database.table_name') as export:
         with open("output.json", "w") as f:
-            for row in export.json():
+            for row in export.to_json():
                 f.write(row)
                 f.write("\n")
 
@@ -140,25 +139,25 @@ Here is a way to output a stream of JSON, where each row is a JSON encoded strin
 Session context
 ---------------
 
-All statements executed within a ``with`` context block happen within the same Teradata session.  This is particularly useful when dealing with database objects like volatile tables where the table itself is scoped to the session and will disappear once disconnected.  Here is an example of using this session context to create a volatile table and then load it with :class:`giraffez.Load <giraffez.load.TeradataLoad>`:
+All statements executed within a ``with`` context block happen within the same Teradata session.  This is particularly useful when dealing with database objects like volatile tables where the table itself is scoped to the session and will disappear once disconnected.  Here is an example of using this session context to create a volatile table and then load it with :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>`:
 
 .. _session-context-load-insert:
 
 .. code-block:: python
    
-    with giraffez.Load() as load:
-        load.execute("""create multiset volatile table temp_table (
+    with giraffez.Cmd() as cmd:
+        cmd.execute("""create multiset volatile table temp_table (
                 first_name varchar(50),
                 last_name varchar(50),
                 email varchar(100)
             ) primary index (first_name, last_name) on commit preserve rows""")
 
-        load.insert('temp_table', [('bruce', 'wayne', 'batman@wayne.co')])
-        load.insert('temp_table', [
+        cmd.insert('temp_table', [('bruce', 'wayne', 'batman@wayne.co')])
+        cmd.insert('temp_table', [
                 ('peter', 'parker'),
                 ('clark', 'kent')
             ], fields=['first_name', 'last_name'])
-        result = load.execute("select * from temp_table")
+        result = cmd.execute("select * from temp_table")
    
 .. code-block:: python
 
@@ -167,18 +166,18 @@ All statements executed within a ``with`` context block happen within the same T
     {'first_name': 'peter', 'last_name': 'parker', 'email': None}
     {'first_name': 'bruce', 'last_name': 'wayne', 'email': 'batman@wayne.co'}
 
-There are some exceptions to this when dealing with :class:`giraffez.Export <giraffez.export.TeradataExport>` or :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` since they both use the :ref:`Teradata Parallel Transporter API <teradata-libraries>`, which creates multiple sessions to parallelize the bulk operations.
+There are some exceptions to this when dealing with :class:`giraffez.BulkExport <giraffez.export.TeradataBulkExport>` or :class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` since they both use the :ref:`Teradata Parallel Transporter API <teradata-libraries>`, which creates multiple sessions to parallelize the bulk operations.
 
 
 Exception handling
 ------------------
 
-In cases where :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` raises an :class:`EncodeError <giraffez.EncodeError>`, the exception be intercepted to modify the control flow.  For example, this can be particularly useful when troubleshooting an unsuccessful mload:
+In cases where :class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` raises an :class:`EncodeError <giraffez.EncodeError>`, the exception be intercepted to modify the control flow.  For example, this can be particularly useful when troubleshooting an unsuccessful mload:
 
 .. code-block:: python
 
-    with giraffez.MLoad("database.table_name") as mload:
-        mload.columns = ["last_name", "first_name"]
+    with giraffez.BulkLoad("database.table_name") as load:
+        load.columns = ["last_name", "first_name"]
         rows = [
             ("Hemingway", "Ernest"),
             ("Chekhov", "Anton"),
@@ -186,7 +185,7 @@ In cases where :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` raises an 
         ]
         for row in rows:
             try:
-                mload.load_row(row)
+                load.put(row)
             except giraffez.EncoderError as error:
                 # Intercept the exception to print out the row causing
                 # the error
@@ -195,7 +194,7 @@ In cases where :class:`giraffez.MLoad <giraffez.mload.TeradataMLoad>` raises an 
                 # traceback or simply continue to the next row
                 raise error
 
-This ends up giving a lot of flexibility to make helpful modifications to the behavior of the mload task that isn't available in the official mload utility.
+This ends up giving a lot of flexibility to make helpful modifications to the behavior of the load task that isn't available in the official load utility.
 
 .. _archiving:
 
@@ -216,11 +215,11 @@ If everything looks ok then you can `drop` your original table. All that is nece
 
     giraffez cmd database_large_table.sql
 
-and then load the file back with :ref:`mload <mload-command>`::
+and then load the file back with :ref:`load <load-command>`::
 
-    giraffez mload database.table_name.gd database.another_table_name
+    giraffez load database.table_name.gd database.another_table_name
 
-The :ref:`mload <mload-command>` command automatically detects the files type as a giraffez archive file so it doesn't need any additional options.
+The :ref:`load <load-command>` command automatically detects the files type as a giraffez archive file so it doesn't need any additional options.
 
 You can also archive only a portion of a large table and use `delete` to remove only the parts of the table that have been archived::
 

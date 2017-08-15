@@ -229,7 +229,7 @@ class ExportCommand(Command):
                     log.info("\rExport", "Processed {} rows".format(i))
             else:
                 with Writer(args.output_file, use_gzip=args.gzip) as out:
-                    export.initiate()
+                    export._initiate()
                     export.options("output", out.name, 4)
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
@@ -442,7 +442,7 @@ class LoadCommand(Command):
             log.info('  source      => "{}"'.format(args.input_file))
             log.info('  output      => "{}"'.format(args.table))
             start_time = time.time()
-            exit_code = load.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char)
+            exit_code = load.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char, parse_dates=args.parse_dates)
             total_time = time.time() - start_time
             log.info("MLoad", "Teradata PT request finished with exit code '{}'".format(exit_code))
             log.info("Results", "...")
@@ -454,7 +454,7 @@ class LoadCommand(Command):
             if exit_code != 0:
                 with TeradataCmd(log_level=args.log_level, config=args.conf, key_file=args.key,
                         dsn=args.dsn, silent=True) as cmd:
-                    result = list(cmd.execute("select a.errorcode, a.errorfield, count(*) over (partition by a.errorcode, a.errorfield) as errorcount, b.errortext, min(substr(a.hostdata, 0, 30000)) as hostdata from {} a join dbc.errormsgs b on a.errorcode = b.errorcode qualify row_number() over (partition by a.errorcode, a.errorfield order by a.errorcode asc)=1 group by 1,2,4".format(args.table)))
+                    result = list(cmd.execute("select a.errorcode, a.errorfield, count(*) over (partition by a.errorcode, a.errorfield) as errorcount, b.errortext, min(substr(a.hostdata, 0, 30000)) as hostdata from {}_e1 a join dbc.errormsgs b on a.errorcode = b.errorcode qualify row_number() over (partition by a.errorcode, a.errorfield order by a.errorcode asc)=1 group by 1,2,4".format(args.table)))
                     if len(result) == 0:
                         log.info("No error information available.")
                         return

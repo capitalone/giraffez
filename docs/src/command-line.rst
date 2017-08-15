@@ -118,39 +118,39 @@ Similarly the ``-n`` (``--null``) option can be used to transform null text in a
 
     giraffez fmt -n 'None to NULL' data.text > output.txt
 
-.. _load-command:
+.. _insert-command:
 
-load
+insert
 ----
 
-The ``load`` module provides an interface to insert data into an existing Teradata table using the Teradata CLIv2 driver.
+The ``insert`` module provides an interface to insert data into an existing Teradata table using the Teradata CLIv2 driver.
 
 Initiating a load into an existing table can be done like so::
 
-    giraffez load source_file.txt database.table_name
+    giraffez insert source_file.txt database.table_name
 
-The ``load`` command necessitates that a header is present in the source file. The delimiter for the rows of the file is inferred from the content of the header, as well as the names and order of the table's target columns.  By default, delimiters within "double quotes" are ignored; use ``--quote-char`` to change the default quote character.
+The ``insert`` command necessitates that a header is present in the source file. The delimiter for the rows of the file is inferred from the content of the header, as well as the names and order of the table's target columns.  By default, delimiters within "double quotes" are ignored; use ``--quote-char`` to change the default quote character.
 
-.. _mload-command:
+.. _load-command:
 
-mload
+load
 -----
 
-The ``mload`` module provides an interface to insert data into an existing Teradata table using the Teradata PT API's Update driver (aka mload). It is designed to be as user-friendly as the export module by handling many of the "nuances" of mload. Much like the export module, you are not required to make a script file. 
+The ``load`` module provides an interface to insert data into an existing Teradata table using the Teradata PT API's Update driver (aka mload). It is designed to be as user-friendly as the export module by handling many of the "nuances" of mload. Much like the export module, you are not required to make a script file. 
 
 Another important difference between giraffez and mload is that you do not need to define the input or destination schema for the target table. giraffez infers the target columns from the header of the source file you give it.
 
 Initiating a load into an existing table can be done like so::
 
-    giraffez mload source_file.txt database.table_name
+    giraffez load source_file.txt database.table_name
 
-As with ``load``, the ``mload`` command uses the data file's header to determine the columns used in the destination table.  By default, delimiters within "double quotes" are ignored; use ``--quote-char`` to change the default quote character.
+As with ``insert``, the ``load`` command uses the data file's header to determine the columns used in the destination table.  By default, delimiters within "double quotes" are ignored; use ``--quote-char`` to change the default quote character.
 
 During the process of a load, you may be prompted to drop existing work tables for the target table. giraffez will handle the management of these auxiliary tables for you, but by default you will be prompted for a decision before they are dropped. To automatically answer "yes" for these questions (and drop the auxilliary tables should they already exist), specify the ``-y`` (or ``--drop-all``) flag with the command::
 
     giraffez load source_file.txt database.table_name -y
 
-The ``mload`` command is also used to :ref:`reload archived data <archiving>`.
+The ``load`` command is also used to :ref:`reload archived data <archiving>`.
 
 .. _run-command:
 

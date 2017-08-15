@@ -25,7 +25,7 @@ class TestCmd(object):
             ["value1", "value2", "value3"],
         ]
 
-        cmd.close()
+        cmd._close()
         
         # This ensures that the config was proper mocked
         connect_mock.assert_called_with('db1', 'user123', 'pass456')
@@ -36,7 +36,7 @@ class TestCmd(object):
 
         with pytest.raises(InvalidCredentialsError):
             cmd = giraffez.Cmd(protect=True)
-            cmd.close()
+            cmd._close()
 
 
 @pytest.mark.usefixtures('config', 'tmpfiles')
@@ -64,7 +64,7 @@ class TestInsert(object):
             f.write("\n".join(rows))
 
         with giraffez.Cmd() as cmd:
-            result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|")
+            result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|")
         assert result.get('count') == 100
 
     def test_insert_from_file_quoted(self, mocker, tmpfiles):
@@ -91,7 +91,7 @@ class TestInsert(object):
             f.write("\n".join(rows))
 
         with giraffez.Cmd() as cmd:
-            result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|")
+            result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|")
         assert result.get('count') == 100
 
     def test_insert_from_file_single_quoted(self, mocker, tmpfiles):
@@ -118,7 +118,7 @@ class TestInsert(object):
             f.write("\n".join(rows))
 
         with giraffez.Cmd() as cmd:
-            result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|", quotechar="'")
+            result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|", quotechar="'")
         assert result.get('count') == 100
 
 
@@ -146,7 +146,7 @@ class TestInsert(object):
             f.write("\n".join(rows))
 
         with giraffez.Cmd() as cmd:
-            result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|", quotechar="$")
+            result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|", quotechar="$")
         assert result.get('count') == 100
 
     def test_insert_from_file_error(self, mocker, tmpfiles):
@@ -171,7 +171,7 @@ class TestInsert(object):
 
         with giraffez.Cmd() as cmd:
             cmd.panic = False
-            result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|")
+            result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|")
 
     def test_insert_from_file_error_panic(self, mocker, tmpfiles):
         mock_connect = mocker.patch("giraffez.Cmd._connect")
@@ -195,7 +195,7 @@ class TestInsert(object):
 
         with giraffez.Cmd() as cmd:
             with pytest.raises(GiraffeEncodeError):
-                result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|")
+                result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|")
                 print(result)
 
     def test_insert_from_file_invalid_header(self, mocker, tmpfiles):
@@ -221,7 +221,7 @@ class TestInsert(object):
 
         with giraffez.Cmd() as cmd:
             with pytest.raises(GiraffeError):
-                result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|")
+                result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|")
                 print(result)
 
         # Invalid column (wrong name)
@@ -233,7 +233,7 @@ class TestInsert(object):
 
         with giraffez.Cmd() as cmd:
             with pytest.raises(GiraffeError):
-                result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|")
+                result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|")
                 print(result)
 
         # Too many columns (duplicate name)
@@ -245,7 +245,7 @@ class TestInsert(object):
 
         with giraffez.Cmd() as cmd:
             with pytest.raises(GiraffeEncodeError):
-                result = cmd.from_file("db1.test", tmpfiles.load_file, delimiter="|")
+                result = cmd.insert("db1.test", tmpfiles.load_file, delimiter="|")
                 print(result)
 
     def test_insert_insert_no_specify_fields(self, mocker):

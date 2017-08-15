@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Frequently Asked Questions &mdash; giraffez 2.0.0 documentation</title>
+  <title>Frequently Asked Questions &mdash; giraffez 2.0.0rc1 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.0 documentation" href="index.html"/>
+    <link rel="top" title="giraffez 2.0.0rc1 documentation" href="index.html"/>
         <link rel="prev" title="API Reference" href="api.html"/> 
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                2.0.0
+                2.0.0rc1
               </div>
             
           
@@ -101,7 +101,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#why-is-ujson-an-optional-requirement">Why is ujson an optional requirement?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#why-are-the-column-aliases-incorrect-when-using-export">Why are the column aliases incorrect when using Export?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#why-implicitly-coerce-teradata-decimals">Why implicitly coerce Teradata decimals?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#what-character-sets-are-supported">What character sets are supported?</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/capitalone/giraffez">GitHub</a></li>
@@ -193,15 +192,11 @@
 <span id="export-header"></span><h2>Why are the column aliases incorrect when using Export?<a class="headerlink" href="#why-are-the-column-aliases-incorrect-when-using-export" title="Permalink to this headline">¶</a></h2>
 <p><strong>Update</strong> This should no longer apply as the new method for fetching columns does not rely on the broken TPT API</p>
 <p>A regression was introduced after version 13.10 of the Teradata Parallel Transporter API that causes inconsistent behavior with column aliases in Export operations.  When dealing with columns that are aliased the Teradata library does not return the name specified in the alias.  It seemed that when dealing with columns that are aliased that it would instead return the underlying column name or when dealing with computed fields returning a blank string.</p>
-<p>This affects any part of giraffez that makes use of the <a class="reference internal" href="api.html#giraffez.export.TeradataExport" title="giraffez.export.TeradataExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code></a> class (it does not affect <cite>giraffez.Cmd &lt;giraffez.cmd.TeradataCmd&gt;</cite>).  Unfortunately, this is rooted in the proprietary Teradata libraries and cannot be fixed within giraffez, so the recommendation is to simply hardcode the column names with the query in those cases.</p>
+<p>This affects any part of giraffez that makes use of the <code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code> class (it does not affect <cite>giraffez.Cmd &lt;giraffez.cmd.TeradataCmd&gt;</cite>).  Unfortunately, this is rooted in the proprietary Teradata libraries and cannot be fixed within giraffez, so the recommendation is to simply hardcode the column names with the query in those cases.</p>
 </div>
 <div class="section" id="why-implicitly-coerce-teradata-decimals">
 <h2>Why implicitly coerce Teradata decimals?<a class="headerlink" href="#why-implicitly-coerce-teradata-decimals" title="Permalink to this headline">¶</a></h2>
 <p>In previous versions of giraffez, Teradata decimal types fixed precision was preserved via Python’s <cite>decimal.Decimal</cite> type.  The decision was made to allow implicit conversion of Teradata decimal types to the Python float because of the many times unnecessary performance burden with using <cite>decimal.Decimal</cite> and this cost not being transparent when using <cite>decimal.Decimal</cite>.  For example, numpy will take a <cite>decimal.Decimal</cite> in place of a float because <cite>decimal.Decimal</cite> has the appropriate magic methods defined, but will be many times slower.  This cost ends up being invisible to users because the fixed-point arithmetic is hidden by the Python magic methods.  While giraffez is very convered with correctness, this decision was made to balance that with performance and what we feel is the most likely use case.</p>
-</div>
-<div class="section" id="what-character-sets-are-supported">
-<h2>What character sets are supported?<a class="headerlink" href="#what-character-sets-are-supported" title="Permalink to this headline">¶</a></h2>
-<p>What versions of Python are supported, what platforms?</p>
 </div>
 </div>
 
@@ -247,7 +242,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.0',
+            VERSION:'2.0.0rc1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

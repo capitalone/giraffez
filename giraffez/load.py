@@ -18,14 +18,14 @@ import time
 import struct
 import threading
 
-from ._teradatapt import EncoderError, InvalidCredentialsError, MLoad, TeradataError
+from ._teradatapt import EncoderError, InvalidCredentialsError, MLoad, TeradataError as TeradataPTError
 
 from .constants import *
 from .errors import *
 
 from .cmd import TeradataCmd
 from .connection import Connection
-from .encoders import null_handler
+from .encoders import DateHandler, null_handler
 from .fmt import format_table
 from .io import ArchiveFileReader, CSVReader, FileReader, JSONReader, Reader
 from .logging import log
@@ -33,6 +33,25 @@ from .utils import get_version_info, pipeline, suppress_context
 
 
 __all__ = ['TeradataBulkLoad']
+
+
+error_table_count = """
+select a.errorcode as code, a.errorfield as field, b.errortext as text, count(*) over (partition by a.errorcode, a.errorfield) as errcount
+from {0}_e1 a
+join dbc.errormsgs b
+on a.errorcode = b.errorcode
+group by 1,2,3;
+"""
+
+error_table_sample = """
+select
+a.errorcode as code,
+a.errorfield as field,
+min(substr(a.hostdata, 0, 30000)) as hostdata
+from {0}_e1 a
+qualify row_number() over (partition by a.errorcode, a.errorfield order by a.errorcode asc)=1
+group by 1,2;
+"""
 
 
 class TeradataBulkLoad(Connection):
@@ -61,6 +80,8 @@ class TeradataBulkLoad(Connection):
     :param bool coerce_floats: Coerce Teradata decimal types into Python floats
     :param bool cleanup: MLoad will attempt to cleanup all work tables
         when context exits.
+    :param bool print_error_table: Prints a user-friendly version of the mload
+        error table to stderr.
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
     :raises `giraffez.errors.TeradataError`: if the connection cannot be established
 
@@ -75,75 +96,29 @@ class TeradataBulkLoad(Connection):
     checkpoint_interval = DEFAULT_CHECKPOINT_INTERVAL
 
     def __init__(self, table=None, host=None, username=None, password=None, log_level=INFO,
-            config=None, key_file=None, dsn=None, protect=False, coerce_floats=False, cleanup=False):
+            config=None, key_file=None, dsn=None, protect=False, coerce_floats=False, cleanup=False, print_error_table=False):
         super(TeradataBulkLoad, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
-
         # Attributes used with property getter/setters
         self._columns = None
         self._table_name = None
         self._encoding = None
         self._delimiter = DEFAULT_DELIMITER
         self._null = DEFAULT_NULL
-
         self.initiated = False
         self.finished = False
         self.coerce_floats = coerce_floats
         self.perform_cleanup = cleanup
         self.exit_code = None
-
         self.applied_count = 0
         self.error_count = 0
-
         #: The amount of time spent in idle (waiting for server)
         self.idle_time = 0
-
+        #: Prints the error table when there is an issue, good for troubleshooting jobs
+        self.print_error_table = print_error_table
         self.preprocessor = lambda s: s
         if table is not None:
             self.table = table
-
-    def _connect(self, host, username, password):
-        self.mload = MLoad(host, username, password)
-        title, version = get_version_info()
-        query_band = "UTILITYNAME={};VERSION={};".format(title, version)
-        self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
-
-    def _apply_rows(self):
-        log.info("MLoad", "Beginning apply phase ...")
-        self.mload.apply_rows()
-        self._update_apply_count()
-        self._update_error_count()
-        log.info("MLoad", "Apply phase ended.")
-
-    def _end_acquisition(self):
-        log.info("MLoad", "Ending acquisition phase ...")
-        self.mload.end_acquisition()
-        log.info("MLoad", "Acquisition phase ended.")
-
-    def _exit_code(self):
-        data = self.mload.get_event(TD_Evt_ExitCode)
-        if data is None:
-            log.info("MLoad", "Update exit code failed.")
-            return
-        return struct.unpack("h", data)[0]
-
-    def _update_apply_count(self):
-        data = self.mload.get_event(TD_Evt_RowCounts64)
-        if data is None:
-            log.info("MLoad", "Update apply row count failed.")
-            return
-        recv, sent, applied = struct.unpack("QQQ", data)
-        log.debug("Debug[2]", "Event[RowCounts64]: r:{}, s:{}, a:{}".format(recv, sent, applied))
-        self.applied_count = applied
-
-    def _update_error_count(self):
-        data = self.mload.get_event(TD_Evt_ErrorTable2, 1)
-        if data is None:
-            log.info("MLoad", "Update error row count failed.")
-            return
-        count = struct.unpack("I", data)[0]
-        log.debug("Debug[2]", "Event[ErrorTable2]: c:{}".format(count))
-        self.error_count = count
 
     def checkpoint(self):
         """
@@ -168,13 +143,6 @@ class TeradataBulkLoad(Connection):
             t.start()
         for t in threads:
             t.join()
-
-    def close(self, exc=None):
-        if not exc:
-            self.finish()
-        log.info("MLoad", "Closing Teradata PT connection ...")
-        self.mload.close()
-        log.info("MLoad", "Teradata PT request complete.")
 
     @property
     def columns(self):
@@ -211,15 +179,6 @@ class TeradataBulkLoad(Connection):
     def delimiter(self, value):
         self._delimiter = value
         self.mload.set_delimiter(self._delimiter)
-
-    @property
-    def null(self):
-        return self._null
-
-    @null.setter
-    def null(self, value):
-        self._null = value
-        self.mload.set_null(self._null)
 
     def finish(self):
         """
@@ -294,44 +253,22 @@ class TeradataBulkLoad(Connection):
                 self.mload.set_encoding(ROW_ENCODING_RAW)
                 self.columns = f.header
                 self.preprocessor = lambda s: s
-            self.initiate()
+            if parse_dates:
+                self.preprocessor = DateHandler(self.columns)
+            self._initiate()
             i = 0
             for i, line in enumerate(f, 1):
-                self.load_row(line, panic=panic)
+                self.put(line, panic=panic)
                 if i % self.checkpoint_interval == 1:
                     log.info("\rMLoad", "Processed {} rows".format(i), console=True)
                     checkpoint_status = self.checkpoint()
-                    exit_code = self.exit_code
-                    if exit_code != 0:
-                        return exit_code
+                    self.exit_code = self._exit_code()
+                    if self.exit_code != 0:
+                        return self.exit_code
             log.info("\rMLoad", "Processed {} rows".format(i))
             return self.finish()
 
-    def initiate(self):
-        if not self.table:
-            raise GiraffeError("Table must be set prior to initiating.")
-        if self.initiated:
-            raise GiraffeError("Already initiated connection.")
-        try:
-            if self.perform_cleanup:
-                self.cleanup()
-            elif any(filter(lambda x: self.mload.exists(x), self.tables)):
-                raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
-            log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
-            start_time = time.time()
-            self.mload.initiate(self.table, self.columns)
-            self.idle_time = time.time() - start_time
-        except InvalidCredentialsError as error:
-            if args.protect:
-                Config.lock_connection(args.conf, args.dsn, args.key)
-            raise error
-        self.mload.set_delimiter(self.delimiter)
-        self.mload.set_null(self.null)
-        log.info("MLoad", "Teradata PT request accepted.")
-        self._columns = self.mload.columns()
-        self.initiated = True
-
-    def load_row(self, items, panic=True):
+    def put(self, items, panic=True):
         """
         Load a single row into the target table.
 
@@ -347,15 +284,33 @@ class TeradataBulkLoad(Connection):
             connecting to Teradata.
         """
         if not self.initiated:
-            self.initiate()
+            self._initiate()
         try:
             row_status = self.mload.put_row(self.preprocessor(items))
             self.applied_count += 1
-        except (TeradataError, EncoderError) as error:
+        except (TeradataPTError, EncoderError) as error:
             self.error_count += 1
             if panic:
                 raise error
             log.info("MLoad", error)
+
+    @property
+    def null(self):
+        return self._null
+
+    @null.setter
+    def null(self, value):
+        self._null = value
+        self.mload.set_null(self._null)
+
+    def read_error_table(self):
+        with TeradataCmd(log_level=log.level, config=self.config, key_file=self.key_file,
+                dsn=self.dsn, silent=True) as cmd:
+            result = list(cmd.execute((error_table_count + error_table_sample).format(self.table)))
+            if len(result) == 0:
+                log.info("No error information available.")
+                return
+            return result
 
     def release(self):
         """
@@ -429,3 +384,86 @@ class TeradataBulkLoad(Connection):
         The number of rows applied, plus the number of rows in error.
         """
         return self.applied_count + self.error_count
+
+    def _apply_rows(self):
+        log.info("MLoad", "Beginning apply phase ...")
+        self.mload.apply_rows()
+        self._update_apply_count()
+        self._update_error_count()
+        log.info("MLoad", "Apply phase ended.")
+
+    def _close(self, exc=None):
+        if not self.initiated:
+            return
+        if not exc:
+            try:
+                self.finish()
+            except TeradataPTError as error:
+                self._close(error)
+                if self.print_error_table:
+                    for row in self.read_error_table():
+                        print(row)
+                raise error
+        log.info("MLoad", "Closing Teradata PT connection ...")
+        self.mload.close()
+        log.info("MLoad", "Teradata PT request complete.")
+
+    def _connect(self, host, username, password):
+        self.mload = MLoad(host, username, password)
+        title, version = get_version_info()
+        query_band = "UTILITYNAME={};VERSION={};".format(title, version)
+        self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
+
+    def _end_acquisition(self):
+        log.info("MLoad", "Ending acquisition phase ...")
+        self.mload.end_acquisition()
+        log.info("MLoad", "Acquisition phase ended.")
+
+    def _exit_code(self):
+        data = self.mload.get_event(TD_Evt_ExitCode)
+        if data is None:
+            log.info("MLoad", "Update exit code failed.")
+            return
+        return struct.unpack("h", data)[0]
+
+    def _initiate(self):
+        if not self.table:
+            raise GiraffeError("Table must be set prior to initiating.")
+        if self.initiated:
+            raise GiraffeError("Already initiated connection.")
+        try:
+            if self.perform_cleanup:
+                self.cleanup()
+            elif any(filter(lambda x: self.mload.exists(x), self.tables)):
+                raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
+            log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
+            start_time = time.time()
+            self.mload.initiate(self.table, self.columns)
+            self.idle_time = time.time() - start_time
+        except InvalidCredentialsError as error:
+            if args.protect:
+                Config.lock_connection(args.conf, args.dsn, args.key)
+            raise error
+        self.mload.set_delimiter(self.delimiter)
+        self.mload.set_null(self.null)
+        log.info("MLoad", "Teradata PT request accepted.")
+        self._columns = self.mload.columns()
+        self.initiated = True
+
+    def _update_apply_count(self):
+        data = self.mload.get_event(TD_Evt_RowCounts64)
+        if data is None:
+            log.info("MLoad", "Update apply row count failed.")
+            return
+        recv, sent, applied = struct.unpack("QQQ", data)
+        log.debug("Debug[2]", "Event[RowCounts64]: r:{}, s:{}, a:{}".format(recv, sent, applied))
+        self.applied_count = applied
+
+    def _update_error_count(self):
+        data = self.mload.get_event(TD_Evt_ErrorTable2, 1)
+        if data is None:
+            log.info("MLoad", "Update error row count failed.")
+            return
+        count = struct.unpack("I", data)[0]
+        log.debug("Debug[2]", "Event[ErrorTable2]: c:{}".format(count))
+        self.error_count = count

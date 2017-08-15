@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Advanced Usage &mdash; giraffez 2.0.0 documentation</title>
+  <title>Advanced Usage &mdash; giraffez 2.0.0rc1 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.0 documentation" href="index.html"/>
+    <link rel="top" title="giraffez 2.0.0rc1 documentation" href="index.html"/>
         <link rel="next" title="API Reference" href="api.html"/>
         <link rel="prev" title="Quickstart" href="quickstart.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                2.0.0
+                2.0.0rc1
               </div>
             
           
@@ -202,13 +202,13 @@
 </div>
 <div class="section" id="working-with-other-packages">
 <h2>Working with other packages<a class="headerlink" href="#working-with-other-packages" title="Permalink to this headline">¶</a></h2>
-<p>Results from <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a> and <a class="reference internal" href="api.html#giraffez.export.TeradataExport" title="giraffez.export.TeradataExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code></a> can be
+<p>Results from <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a> and <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code></a> can be
 used with other packages that accept common Python data structures.</p>
 <p>Using <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a> with pandas:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;select infokey, character_length(infokey) as nchars from dbc.dbcinfo&quot;</span><span class="p">)</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()))</span>
 </pre></div>
 </div>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
@@ -218,10 +218,10 @@ used with other packages that accept common Python data structures.</p>
 <span class="go">2  LANGUAGE SUPPORT MODE      21</span>
 </pre></div>
 </div>
-<p>Using <a class="reference internal" href="api.html#giraffez.export.TeradataExport" title="giraffez.export.TeradataExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code></a> with pandas:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Export</span><span class="p">()</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
+<p>Using <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code></a> with pandas:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkExport</span><span class="p">()</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
     <span class="n">export</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;select infokey, character_length(infokey) as nchars from dbc.dbcinfo&quot;</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">export</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">export</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()))</span>
 </pre></div>
 </div>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
@@ -234,34 +234,31 @@ used with other packages that accept common Python data structures.</p>
 <span class="go">dtype: float64</span>
 </pre></div>
 </div>
-<p>Using <a class="reference internal" href="api.html#giraffez.load.TeradataLoad" title="giraffez.load.TeradataLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Load</span></code></a> with pandas:
-# TODO(chris): need to make and test this example</p>
-<p>Using <a class="reference internal" href="api.html#giraffez.mload.TeradataMLoad" title="giraffez.mload.TeradataMLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.MLoad</span></code></a> with pandas:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">MLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mload</span><span class="p">:</span>
-    <span class="n">mload</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">():</span>
-       <span class="n">mload</span><span class="o">.</span><span class="n">load_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-    <span class="n">exit_code</span> <span class="o">=</span> <span class="n">mload</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
-    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;finished load with code {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exit_code</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-       <span class="n">mload</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+<p>Using <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a>  to load data from pandas:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">Cmd</span><span class="p">:</span>
+    <span class="n">cmd</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">fields</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
 </pre></div>
 </div>
-<p><strong>Note:</strong> it is extremely important when loading data to make sure that the data types you are using in Python are compatible with the Teradata data type it is being loaded into.  If the type is incorrect it can cause the mload driver to fail with error messages that are sometimes very difficult to diagnose.  It is recommended to work with a small test dataset and a copy of the table when initially creating a <cite>giraffez.MLoad &lt;giraffez.mload.TeradataMLoad&gt;</cite> based script, which will be much easier to troubleshoot.</p>
-<p id="export-aliasing"># TODO(chris): this is no longer true because of the new columns fetch method, make sure though, then remove this. probably keep the thing in the FAQ about this though
-<strong>Note:</strong> because of the way the TPT Export driver functions, the provided alias “nchars” for the computed column in the query is not available. In this case, the source column “infokey” is used. Rather than allow duplicate column names, <a class="reference internal" href="api.html#giraffez.export.TeradataExport" title="giraffez.export.TeradataExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code></a> detects this and enumerates the offending columns. If this behavior is unacceptable or the alias is needed, you may need to use <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a> or modify your query.</p>
+<p>Using <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> with pandas:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">,</span> <span class="n">print_error_table</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
+    <span class="n">load</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">():</span>
+        <span class="n">load</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Note:</strong> it is extremely important when loading data to make sure that the data types you are using in Python are compatible with the Teradata data type it is being loaded into.  If the type is incorrect it can cause the mload driver to fail with error messages that are sometimes very difficult to diagnose.  It is recommended to work with a small test dataset and a copy of the table when initially creating a <cite>giraffez.BulkLoad &lt;giraffez.load.TeradataBulkLoad&gt;</cite> based script, which will be much easier to troubleshoot.</p>
 </div>
 <div class="section" id="exporting-to-different-formats">
 <h2>Exporting to different formats<a class="headerlink" href="#exporting-to-different-formats" title="Permalink to this headline">¶</a></h2>
 <p>Using the Python standard library <a class="reference external" href="https://docs.python.org/3/library/csv.html">csv</a>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">csv</span>
 
-<span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="s1">&#39;dbc.dbcinfo&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
+<span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkExport</span><span class="p">(</span><span class="s1">&#39;dbc.dbcinfo&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;output.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
         <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictWriter</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">export</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
         <span class="n">writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
-        <span class="c1"># TODO(chris): might want to show streaming it instead of using writerows or at least detail the difference, although i&#39;m not sure if it uses a generator here properly and the list() can be removed, this should be investigated, same with the ones below</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">writerows</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">export</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">export</span><span class="o">.</span><span class="n">to_dict</span><span class="p">():</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Or very similar with <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a>:</p>
@@ -269,13 +266,14 @@ used with other packages that accept common Python data structures.</p>
     <span class="n">result</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;select * from dbc.dbcinfo&quot;</span><span class="p">)</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;output.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
         <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictWriter</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">writerows</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">to_dict</span><span class="p">():</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Here is a way to output a stream of JSON, where each row is a JSON encoded string separated by newline characters:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="s1">&#39;database.table_name&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkExport</span><span class="p">(</span><span class="s1">&#39;database.table_name&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">export</span><span class="p">:</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;output.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">export</span><span class="o">.</span><span class="n">json</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">export</span><span class="o">.</span><span class="n">to_json</span><span class="p">():</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
@@ -283,20 +281,20 @@ used with other packages that accept common Python data structures.</p>
 </div>
 <div class="section" id="session-context">
 <h2>Session context<a class="headerlink" href="#session-context" title="Permalink to this headline">¶</a></h2>
-<p>All statements executed within a <code class="docutils literal"><span class="pre">with</span></code> context block happen within the same Teradata session.  This is particularly useful when dealing with database objects like volatile tables where the table itself is scoped to the session and will disappear once disconnected.  Here is an example of using this session context to create a volatile table and then load it with <a class="reference internal" href="api.html#giraffez.load.TeradataLoad" title="giraffez.load.TeradataLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Load</span></code></a>:</p>
-<div class="highlight-python" id="session-context-load-insert"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Load</span><span class="p">()</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
-    <span class="n">load</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;create multiset volatile table temp_table (</span>
+<p>All statements executed within a <code class="docutils literal"><span class="pre">with</span></code> context block happen within the same Teradata session.  This is particularly useful when dealing with database objects like volatile tables where the table itself is scoped to the session and will disappear once disconnected.  Here is an example of using this session context to create a volatile table and then load it with <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a>:</p>
+<div class="highlight-python" id="session-context-load-insert"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
+    <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;create multiset volatile table temp_table (</span>
 <span class="s2">            first_name varchar(50),</span>
 <span class="s2">            last_name varchar(50),</span>
 <span class="s2">            email varchar(100)</span>
 <span class="s2">        ) primary index (first_name, last_name) on commit preserve rows&quot;&quot;&quot;</span><span class="p">)</span>
 
-    <span class="n">load</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;temp_table&#39;</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;bruce&#39;</span><span class="p">,</span> <span class="s1">&#39;wayne&#39;</span><span class="p">,</span> <span class="s1">&#39;batman@wayne.co&#39;</span><span class="p">)])</span>
-    <span class="n">load</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;temp_table&#39;</span><span class="p">,</span> <span class="p">[</span>
+    <span class="n">cmd</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;temp_table&#39;</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;bruce&#39;</span><span class="p">,</span> <span class="s1">&#39;wayne&#39;</span><span class="p">,</span> <span class="s1">&#39;batman@wayne.co&#39;</span><span class="p">)])</span>
+    <span class="n">cmd</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="s1">&#39;temp_table&#39;</span><span class="p">,</span> <span class="p">[</span>
             <span class="p">(</span><span class="s1">&#39;peter&#39;</span><span class="p">,</span> <span class="s1">&#39;parker&#39;</span><span class="p">),</span>
             <span class="p">(</span><span class="s1">&#39;clark&#39;</span><span class="p">,</span> <span class="s1">&#39;kent&#39;</span><span class="p">)</span>
         <span class="p">],</span> <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;first_name&#39;</span><span class="p">,</span> <span class="s1">&#39;last_name&#39;</span><span class="p">])</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;select * from temp_table&quot;</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;select * from temp_table&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
@@ -305,29 +303,31 @@ used with other packages that accept common Python data structures.</p>
 <span class="go">{&#39;first_name&#39;: &#39;bruce&#39;, &#39;last_name&#39;: &#39;wayne&#39;, &#39;email&#39;: &#39;batman@wayne.co&#39;}</span>
 </pre></div>
 </div>
-<p>There are some exceptions to this when dealing with <a class="reference internal" href="api.html#giraffez.export.TeradataExport" title="giraffez.export.TeradataExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Export</span></code></a> or <a class="reference internal" href="api.html#giraffez.mload.TeradataMLoad" title="giraffez.mload.TeradataMLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.MLoad</span></code></a> since they both use the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a>, which creates multiple sessions to parallelize the bulk operations.</p>
+<p>There are some exceptions to this when dealing with <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code></a> or <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> since they both use the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a>, which creates multiple sessions to parallelize the bulk operations.</p>
 </div>
 <div class="section" id="exception-handling">
 <h2>Exception handling<a class="headerlink" href="#exception-handling" title="Permalink to this headline">¶</a></h2>
-<p># TODO(chris): does this still work?
-In cases where <a class="reference internal" href="api.html#giraffez.mload.TeradataMLoad" title="giraffez.mload.TeradataMLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.MLoad</span></code></a> raises a <a class="reference internal" href="api.html#giraffez.errors.GiraffeEncodeError" title="giraffez.errors.GiraffeEncodeError"><code class="xref py py-class docutils literal"><span class="pre">GiraffeEncodeError</span></code></a> and panics, the release of the table lock can be ensured by wrapping the <a class="reference internal" href="api.html#giraffez.mload.TeradataMLoad" title="giraffez.mload.TeradataMLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.MLoad</span></code></a> code with a try-except that calls <a class="reference internal" href="api.html#giraffez.mload.TeradataMLoad.release" title="giraffez.mload.TeradataMLoad.release"><code class="xref py py-class docutils literal"><span class="pre">release</span></code></a>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">MLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mload</span><span class="p">:</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">mload</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="s2">&quot;first_name&quot;</span><span class="p">]</span>
-        <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="p">(</span><span class="s2">&quot;Hemingway&quot;</span><span class="p">,</span> <span class="s2">&quot;Ernest&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s2">&quot;Chekhov&quot;</span><span class="p">,</span> <span class="s2">&quot;Anton&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s2">&quot;Kafka&quot;</span><span class="p">,</span> <span class="s2">&quot;Franz&quot;</span><span class="p">)</span>
-        <span class="p">]</span>
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
-            <span class="n">mload</span><span class="o">.</span><span class="n">load_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">mload</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
-    <span class="k">except</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">GiraffeEncodeError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-        <span class="n">mload</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
-        <span class="c1"># re-raise the error so that it produces the full traceback</span>
-        <span class="k">raise</span> <span class="n">error</span>
+<p>In cases where <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> raises an <code class="xref py py-class docutils literal"><span class="pre">EncodeError</span></code>, the exception be intercepted to modify the control flow.  For example, this can be particularly useful when troubleshooting an unsuccessful mload:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
+    <span class="n">load</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="s2">&quot;first_name&quot;</span><span class="p">]</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;Hemingway&quot;</span><span class="p">,</span> <span class="s2">&quot;Ernest&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;Chekhov&quot;</span><span class="p">,</span> <span class="s2">&quot;Anton&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;Kafka&quot;</span><span class="p">,</span> <span class="s2">&quot;Franz&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">load</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">EncoderError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="c1"># Intercept the exception to print out the row causing</span>
+            <span class="c1"># the error</span>
+            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Input row: &quot;</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
+            <span class="c1"># re-raise the error so that it produces the full</span>
+            <span class="c1"># traceback or simply continue to the next row</span>
+            <span class="k">raise</span> <span class="n">error</span>
 </pre></div>
 </div>
+<p>This ends up giving a lot of flexibility to make helpful modifications to the behavior of the load task that isn’t available in the official load utility.</p>
 </div>
 <div class="section" id="archiving-tables">
 <span id="archiving"></span><h2>Archiving tables<a class="headerlink" href="#archiving-tables" title="Permalink to this headline">¶</a></h2>
@@ -344,11 +344,11 @@ In cases where <a class="reference internal" href="api.html#giraffez.mload.Terad
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">giraffez</span> <span class="n">cmd</span> <span class="n">database_large_table</span><span class="o">.</span><span class="n">sql</span>
 </pre></div>
 </div>
-<p>and then load the file back with <a class="reference internal" href="command-line.html#mload-command"><span class="std std-ref">mload</span></a>:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">giraffez</span> <span class="n">mload</span> <span class="n">database</span><span class="o">.</span><span class="n">table_name</span><span class="o">.</span><span class="n">gd</span> <span class="n">database</span><span class="o">.</span><span class="n">another_table_name</span>
+<p>and then load the file back with <a class="reference internal" href="command-line.html#load-command"><span class="std std-ref">load</span></a>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">giraffez</span> <span class="n">load</span> <span class="n">database</span><span class="o">.</span><span class="n">table_name</span><span class="o">.</span><span class="n">gd</span> <span class="n">database</span><span class="o">.</span><span class="n">another_table_name</span>
 </pre></div>
 </div>
-<p>The <a class="reference internal" href="command-line.html#mload-command"><span class="std std-ref">mload</span></a> command automatically detects the files type as a giraffez archive file so it doesn’t need any additional options.</p>
+<p>The <a class="reference internal" href="command-line.html#load-command"><span class="std std-ref">load</span></a> command automatically detects the files type as a giraffez archive file so it doesn’t need any additional options.</p>
 <p>You can also archive only a portion of a large table and use <cite>delete</cite> to remove only the parts of the table that have been archived:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">giraffez</span> <span class="n">export</span> <span class="s2">&quot;select * from database.large_table where report_dt &gt;= &#39;2015-01-01&#39; and report_dt &lt; &#39;2016-01-01&#39;&quot;</span> <span class="mi">20150101</span><span class="n">_20160101_database_large_table</span><span class="o">.</span><span class="n">gd</span><span class="o">.</span><span class="n">gz</span> <span class="o">-</span><span class="n">az</span>
 <span class="n">giraffez</span> <span class="n">cmd</span> <span class="s2">&quot;delete * from database.large_table where report_dt &gt;= &#39;2015-01-01&#39; and report_dt &lt; &#39;2016-01-01&#39;&quot;</span>
@@ -418,7 +418,7 @@ In cases where <a class="reference internal" href="api.html#giraffez.mload.Terad
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.0',
+            VERSION:'2.0.0rc1',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
