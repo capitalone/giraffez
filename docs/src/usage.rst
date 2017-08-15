@@ -94,7 +94,7 @@ Using :class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` with pandas:
             load.put(row)
 
 
-**Note:** it is extremely important when loading data to make sure that the data types you are using in Python are compatible with the Teradata data type it is being loaded into.  If the type is incorrect it can cause the mload driver to fail with error messages that are sometimes very difficult to diagnose.  It is recommended to work with a small test dataset and a copy of the table when initially creating a `giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` based script, which will be much easier to troubleshoot.
+**Note:** it is extremely important when loading data to make sure that the data types you are using in Python are compatible with the Teradata data type it is being loaded into.  If the type is incorrect it can cause the mload driver to fail with error messages that are sometimes very difficult to diagnose.  It is recommended to work with a small test dataset and a copy of the table when initially creating a :class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` based script, which will be much easier to troubleshoot.
  
 
 Exporting to different formats

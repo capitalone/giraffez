@@ -62,7 +62,7 @@ class TeradataBulkExport(Connection):
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
     :param bool coerce_floats: Coerce Teradata decimal types into Python floats
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
-    :raises `giraffez.errors.TeradataError`: if the connection cannot be established
+    :raises `giraffez.TeradataError`: if the connection cannot be established
 
     Meant to be used, where possible, with Python's :code:`with` context handler
     to guarantee that connections will be closed gracefully when operation
@@ -70,9 +70,9 @@ class TeradataBulkExport(Connection):
 
     .. code-block:: python
 
-       with giraffez.Export('dbc.dbcinfo') as export:
+       with giraffez.BulkExport('dbc.dbcinfo') as export:
            print(export.header)
-           for row in export.values():
+           for row in export.to_list():
                print(row)
     """
 
@@ -198,7 +198,7 @@ class TeradataBulkExport(Connection):
 
             with giraffez.BulkExport("database.table_name") as export:
                 with giraffez.Writer("database.table_name.tar.gz", 'wb', use_gzip=True) as out:
-                    for n in export.archive(out):
+                    for n in export.to_archive(out):
                         print("Rows: {}".format(n))
 
         :param `giraffez.io.Writer` writer: A writer handling the archive output

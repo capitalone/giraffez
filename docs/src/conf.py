@@ -15,20 +15,6 @@
 from sphinx.directives import TocTree
 from docutils.parsers.rst import directives
 
-# http://stackoverflow.com/a/10058135/2827847
-class NewTocTree(TocTree):
-    option_spec = dict(TocTree.option_spec,
-                       reversed=directives.flag)
-
-    def run(self):
-        rst = super(NewTocTree, self).run()
-        if 'reversed' in self.options:
-            rst[0][0]['entries'].reverse()
-        return rst
-
-def setup(app):
-    app.add_directive('toctree', NewTocTree)
-
 import sys
 import os
 import shlex

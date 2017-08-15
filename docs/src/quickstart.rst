@@ -32,12 +32,14 @@ Next, let's perform a common function of working with any database by querying a
     with giraffez.Cmd() as cmd:
         results = cmd.execute("select * from dbc.dbcinfo")
 
+This returns a :class:`Cursor <giraffez.cmd.Cursor>` for the provided query and printing it shows the various options that are set for :meth:`execute <giraffez.cmd.TeradataCmd.execute>`:
+
 .. code-block:: python
 
     >>> print(results)
     Cursor(statements=1, multi_statement=False, prepare=False, coerce_floats=True, parse_dates=False)
 
-This returns a :class:`Cursor <giraffez.cmd.Cursor>` for the provided query and printing it shows the various options that are set for :meth:`execute <giraffez.cmd.TeradataCmd.execute>`.  Here we can see that it contains only one query statement and multiple parallel statement mode is disabled.  Reading from the cursor is fairly straight forward:
+Here we can see that it contains only one query statement and multiple parallel statement mode is disabled. Reading from the cursor is fairly straight forward:
 
 .. code-block:: python
 
@@ -58,7 +60,7 @@ It is just as easy to execute multiple synchronous statements:
             select count(*) as total from dbc.dbcinfo;
         """)
 
-Multiple parallel statement mode is helpful when you need to run insert statements in parallel or need to execute multiple queries at the same (similar to a union but they are returned as different logical result sets).  Taking advantage of this only requires giving :meth:`execute <giraffez.cmd.TeradataCmd.execute>` multiple statements separated by a semi-colon and setting the ``multi_statement`` keyword argument:
+Multiple parallel statement mode is helpful when you need to run insert statements in parallel or need to execute multiple queries at the same time (similar to a union but they are returned as different logical result sets).  Taking advantage of this only requires giving :meth:`execute <giraffez.cmd.TeradataCmd.execute>` multiple statements separated by a semi-colon and setting the ``multi_statement`` keyword argument:
 
 .. code-block:: python
 
@@ -83,7 +85,7 @@ The two statements will execute as part of the same request, and yield from the 
 Working with cursors
 --------------------
 
-Executing statements returns a `cursor-like object <giraffez.cmd.Cursor>` that enables traversal over the executing statements.  This works in a similar manner to other database client software that also uses a cursor, and just as with libraries like `pyodbc` one must read completely from the cursor to execute the statements and exhaust the records returned by Teradata:
+Executing statements returns a :class:`cursor-like object <giraffez.cmd.Cursor>` that enables traversal over the executing statements.  This works in a similar manner to other database client software that also uses a cursor, and just as with libraries like `pyodbc` one must read completely from the cursor to execute the statements and exhaust the records returned by Teradata:
 
 
 .. code-block:: python
@@ -187,7 +189,7 @@ Loading data into a table
 .. code-block:: python
 
     with giraffez.Cmd() as Cmd:
-        stats = load.insert('database.table_name', 'my_data.txt')
+        stats = cmd.insert('database.table_name', 'my_data.txt')
 
 This requires a delimited header to be provided as the first line of the file and it returns a :class:`dict` with the number of rows inserted and the number of errors encountered:
 
@@ -207,10 +209,10 @@ When exporting a large amount of data from Teradata (many millions of rows), :cl
 .. code-block:: python
 
     with giraffez.BulkExport('dbc.dbcinfo') as export:
-        for row in export.values():
+        for row in export.to_list():
             print(row)
 
-More options are detailed over in the API referrence for :class:`giraffez.Export <giraffez.export.TeradataExport>`.
+More options are detailed over in the API referrence for :class:`giraffez.BulkExport <giraffez.export.TeradataBulkExport>`.
 
 
 Loading large amounts of data
@@ -240,6 +242,7 @@ Another important feature is loading rows individually when dealing with informa
             load.put(row)
 
 :ref:`Teradata Parallel Transporter API <teradata-libraries>` returns an exit code for every job using the bulk update driver. This exit code can be ``0``, ``2``, ``4``, ``8``, or ``12``.  This is intrinsic to how the driver works and any exit code other than 0 indicates some kind of failure to complete and is the same code returned when running a MultiLoad job using Teradata's official ``mload`` command-line tool.  To remove unnecessary boilerplate, this exit code is implicitly ``0`` when successfully and raises an exception with the exit code should the job be unsuccessful.  While we try very hard to abstract away the rough edges of the MultiLoad protocol, it is sometimes not very clear how the job errored.  In these cases passing keyword ``print_error_table`` allows for convenient access to the error table upon exit:
+
 .. code-block:: python
    
     with giraffez.BulkLoad("database.table_name", print_error_table=True) as load:

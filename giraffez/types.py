@@ -441,13 +441,12 @@ class Decimal(decimal.Decimal):
 
 class Row(object):
     """
-    A wrapper for a single row within a :class:`~giraffez.types.Result` object.
+    A wrapper for a single row object.
 
     Defines the :code:`__iter__` magic method for convenience:
 
     .. code-block:: python
 
-       row = results.first()
        for item in row:
            print(item)
 
@@ -455,17 +454,12 @@ class Row(object):
 
     .. code-block:: python
 
-       row = results.first()
        print(row.first_name) # 'alice'
-
-       for row in results:
-           print(row.first_name) # 'alice', 'bob', 'charlie', ...
 
     Defines the :code:`__getitem__` magic method to return a particular field by name or numeric index:
 
     .. code-block:: python
 
-       row = results.first()
        print(row['first_name']) # 'alice'
        print(row['id']) # 'abc123'
        print(row[2]) # 'abc123'
@@ -480,9 +474,7 @@ class Row(object):
     def items(self):
         """
         Represents the contents of the row as a :code:`dict` with the column
-        names as keys, and the row's fields as values. Used by 
-        :meth:`~giraffez.types.Result.items` and useful for passing row data to
-        functions which expect dictionaries.
+        names as keys, and the row's fields as values.
 
         :rtype: dict
         """

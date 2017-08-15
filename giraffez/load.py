@@ -59,7 +59,7 @@ class TeradataBulkLoad(Connection):
     The class for using the TPT API's UPDATE (MLoad) driver to insert a
     large (> ~100k rows) amount of data into an existing Teradata table.
 
-    Exposed under the alias :class:`giraffez.Load`.
+    Exposed under the alias :class:`giraffez.BulkLoad`.
 
     :param str table: The name of the target table for loading.
     :param str host: Omit to read from :code:`~/.girafferc` configuration file.
@@ -78,12 +78,12 @@ class TeradataBulkLoad(Connection):
         command :code:`giraffez config --unlock <connection>`, changing the connection password,
         or via the :meth:`~giraffez.config.Config.unlock_connection` method.
     :param bool coerce_floats: Coerce Teradata decimal types into Python floats
-    :param bool cleanup: MLoad will attempt to cleanup all work tables
+    :param bool cleanup: Attempt to cleanup all work tables
         when context exits.
     :param bool print_error_table: Prints a user-friendly version of the mload
         error table to stderr.
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
-    :raises `giraffez.errors.TeradataError`: if the connection cannot be established
+    :raises `giraffez.TeradataPTError`: if the connection cannot be established
 
     If the target table is currently under an MLoad lock (such as if the
     previous operation failed), a :code:`release mload` statement will be
@@ -131,13 +131,13 @@ class TeradataBulkLoad(Connection):
     def cleanup(self):
         """
         Drops any existing work tables, as returned by
-        :meth:`~giraffez.mload.TeradataMLoad.tables`.
+        :meth:`~giraffez.load.TeradataBulkLoad.tables`.
 
-        :raises `giraffez.errors.TeradataError`: if a Teradata error ocurred
+        :raises `giraffez.TeradataPTError`: if a Teradata error ocurred
         """
         threads = []
         for i, table in enumerate(filter(lambda x: self.mload.exists(x), self.tables)):
-            log.info("MLoad", "Dropping table '{}'...".format(table))
+            log.info("BulkLoad", "Dropping table '{}'...".format(table))
             t = threading.Thread(target=self.mload.drop_table, args=(table,))
             threads.append(t)
             t.start()
@@ -182,9 +182,7 @@ class TeradataBulkLoad(Connection):
 
     def finish(self):
         """
-        Finishes the load job. **Called automatically when loading from a
-        file, but must be called at the end of the job after loading rows
-        individually.**
+        Finishes the load job. Called automatically when the connection closes.
 
         :return: The exit code returned when applying rows to the table
         """
@@ -193,18 +191,18 @@ class TeradataBulkLoad(Connection):
         checkpoint_status = self.checkpoint()
         self.exit_code = self._exit_code()
         if self.exit_code != 0:
-            raise TeradataPTError("MLoad job finished with return code '{}'".format(self.exit_code))
+            raise TeradataPTError("BulkLoad job finished with return code '{}'".format(self.exit_code))
         # TODO(chris): should this happen every time?
         if self.applied_count > 0:
             self._end_acquisition()
             self._apply_rows()
         self.exit_code = self._exit_code()
         if self.exit_code != 0:
-            raise TeradataPTError("MLoad job finished with return code '{}'".format(self.exit_code))
+            raise TeradataPTError("BulkLoad job finished with return code '{}'".format(self.exit_code))
         self.finished = True
         return self.exit_code
 
-    def from_file(self, filename, table=None, null=None, delimiter=None, panic=True, quotechar='"'):
+    def from_file(self, filename, table=None, null=None, delimiter=None, panic=True, quotechar='"', parse_dates=False):
         """
         Load from a file into the target table, handling each step of the
         load process.
@@ -234,7 +232,7 @@ class TeradataBulkLoad(Connection):
             raised. Otherwise, the error will be logged and :code:`self.error_count`
             is incremented.
         :return: The output of the call to
-            :meth:`~giraffez.mload.TeradataMLoad.finish`
+            :meth:`~giraffez.load.TeradataBulkLoad.finish`
         :raises `giraffez.errors.GiraffeError`: if table was not set and :code:`table`
             is :code:`None`, or if a Teradata error ocurred while retrieving table info.
         :raises `giraffez.errors.GiraffeEncodeError`: if :code:`panic` is :code:`True` and there
@@ -260,12 +258,12 @@ class TeradataBulkLoad(Connection):
             for i, line in enumerate(f, 1):
                 self.put(line, panic=panic)
                 if i % self.checkpoint_interval == 1:
-                    log.info("\rMLoad", "Processed {} rows".format(i), console=True)
+                    log.info("\rBulkLoad", "Processed {} rows".format(i), console=True)
                     checkpoint_status = self.checkpoint()
                     self.exit_code = self._exit_code()
                     if self.exit_code != 0:
                         return self.exit_code
-            log.info("\rMLoad", "Processed {} rows".format(i))
+            log.info("\rBulkLoad", "Processed {} rows".format(i))
             return self.finish()
 
     def put(self, items, panic=True):
@@ -280,7 +278,7 @@ class TeradataBulkLoad(Connection):
         :raises `giraffez.errors.GiraffeEncodeError`: if :code:`panic` is :code:`True` and there
             are format errors in the row values.
         :raises `giraffez.errors.GiraffeError`: if table name is not set.
-        :raises `giraffez.errors.TeradataError`: if there is a problem
+        :raises `giraffez.TeradataPTError`: if there is a problem
             connecting to Teradata.
         """
         if not self.initiated:
@@ -292,7 +290,7 @@ class TeradataBulkLoad(Connection):
             self.error_count += 1
             if panic:
                 raise error
-            log.info("MLoad", error)
+            log.info("BulkLoad", error)
 
     @property
     def null(self):
@@ -317,12 +315,12 @@ class TeradataBulkLoad(Connection):
         Attempt release of target mload table.
 
         :raises `giraffez.errors.GiraffeError`: if table was not set by
-            the constructor, the :code:`TeradataMLoad.table`, or
-            :meth:`~giraffez.mload.TeradataMLoad.from_file`.
+            the constructor, the :code:`TeradataBulkLoad.table`, or
+            :meth:`~giraffez.load.TeradataBulkLoad.from_file`.
         """
         if self.table is None:
             raise GiraffeError("Cannot release. Target table has not been set.")
-        log.info("MLoad", "Attempting release for table {}".format(self.table))
+        log.info("BulkLoad", "Attempting release for table {}".format(self.table))
         self.mload.release(self.table)
 
     @property
@@ -337,8 +335,8 @@ class TeradataBulkLoad(Connection):
         :return: A list of four tables, each the name of the target table
             with the added suffixes, "_wt", "_log", "_e1", and "_e2"
         :raises `giraffez.errors.GiraffeError`: if table was not set by
-            the constructor, the :code:`TeradataMLoad.table`, or
-            :meth:`~giraffez.mload.TeradataMLoad.from_file`.
+            the constructor, the :code:`TeradataBulkLoad.table`, or
+            :meth:`~giraffez.load.TeradataBulkLoad.from_file`.
         """
         if self.table is None:
             raise GiraffeError("Target table has not been set.")
@@ -358,15 +356,15 @@ class TeradataBulkLoad(Connection):
             has not been set.
         :setter: Set the name of the target table, if the table name
             was not given to the constructor of the
-            :class:`~giraffez.mload.TeradataMLoad` instance or
-            :meth:`~giraffez.mload.TeradataMLoad.from_file`. The value given
+            :class:`~giraffez.load.TeradataBulkLoad` instance or
+            :meth:`~giraffez.load.TeradataBulkLoad.from_file`. The value given
             must include all qualifiers such as database name.
 
             Raises :class:`~giraffez.errors.GiraffeError` if the MLoad connection has
             already been initiated, or the :class:`~giraffez.cmd.TeradataCmd` connection cannot
             be established.
 
-            Raises :class:`~giraffez.errors.TeradataError` if the column data could not be
+            Raises :class:`~giraffez.TeradataPTError` if the column data could not be
             retrieved from Teradata
         :type: str
         """
@@ -375,7 +373,7 @@ class TeradataBulkLoad(Connection):
     @table.setter
     def table(self, table_name):
         if self.initiated:
-            raise GiraffeError("Cannot reuse MLoad context for more than one table")
+            raise GiraffeError("Cannot reuse BulkLoad context for more than one table")
         self._table_name = table_name
 
     @property
@@ -386,11 +384,11 @@ class TeradataBulkLoad(Connection):
         return self.applied_count + self.error_count
 
     def _apply_rows(self):
-        log.info("MLoad", "Beginning apply phase ...")
+        log.info("BulkLoad", "Beginning apply phase ...")
         self.mload.apply_rows()
         self._update_apply_count()
         self._update_error_count()
-        log.info("MLoad", "Apply phase ended.")
+        log.info("BulkLoad", "Apply phase ended.")
 
     def _close(self, exc=None):
         if not self.initiated:
@@ -404,9 +402,9 @@ class TeradataBulkLoad(Connection):
                     for row in self.read_error_table():
                         print(row)
                 raise error
-        log.info("MLoad", "Closing Teradata PT connection ...")
+        log.info("BulkLoad", "Closing Teradata PT connection ...")
         self.mload.close()
-        log.info("MLoad", "Teradata PT request complete.")
+        log.info("BulkLoad", "Teradata PT request complete.")
 
     def _connect(self, host, username, password):
         self.mload = MLoad(host, username, password)
@@ -415,14 +413,14 @@ class TeradataBulkLoad(Connection):
         self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)
 
     def _end_acquisition(self):
-        log.info("MLoad", "Ending acquisition phase ...")
+        log.info("BulkLoad", "Ending acquisition phase ...")
         self.mload.end_acquisition()
-        log.info("MLoad", "Acquisition phase ended.")
+        log.info("BulkLoad", "Acquisition phase ended.")
 
     def _exit_code(self):
         data = self.mload.get_event(TD_Evt_ExitCode)
         if data is None:
-            log.info("MLoad", "Update exit code failed.")
+            log.info("BulkLoad", "Update exit code failed.")
             return
         return struct.unpack("h", data)[0]
 
@@ -436,7 +434,7 @@ class TeradataBulkLoad(Connection):
                 self.cleanup()
             elif any(filter(lambda x: self.mload.exists(x), self.tables)):
                 raise GiraffeError("Cannot continue without dropping previous job tables. Exiting ...")
-            log.info("MLoad", "Initiating Teradata PT request (awaiting server)  ...")
+            log.info("BulkLoad", "Initiating Teradata PT request (awaiting server)  ...")
             start_time = time.time()
             self.mload.initiate(self.table, self.columns)
             self.idle_time = time.time() - start_time
@@ -446,14 +444,14 @@ class TeradataBulkLoad(Connection):
             raise error
         self.mload.set_delimiter(self.delimiter)
         self.mload.set_null(self.null)
-        log.info("MLoad", "Teradata PT request accepted.")
+        log.info("BulkLoad", "Teradata PT request accepted.")
         self._columns = self.mload.columns()
         self.initiated = True
 
     def _update_apply_count(self):
         data = self.mload.get_event(TD_Evt_RowCounts64)
         if data is None:
-            log.info("MLoad", "Update apply row count failed.")
+            log.info("BulkLoad", "Update apply row count failed.")
             return
         recv, sent, applied = struct.unpack("QQQ", data)
         log.debug("Debug[2]", "Event[RowCounts64]: r:{}, s:{}, a:{}".format(recv, sent, applied))
@@ -462,7 +460,7 @@ class TeradataBulkLoad(Connection):
     def _update_error_count(self):
         data = self.mload.get_event(TD_Evt_ErrorTable2, 1)
         if data is None:
-            log.info("MLoad", "Update error row count failed.")
+            log.info("BulkLoad", "Update error row count failed.")
             return
         count = struct.unpack("I", data)[0]
         log.debug("Debug[2]", "Event[ErrorTable2]: c:{}".format(count))

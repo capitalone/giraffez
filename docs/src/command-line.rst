@@ -93,7 +93,7 @@ For example, if you want to write the contents of ``database.table_name`` to a t
 
     giraffez export database.table_name output_file.txt -d '\t'
 
-Where ``output_file.txt`` specifies the output location (a filename), and ``-d`` specifies the delimiter. Note that because tab is a special character it has been written *escaped* as \t and quoted so that it is passed literally. If name of the output file is omitted, the result of the command will be written to standard out (from which it may be redirected, if desired.)
+Where ``output_file.txt`` specifies the output location (a filename), and ``-d`` specifies the delimiter. Note that because tab is a special character it has been written *escaped* as \\t and quoted so that it is passed literally. If name of the output file is omitted, the result of the command will be written to standard out (from which it may be redirected, if desired.)
 
 .. _fmt-command:
 
@@ -121,7 +121,7 @@ Similarly the ``-n`` (``--null``) option can be used to transform null text in a
 .. _insert-command:
 
 insert
-----
+------
 
 The ``insert`` module provides an interface to insert data into an existing Teradata table using the Teradata CLIv2 driver.
 
@@ -134,7 +134,7 @@ The ``insert`` command necessitates that a header is present in the source file.
 .. _load-command:
 
 load
------
+----
 
 The ``load`` module provides an interface to insert data into an existing Teradata table using the Teradata PT API's Update driver (aka mload). It is designed to be as user-friendly as the export module by handling many of the "nuances" of mload. Much like the export module, you are not required to make a script file. 
 

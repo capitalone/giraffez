@@ -97,7 +97,7 @@ class CmdCommand(Command):
                 if out.is_stdout:
                     log.info(colors.green(colors.bold("-"*32)))
                 if args.json:
-                    for row in result.items():
+                    for row in result.to_dict():
                         out.writen(json.dumps(row))
                 elif args.table_output and not (args.query.lower().startswith("show") or \
                         args.query.lower().startswith("help")):
@@ -223,7 +223,7 @@ class ExportCommand(Command):
             if args.archive:
                 with Writer(args.output_file, 'wb', use_gzip=args.gzip) as out:
                     i = 0
-                    for n in export.archive(out):
+                    for n in export.to_archive(out):
                         i += n
                         log.info("\rExport", "Processed {} rows".format(int(round(i, -5))), console=True)
                     log.info("\rExport", "Processed {} rows".format(i))
@@ -236,9 +236,9 @@ class ExportCommand(Command):
                     if not args.no_header:
                         out.writen(export.header)
                     if args.json:
-                        exportfn = export.json
+                        exportfn = export.to_json
                     else:
-                        exportfn = export.strings
+                        exportfn = export.to_str
                     i = 0
                     for i, row in enumerate(exportfn(), 1):
                         if i % 100000 == 0 and args.output_file:
@@ -428,23 +428,23 @@ class LoadCommand(Command):
             else:
                 existing_tables = list(filter(lambda x: load.mload.exists(x), load.tables))
                 if len(existing_tables) > 0:
-                    log.info("MLoad", "Previous work tables found:")
+                    log.info("BulkLoad", "Previous work tables found:")
                     for i, table in enumerate(existing_tables, 1):
                         log.info('  {}: "{}"'.format(i, table))
                     if prompt_bool("Do you want to drop these tables?", default=True):
                         load.cleanup()
                         #for table in existing_tables:
-                            #log.info("MLoad", "Dropping table '{}'...".format(table))
+                            #log.info("BulkLoad", "Dropping table '{}'...".format(table))
                             #load.cmd.drop_table(table, silent=True)
                     else:
                         log.fatal("Cannot continue without dropping previous job tables. Exiting ...")
-            log.info("MLoad", "Executing ...")
+            log.info("BulkLoad", "Executing ...")
             log.info('  source      => "{}"'.format(args.input_file))
             log.info('  output      => "{}"'.format(args.table))
             start_time = time.time()
             exit_code = load.from_file(args.input_file, delimiter=args.delimiter, null=args.null, quotechar=args.quote_char, parse_dates=args.parse_dates)
             total_time = time.time() - start_time
-            log.info("MLoad", "Teradata PT request finished with exit code '{}'".format(exit_code))
+            log.info("BulkLoad", "Teradata PT request finished with exit code '{}'".format(exit_code))
             log.info("Results", "...")
             log.info('  Successful   => "{}"'.format(load.applied_count))
             log.info('  Unsuccessful => "{}"'.format(load.error_count))

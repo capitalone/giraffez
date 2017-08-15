@@ -43,12 +43,13 @@ _columns_cache_lock = threading.Lock()
 
 class Cursor(object):
     """
-    The class returned by :meth:`giraffez.Cmd.execute` for iterating
+    The class returned by :meth:`giraffez.Cmd.execute <giraffez.cmd.Cmd.execute>` for iterating
     through Terdata CLIv2 results.
 
     :param `giraffez.Cmd` conn: The underlying database connection
     :param str command: The SQL command to be executed
     :param bool multi_statement: Execute in parallel statement mode
+    :param bool header: If :code:`True`, yields a list of column names between statements
     :param bool prepare_only: Execute in prepare mode
     :param bool coerce_floats: Coerce Teradata Decimal types
         automatically into Python floats
@@ -165,7 +166,7 @@ class Cursor(object):
         .. code-block:: python
 
             with giraffez.Cmd() as cmd:
-                for row in cmd.execute(query).items():
+                for row in cmd.execute(query).to_dict():
                     print(row)
 
         Or can be passed as a parameter to an object that consumes an iterator:
@@ -173,7 +174,7 @@ class Cursor(object):
         .. code-block:: python
 
             result = cmd.execute(query)
-            list(result.items())
+            list(result.to_dict())
         """
         self.conn.set_encoding(ROW_ENCODING_DICT)
         self.processor = lambda x, y: y
@@ -215,7 +216,7 @@ class TeradataCmd(Connection):
 
     Exposed under the alias :class:`giraffez.Cmd`.
     
-    For large-output queries, :class:`giraffez.Export` should be used.
+    For large-output queries, :class:`giraffez.BulkExport <giraffez.export.TeradataBulkExport>` should be used.
 
     :param str host: Omit to read from :code:`~/.girafferc` configuration file.
     :param str username: Omit to read from :code:`~/.girafferc` configuration file.
@@ -236,7 +237,7 @@ class TeradataCmd(Connection):
     :param bool panic: If :code:`True`, when an error is encountered it will be
         raised.
     :raises `giraffez.errors.InvalidCredentialsError`: if the supplied credentials are incorrect
-    :raises `giraffez.errors.TeradataError`: if the connection cannot be established
+    :raises `giraffez.TeradataError`: if the connection cannot be established
 
     Meant to be used, where possible, with python's :code:`with` context handler
     to guarantee that connections will be closed gracefully when operation
@@ -266,17 +267,17 @@ class TeradataCmd(Connection):
         :param str command: The SQL command to be executed
         :param bool coerce_floats: Coerce Teradata decimal types into Python floats
         :param bool parse_dates: Parses Teradata datetime types into Python datetimes
-        :param bool multi_statement: Execute in multi-statement mode
         :param bool header: Include row header
         :param bool sanitize: Whether or not to call :func:`~giraffez.sql.prepare_statement`
             on the command
         :param bool silent: Silence console logging (within this function only)
-        :param bool prepare_only: Only prepare the command (no results)
         :param bool panic: If :code:`True`, when an error is encountered it will be
             raised.
-        :return: the results of each statement in the command
-        :rtype: :class:`~giraffez.types.Rows`
-        :raises `giraffez.errors.TeradataError`: if the query is invalid
+        :param bool multi_statement: Execute in multi-statement mode
+        :param bool prepare_only: Only prepare the command (no results)
+        :return: a cursor over the results of each statement in the command
+        :rtype: :class:`~giraffez.cmd.Cursor`
+        :raises `giraffez.TeradataError`: if the query is invalid
         :raises `giraffez.errors.GiraffeError`: if the return data could not be decoded
         """
         if panic is None:
@@ -343,7 +344,7 @@ class TeradataCmd(Connection):
         Load a text file into the specified :code:`table_name` or Insert Python :code:`list` rows into the specified :code:`table_name`
 
         :param str table_name: The name of the destination table
-        :param list rows: A list of rows or the name of an input file. Each row
+        :param list/str rows: A list of rows **or** the name of an input file. Each row
             must be a :code:`list` of field values.
         :param list fields: The names of the target fields, in the order that
             the data will be presented (defaults to :code:`None` for all columns
@@ -353,7 +354,7 @@ class TeradataCmd(Connection):
         :param str null: The string used to indicated nulled values in the
             file (defaults to :code:`'NULL'`).
         :param str quotechar: The character used to quote fields containing special
-            characters, like the delimiter."
+            characters, like the delimiter.
         :param bool parse_dates: If :code:`True`, attempts to coerce date fields
             into a standard format (defaults to :code:`False`).
         :raises `giraffez.errors.GiraffeEncodeError`: if the number of values in a row does not match
@@ -361,14 +362,14 @@ class TeradataCmd(Connection):
         :raises `giraffez.errors.GiraffeError`: if :code:`panic` is set and the insert statement
             caused an error.
         :return: A dictionary containing counts of applied rows and errors
-        :rtype: dict
+        :rtype: :class:`dict`
 
         For most insertions, this will be faster and produce less strain on
-        Teradata than using :class:`~giraffez.load.TeradataBulkLoad` (:class:`giraffez.BulkLoad`).
+        Teradata than using :class:`~giraffez.load.TeradataBulkLoad` (:class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>`).
 
         Requires that any input file be a properly delimited text file, with a
         header that corresponds to the target fields for insertion. Valid delimiters
-        include '|', ',', and '\\t' (tab) or a properly encoded JSON stream.
+        include '|', ',', and <tab> or a properly encoded JSON stream.
         """
         if not isfile(rows):
             return self._insert(table_name, rows, fields, parse_dates)

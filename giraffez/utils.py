@@ -123,7 +123,7 @@ def register_graceful_shutdown_signal():
     _register()
 
 def show_warning(message, category):
-    def send_warnings_to_log(message, category, filename, lineno, file=None):
+    def send_warnings_to_log(message, category, filename, lineno, file=None, line=None):
         log.write("{}:{}: {}: {}".format(filename, lineno, category.__name__, message))
     warnings.showwarning = send_warnings_to_log
     warnings.warn(message, category)
