@@ -425,7 +425,11 @@ int teradata_decimal64_to_cstring(unsigned char **data, const uint16_t column_sc
         y = llabs(q % scale);
         return sprintf(buf, fmt, x, column_scale, y);
     } else {
+#ifdef _MSC_VER
+        return sprintf(buf, "%lld", q);
+#else
         return sprintf(buf, "%ld", q);
+#endif
     }
     return -1;
 }

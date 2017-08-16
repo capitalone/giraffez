@@ -17,13 +17,13 @@ Features
 
 - `Command-line tool <http://capitalone.io/giraffez/command-line.html>`_
 - `Python API <http://capitalone.io/giraffez/api.html#giraffez-modules>`_ - expressive, powerful, and great for `working with other packages <http://capitalone.io/giraffez/api.html#working-with-other-packages>`_ (e.g. `pandas <http://pandas.pydata.org>`_)
-- `Export <http://capitalone.io/giraffez/command-line.html#export>`_ from Teradata to a flatfile or archival format, retaining data type information
-- `Load <http://capitalone.io/giraffez/command-line.html#load>`_ into existing Teradata tables using the CLIv2 drivers
-- `Archive <http://capitalone.io/giraffez/command-line.html#archiving>`_ Teradata tables to save space. These can easily be `transformed to flatfiles <http://capitalone.io/giraffez/command-line.html#fmt>`_ or `loaded <http://capitalone.io/giraffez/command-line.html#mload>`_ back into Teradata
 - `Execute <http://capitalone.io/giraffez/command-line.html#cmd>`_ SQL statements using the Teradata CLIv2 library -- performing ad hoc queries and commands
+- `Insert <http://capitalone.io/giraffez/command-line.html#insert>`_ into existing Teradata tables using the CLIv2 drivers
+- `Archive <http://capitalone.io/giraffez/command-line.html#archiving>`_ Teradata tables to save space. These can easily be `transformed to flatfiles <http://capitalone.io/giraffez/command-line.html#fmt>`_ or `loaded <http://capitalone.io/giraffez/command-line.html#load>`_ back into Teradata
+- `BulkExport <http://capitalone.io/giraffez/command-line.html#export>`_ from Teradata to a flatfile or archival format, retaining data type information
+- `BulkLoad <http://capitalone.io/giraffez/command-line.html#load>`_ into existing Teradata tables using the Teradata PT Update (MLOAD)
 - `Config <http://capitalone.io/giraffez/command-line.html#config>`_ - manage connection information and credentials securely using the ``giraffez config`` and ``giraffez secret`` commands
 - `Interactive shell <http://capitalone.io/giraffez/command-line.html#shell>`_ for executing Teradata queries -- much like BTEQ, but with a friendly interface
-- `MultiLoad <http://capitalone.io/giraffez/command-line.html#mload>`_ into existing Teradata tables using the Teradata PT Update (MLOAD)
 - `Run <http://capitalone.io/giraffez/command-line.html#run>`_ job files in YAML format
 
 Links

@@ -232,7 +232,7 @@ Another important feature is loading rows individually when dealing with informa
 .. code-block:: python
    
     with giraffez.BulkLoad("database.table_name") as load:
-        mload.columns = ["last_name", "first_name"]
+        load.columns = ["last_name", "first_name"]
         rows = [
             ("Hemingway", "Ernest"),
             ("Chekhov", "Anton"),
