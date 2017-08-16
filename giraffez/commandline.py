@@ -34,7 +34,7 @@ except ImportError:
 from .constants import *
 from .errors import *
 
-from .config import Config
+from .config import Config, message_write_default
 from .cmd import TeradataCmd
 from .encoders import null_handler, TeradataEncoder
 from .encrypt import create_key_file
