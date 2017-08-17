@@ -26,14 +26,15 @@
     #define Py_TYPE(ob) (((PyObject*)(ob))->ob_type)
 #endif
 
-#if PY_MAJOR_VERSION >= 3
-#if PY_MINOR_VERSION >= 4
+#ifndef Py_SETREF
   #define Py_SETREF(op, op2)                      \
       do {                                        \
           PyObject *_py_tmp = (PyObject *)(op);   \
           (op) = (op2);                           \
           Py_DECREF(_py_tmp);                     \
       } while (0)
+#endif
+#ifndef Py_XSETREF
   #define Py_XSETREF(op, op2)                     \
       do {                                        \
           PyObject *_py_tmp = (PyObject *)(op);   \
@@ -42,6 +43,7 @@
       } while (0)
 #endif
 
+#if PY_MAJOR_VERSION >= 3
   #define MOD_ERROR_VAL NULL
   #define MOD_SUCCESS_VAL(val) val
   #define MOD_INIT(name) PyMODINIT_FUNC PyInit_##name(void)
