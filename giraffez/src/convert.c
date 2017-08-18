@@ -419,14 +419,18 @@ int teradata_decimal64_to_cstring(unsigned char **data, const uint16_t column_sc
     int64_t q, x, y, scale;
     unpack_int64_t(data, &q);
     if (column_scale > 0) {
+#ifdef _MSC_VER
+        const char *fmt = q < 0 ? "-%I64d.%0*I64d" : "%I64d.%0*I64d";
+#else
         const char *fmt = q < 0 ? "-%lld.%0*lld" : "%lld.%0*lld";
+#endif
         scale = (int64_t)pow(10, column_scale);
         x = llabs(q / scale);
         y = llabs(q % scale);
         return sprintf(buf, fmt, x, column_scale, y);
     } else {
 #ifdef _MSC_VER
-        return sprintf(buf, "%lld", q);
+        return sprintf(buf, "%I64d", q);
 #else
         return sprintf(buf, "%ld", q);
 #endif
@@ -815,8 +819,8 @@ PyObject* teradata_decimal_from_pystring(PyObject *item, const uint16_t column_l
     }
     Py_DECREF(parts);
     if ((s = PyLong_FromString(decbuf, NULL, 10)) == NULL) {
-        PyErr_Clear();
         PyObject *repr = PyObject_Repr(str);
+        PyErr_Clear();
         PyErr_Format(EncoderError, "value is not a valid decimal: %s", PyUnicode_AsUTF8(repr));
         Py_XDECREF(repr);
         Py_XDECREF(str);
