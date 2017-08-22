@@ -57,22 +57,6 @@ class TestBulkExport(object):
             results = list(export.to_list())
             export._close()
 
-    def test_header(self, mocker):
-        connect_mock = mocker.patch('giraffez.BulkExport._connect')
-        columns = [
-            ("col1", VARCHAR_NN, 50, 0, 0),
-            ("col2", VARCHAR_N, 50, 0, 0),
-            ("col3", VARCHAR_N, 50, 0, 0),
-        ]
-        export = giraffez.BulkExport()
-        export.export = mocker.MagicMock()
-        export.export.columns.return_value = Columns(columns)
-
-        export.query = "select * from db1.info"
-        export._close()
-
-        assert export.header == "|".join(x[0] for x in columns)
-
     def test_parse_sql(self, mocker):
         connect_mock = mocker.patch('giraffez.BulkExport._connect')
         columns = Columns([

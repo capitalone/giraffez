@@ -31,6 +31,8 @@ from .io import ArchiveFileReader, CSVReader, FileReader, JSONReader, Reader
 from .logging import log
 from .utils import get_version_info, pipeline, suppress_context
 
+from ._compat import *
+
 
 __all__ = ['TeradataBulkLoad']
 
@@ -93,18 +95,16 @@ class TeradataBulkLoad(Connection):
     to guarantee that connections will be closed gracefully when operation
     is complete.
     """
-    checkpoint_interval = DEFAULT_CHECKPOINT_INTERVAL
+    checkpoint_interval = 50000
 
-    def __init__(self, table=None, host=None, username=None, password=None, log_level=INFO,
-            config=None, key_file=None, dsn=None, protect=False, coerce_floats=False, cleanup=False, print_error_table=False):
+    def __init__(self, table=None, host=None, username=None, password=None,
+            log_level=INFO, config=None, key_file=None, dsn=None, protect=False,
+            coerce_floats=False, cleanup=False, print_error_table=False):
         super(TeradataBulkLoad, self).__init__(host, username, password, log_level, config, key_file,
             dsn, protect)
         # Attributes used with property getter/setters
         self._columns = None
         self._table_name = None
-        self._encoding = None
-        self._delimiter = DEFAULT_DELIMITER
-        self._null = DEFAULT_NULL
         self.initiated = False
         self.finished = False
         self.coerce_floats = coerce_floats
@@ -171,15 +171,6 @@ class TeradataBulkLoad(Connection):
             raise GiraffeError("Must set .columns property as type <List>")
         self._columns = field_names
 
-    @property
-    def delimiter(self):
-        return self._delimiter
-
-    @delimiter.setter
-    def delimiter(self, value):
-        self._delimiter = value
-        self.mload.set_delimiter(self._delimiter)
-
     def finish(self):
         """
         Finishes the load job. Called automatically when the connection closes.
@@ -202,7 +193,8 @@ class TeradataBulkLoad(Connection):
         self.finished = True
         return self.exit_code
 
-    def from_file(self, filename, table=None, null=None, delimiter=None, panic=True, quotechar='"', parse_dates=False):
+    def from_file(self, filename, table=None, delimiter='|', null='NULL',
+            panic=True, quotechar='"', parse_dates=False):
         """
         Load from a file into the target table, handling each step of the
         load process.
@@ -242,11 +234,11 @@ class TeradataBulkLoad(Connection):
             if not table:
                 raise GiraffeError("Table must be set or specified to load a file.")
             self.table = table
-        if null is not None:
-            self.null = null
-        if delimiter is not None:
-            self.delimiter = delimiter
+        if not isinstance(null, basestring):
+            raise GiraffeError("Expected 'null' to be str, received {}".format(type(null)))
         with Reader(filename, delimiter=delimiter, quotechar=quotechar) as f:
+            if not isinstance(f.delimiter, basestring):
+                raise GiraffeError("Expected 'delimiter' to be str, received {}".format(type(delimiter)))
             if isinstance(f, ArchiveFileReader):
                 self.mload.set_encoding(ROW_ENCODING_RAW)
                 self.columns = f.header
@@ -254,6 +246,8 @@ class TeradataBulkLoad(Connection):
             if parse_dates:
                 self.preprocessor = DateHandler(self.columns)
             self._initiate()
+            self.mload.set_null(null)
+            self.mload.set_delimiter(delimiter)
             i = 0
             for i, line in enumerate(f, 1):
                 self.put(line, panic=panic)
@@ -291,15 +285,6 @@ class TeradataBulkLoad(Connection):
             if panic:
                 raise error
             log.info("BulkLoad", error)
-
-    @property
-    def null(self):
-        return self._null
-
-    @null.setter
-    def null(self, value):
-        self._null = value
-        self.mload.set_null(self._null)
 
     def read_error_table(self):
         with TeradataCmd(log_level=log.level, config=self.config, key_file=self.key_file,
@@ -442,8 +427,7 @@ class TeradataBulkLoad(Connection):
             if args.protect:
                 Config.lock_connection(args.conf, args.dsn, args.key)
             raise error
-        self.mload.set_delimiter(self.delimiter)
-        self.mload.set_null(self.null)
+        self.mload.set_null(None)
         log.info("BulkLoad", "Teradata PT request accepted.")
         self._columns = self.mload.columns()
         self.initiated = True

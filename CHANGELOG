@@ -1,6 +1,37 @@
 giraffez Changelog
 ======================
 
+Version 2.0.5
+-------------
+Aug 22 2017
+
+- Remove unused methods/properties from BuilkExport and BulkLoad API for
+  null/delimiter (currently only used on 'to_str()' and 'from_file')
+
+Version 2.0.4
+-------------
+Aug 18 2017
+
+- More MSVC compatibility fixes
+
+Version 2.0.3
+-------------
+Aug 17 2017
+
+- Fix missing macro in older versions of Python
+
+Version 2.0.2
+-------------
+Aug 16 2017
+
+- Fix missing import 'message_write_default'
+
+Version 2.0.1
+-------------
+Aug 16 2017
+
+- Fix missing include in MANIFEST.in
+
 Version 2.0.0
 -------------
 Aug 10 2017

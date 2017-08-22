@@ -246,7 +246,7 @@ PyObject* teradata_row_from_unknown(const TeradataEncoder *e, PyObject *row, uns
         uint16_t *length) {
     if (PyDict_Check(row)) {
         encoder_set_encoding((TeradataEncoder*)e, ROW_ENCODING_DICT);
-    } else if (PyStr_Check(row) || PyBytes_Check(row)) {
+    } else if (PyUnicode_Check(row) || PyBytes_Check(row)) {
         encoder_set_encoding((TeradataEncoder*)e, ROW_ENCODING_STRING);
     } else if (PyTuple_Check(row) || PyList_Check(row)) {
         encoder_set_encoding((TeradataEncoder*)e, ROW_ENCODING_LIST);

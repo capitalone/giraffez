@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Quickstart &mdash; giraffez 2.0.0 documentation</title>
+  <title>Quickstart &mdash; giraffez 2.0.5 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.0 documentation" href="index.html"/>
+    <link rel="top" title="giraffez 2.0.5 documentation" href="index.html"/>
         <link rel="next" title="Advanced Usage" href="usage.html"/>
         <link rel="prev" title="Commands" href="command-line.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                2.0.0
+                2.0.5
               </div>
             
           
@@ -346,7 +346,7 @@
 </div>
 <p>Another important feature is loading rows individually when dealing with information that isn’t being read from a file:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
-    <span class="n">mload</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="s2">&quot;first_name&quot;</span><span class="p">]</span>
+    <span class="n">load</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;last_name&quot;</span><span class="p">,</span> <span class="s2">&quot;first_name&quot;</span><span class="p">]</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s2">&quot;Hemingway&quot;</span><span class="p">,</span> <span class="s2">&quot;Ernest&quot;</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;Chekhov&quot;</span><span class="p">,</span> <span class="s2">&quot;Anton&quot;</span><span class="p">),</span>
@@ -412,7 +412,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Capital One Services, LLC.
+        &copy; Copyright 2016, Capital One Services, LLC.
 
     </p>
   </div>
@@ -434,7 +434,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.0',
+            VERSION:'2.0.5',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

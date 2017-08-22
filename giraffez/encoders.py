@@ -47,7 +47,7 @@ class TeradataEncoder(object):
     def __init__(self, columns=[], encoding=None):
         self.encoding = ENCODER_SETTINGS_DEFAULT
         self._columns = columns
-        self._delimiter = DEFAULT_DELIMITER
+        self._delimiter = '|'
         self._null = None
         self.encoder = Encoder(columns)
         if encoding is not None:

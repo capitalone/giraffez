@@ -56,6 +56,7 @@ class Cursor(object):
     :param bool parse_dates: Returns date/time types as giraffez
         date/time types (instead of Python strings)
     """
+
     def __init__(self, conn, command, multi_statement=False, header=False,
             prepare_only=False, coerce_floats=True, parse_dates=False,
             panic=True):
@@ -339,7 +340,7 @@ class TeradataCmd(Connection):
         """
         return self.execute("select top 1 * from {}".format(table_name), silent=silent, prepare_only=True).columns
 
-    def insert(self, table_name, rows, fields=None, delimiter=None, null=DEFAULT_NULL, parse_dates=False, quotechar='"'):
+    def insert(self, table_name, rows, fields=None, delimiter=None, null='NULL', parse_dates=False, quotechar='"'):
         """
         Load a text file into the specified :code:`table_name` or Insert Python :code:`list` rows into the specified :code:`table_name`
 

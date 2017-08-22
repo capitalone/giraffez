@@ -77,7 +77,7 @@ class CmdCommand(Command):
         Argument("-t", "--table-output", default=False, help="Print in table format"),
         Argument("-j", "--json", default=False, help="Export in json format"),
         Argument("-d", "--delimiter", default='\t', help="Text delimiter"),
-        Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
+        Argument("-n", "--null", default='NULL', help="Set null character"),
         Argument("--header", default=False, help="Do prepend header"),
     ]
 
@@ -196,8 +196,8 @@ class ExportCommand(Command):
         Argument("-a", "--archive", default=False, help="Export in archive format (packed binary)"),
         Argument("-z", "--gzip", default=False, help="Use gzip compression (only for archive)"),
         Argument("-j", "--json", default=False, help="Export in json format"),
-        Argument("-d", "--delimiter", default=DEFAULT_DELIMITER, help="Text delimiter"),
-        Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
+        Argument("-d", "--delimiter", default="|", help="Text delimiter"),
+        Argument("-n", "--null", default="NULL", help="Set null character"),
         Argument("--no-header", default=False, help="Do not prepend header"),
     ]
 
@@ -214,10 +214,6 @@ class ExportCommand(Command):
         register_graceful_shutdown_signal()
         with TeradataBulkExport(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as export:
-            if args.delimiter is not None:
-                export.delimiter = args.delimiter
-            if args.null is not None:
-                export.null = args.null
             export.query = args.query
             start_time = time.time()
             if args.archive:
@@ -229,16 +225,20 @@ class ExportCommand(Command):
                     log.info("\rExport", "Processed {} rows".format(i))
             else:
                 with Writer(args.output_file, use_gzip=args.gzip) as out:
-                    export._initiate()
                     export.options("output", out.name, 4)
+                    export.options("delimiter", escape_string(args.delimiter), 2)
+                    export.options("null", args.null, 3)
+                    if args.json:
+                        exportfn = export.to_json
+                        export.options("encoding", "json", 5)
+                    else:
+                        exportfn = lambda: export.to_str(args.delimiter, args.null)
+                        export.options("encoding", "str", 5)
+                    export._initiate()
                     if out.is_stdout:
                         log.info(colors.green(colors.bold("-"*32)))
                     if not args.no_header:
-                        out.writen(export.header)
-                    if args.json:
-                        exportfn = export.to_json
-                    else:
-                        exportfn = export.to_str
+                        out.writen(args.delimiter.join(export.columns.names))
                     i = 0
                     for i, row in enumerate(exportfn(), 1):
                         if i % 100000 == 0 and args.output_file:
@@ -293,8 +293,6 @@ class FmtCommand(Command):
 
     arguments = [
         Argument("input_file", help="Input to be transformed"),
-        #Argument("-d", "--delimiter", help="Transform delimiter"),
-        #Argument("-n", "--null", help="Transform null ex. 'None to NULL'"),
         Argument("-r", "--regex", help="search and replace (regex)"),
         Argument("--head", const=9, nargs="?", type=int, help="Only output N rows"),
         Argument("--header", default=False, help="Output table header"),
@@ -349,7 +347,7 @@ class InsertCommand(Command):
         Argument("input_file", help="Input file"),
         Argument("table", help="Name of table"),
         Argument("-d", "--delimiter", default=None, help="Text delimiter"),
-        Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
+        Argument("-n", "--null", default='NULL', help="Set null character"),
         Argument("--quote-char", default='"', help=("One-character string used to quote fields "
             "containing special characters")),
         Argument("--parse-dates", default=False, help=("Enable automatic conversion of "
@@ -389,9 +387,8 @@ class LoadCommand(Command):
     arguments = [
         Argument("input_file", help="Input file"),
         Argument("table", help="Name of table"),
-        Argument("-e", "--encoding", default=DEFAULT_ENCODING, help="Input file encoding"),
         Argument("-d", "--delimiter", default=None, help="Text delimiter [default: (inferred from header)]"),
-        Argument("-n", "--null", default=DEFAULT_NULL, help="Set null character"),
+        Argument("-n", "--null", default='NULL', help="Set null character"),
         Argument("-y", "--drop-all", default=False, help="Drop tables"),
         Argument("--quote-char", default='"', help="One-character string used to quote fields containing special characters"),
         Argument("--coerce-floats", default=False, help="Allow floating-point numbers to be converted to fixed-precision numbers."),
@@ -402,14 +399,8 @@ class LoadCommand(Command):
     def run(self, args):
         if args.delimiter is not None:
             args.delimiter = unescape_string(args.delimiter)
-        if args.encoding not in ["archive", "str"]:
-            raise GiraffeError("'{}' is not an encoder.".format(args.encoding))
         if not file_exists(args.input_file):
             raise GiraffeError("File '{}' does not exist.".format(args.input_file))
-
-        header = FileReader.read_header(args.input_file)
-        if header == GIRAFFE_MAGIC:
-            args.encoding = "archive"
 
         if not FileReader.check_length(args.input_file, MLOAD_THRESHOLD):
             show_warning(("USING MLOAD TO INSERT LESS THAN {} ROWS IS NOT RECOMMENDED - USE LOAD "
@@ -418,11 +409,8 @@ class LoadCommand(Command):
         register_graceful_shutdown_signal()
         with TeradataBulkLoad(log_level=args.log_level, config=args.conf, key_file=args.key,
                 dsn=args.dsn) as load:
-            load.encoding = args.encoding
             load.coerce_floats = args.coerce_floats
             load.table = args.table
-            load.null = args.null
-            load.delimiter = args.delimiter
             if args.drop_all is True:
                 load.cleanup()
             else:
@@ -433,9 +421,6 @@ class LoadCommand(Command):
                         log.info('  {}: "{}"'.format(i, table))
                     if prompt_bool("Do you want to drop these tables?", default=True):
                         load.cleanup()
-                        #for table in existing_tables:
-                            #log.info("BulkLoad", "Dropping table '{}'...".format(table))
-                            #load.cmd.drop_table(table, silent=True)
                     else:
                         log.fatal("Cannot continue without dropping previous job tables. Exiting ...")
             log.info("BulkLoad", "Executing ...")

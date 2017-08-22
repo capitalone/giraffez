@@ -83,9 +83,6 @@ class TeradataBulkExport(Connection):
             dsn, protect)
         # Attributes used with property getter/setters
         self._query = None
-        self._encoding = None
-        self._delimiter = None
-        self._null = None
         self.coerce_floats = coerce_floats
         self.initiated = False
         #: The amount of time spent in idle (waiting for server)
@@ -100,44 +97,7 @@ class TeradataBulkExport(Connection):
         :rtype: :class:`~giraffez.types.Columns`
         """
         return self.export.columns()
-
-    @property
-    def delimiter(self):
-        return self._delimiter
-
-    @delimiter.setter
-    def delimiter(self, value):
-        self._delimiter = value
-        self.export.set_delimiter(self._delimiter)
-
-    @property
-    def null(self):
-        return self._null
-
-    @null.setter
-    def null(self, value):
-        self._null = value
-        self.export.set_null(self._null)
     
-    @property
-    def header(self):
-        """
-        Return the header for the resulting data.
-
-        :return: String containing the formatted header, either column names
-            separated by the current :code:`delimiter` value if :code:`encoding` is 'text',
-            or the serialized :class:`~giraffez.types.Columns` object for
-            'archive' encoding
-        :rtype: str
-        :raises `giraffez.errors.GiraffeError`: if the query or table
-            has not been specified
-        """
-        if self.query is None:
-            raise GiraffeError("Must set target table or query.")
-        if not self.delimiter:
-            self.delimiter = DEFAULT_DELIMITER
-        return self.delimiter.join(self.columns.names)
-
     @property
     def query(self):
         """
@@ -158,9 +118,9 @@ class TeradataBulkExport(Connection):
         if query is None:
             return
         if log.level >= VERBOSE:
-            self.options("query", query, 5)
+            self.options("query", query, 6)
         else:
-            self.options("query", truncate(query), 5)
+            self.options("query", truncate(query), 6)
         statements = parse_statement(remove_curly_quotes(query))
         if not statements:
             raise GiraffeError("Unable to parse SQL statement")
@@ -241,13 +201,21 @@ class TeradataBulkExport(Connection):
         """
         return self._fetchall(ROW_ENCODING_LIST)
 
-    def to_str(self):
+    def to_str(self, delimiter='|', null='NULL'):
         """
         Sets the current encoder output to Python `str` and returns
         a row iterator.
 
+        :param str null: The string representation of null values
+        :param str delimiter: The string delimiting values in the output
+            string
+
         :rtype: iterator (yields ``str``)
         """
+        self.export.set_null(null)
+        self.export.set_delimiter(delimiter)
+        self.options("delimiter", escape_string(delimiter), 2)
+        self.options("null", null, 3)
         return self._fetchall(ENCODER_SETTINGS_STRING, coerce_floats=False)
 
     def _close(self, exc=None):
@@ -259,8 +227,6 @@ class TeradataBulkExport(Connection):
         self.export = Export(host, username, password)
         self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
             *get_version_info()))
-        self.delimiter = DEFAULT_DELIMITER
-        self.null = DEFAULT_NULL
 
     def _initiate(self):
         log.info("Export", "Initiating Teradata PT request (awaiting server)  ...")
@@ -269,8 +235,6 @@ class TeradataBulkExport(Connection):
         self.idle_time = time.time() - start_time
         self.initiated = True
         log.info("Export", "Teradata PT request accepted.")
-        self.options("delimiter", escape_string(self.delimiter or DEFAULT_DELIMITER), 2)
-        self.options("null", self.null or DEFAULT_NULL, 3)
         log.info("Export", "Executing ...")
         log.info(self.options)
 
