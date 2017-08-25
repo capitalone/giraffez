@@ -7,6 +7,8 @@ giraffez.cmd
 .. automodule:: giraffez.cmd
     :members:
 
+    .. autoclass:: giraffez.cmd.TeradataCmd
+
 giraffez.config
 ###############
 
@@ -38,11 +40,15 @@ giraffez.export
 .. automodule:: giraffez.export
     :members:
 
+    .. autoclass:: giraffez.export.TeradataBulkExport
+
 giraffez.load
 #############
 
 .. automodule:: giraffez.load
     :members:
+
+    .. autoclass:: giraffez.load.TeradataBulkLoad
 
 giraffez.secret
 ###############

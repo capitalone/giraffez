@@ -49,3 +49,20 @@ Why implicitly coerce Teradata decimals?
 ----------------------------------------
 
 In previous versions of giraffez, Teradata decimal types fixed precision was preserved via Python's ``decimal.Decimal`` type.  The decision was made to allow implicit conversion of Teradata decimal types to the Python float because of the many times unnecessary performance burden with using ``decimal.Decimal`` and this cost not being transparent when using ``decimal.Decimal``.  For example, numpy will take a ``decimal.Decimal`` in place of a float because ``decimal.Decimal`` has the appropriate magic methods defined, but will be many times slower.  This cost ends up being invisible to users because the fixed-point arithmetic is hidden by the Python magic methods.  While giraffez is very convered with correctness, this decision was made to balance that with performance and what we feel is the most likely use case.
+
+.. _with-context:
+
+Why use python's "with" context?
+--------------------------------
+
+Interacting with Teradata involves correctly managing a connection to the server.  In order to reduce complexity and opportunity for mistakes to be made, the giraffez python API classes :class:`giraffez.Cmd <giraffez.cmd.TeradataCmd>`, :class:`giraffez.BulkExport <giraffez.export.TeradataBulkExport>`, and :class:`giraffez.BulkLoad <giraffez.load.TeradataBulkLoad>` provide the python "magic" methods ``__enter__`` and ``__exit__``, which allow easier automatic management of stateful resources.  These methods are called when an object is created as part of a ``with`` block, as in:
+
+.. code-block:: python
+
+    with giraffez.Cmd() as cmd:
+        for row in cmd.execute(my_query):
+            print(row)
+
+Python guarantees that the object of a ``with`` statement will have its ``__enter__`` method called immediately, and its ``__exit__`` method called whenever leaving the following block.  This means that even if an exception is raised within the block, the managed object will be given a chance to clean up and exit gracefully.  Because the procedure for closing an underlying Teradata connection is complicated, it is important that these methods are always invoked at the proper time. If they are not, it is easy to create a situation where tables are left in a locked state indefinitely, or server resources are tied up by open idle connections.
+
+As of giraffez version 2.0.6, it is probitied to create instances of the above Teradata connection classes outside of a ``with`` context.  Usage of the giraffez python API without context managment is dangerous and discouraged.  If you feel that there is a legitimate need for allowing this behavior, please describe your use-case `in an issue <https://github.com/capitalone/giraffez/issues>`_.

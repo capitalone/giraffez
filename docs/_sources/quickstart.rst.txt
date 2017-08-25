@@ -32,7 +32,7 @@ Next, let's perform a common function of working with any database by querying a
     with giraffez.Cmd() as cmd:
         results = cmd.execute("select * from dbc.dbcinfo")
 
-This returns a :class:`Cursor <giraffez.cmd.Cursor>` for the provided query and printing it shows the various options that are set for :meth:`execute <giraffez.cmd.TeradataCmd.execute>`:
+This returns a :class:`Cursor <giraffez.cmd.Cursor>` for the provided query and printing it shows the various options that are set for :meth:`giraffez.cmd.TeradataCmd.execute`:
 
 .. code-block:: python
 

@@ -37,4 +37,4 @@ upload: test
 	@python setup.py bdist_wheel upload
 
 docs:
-	@cd docs && sphinx-build -b html src .
+	@cd docs && sphinx-build -a -b html src .
