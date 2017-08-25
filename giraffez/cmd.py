@@ -21,9 +21,9 @@ from collections import defaultdict
 from .constants import *
 from .errors import *
 
-from ._teradata import Cmd, RequestEnded, StatementEnded, StatementInfoEnded, TeradataError
+from ._teradata import Cmd as _Cmd, RequestEnded, StatementEnded, StatementInfoEnded, TeradataError
 
-from .connection import Connection
+from .connection import Connection, Context
 from .encoders import check_input, null_handler, python_to_sql
 from .fmt import format_indent, truncate
 from .io import CSVReader, JSONReader, Reader, isfile
@@ -35,7 +35,7 @@ from .utils import pipeline, suppress_context
 from ._compat import *
 
 
-__all__ = ['TeradataCmd', 'Cursor']
+__all__ = ['Cmd', 'Cursor']
 
 _columns_cache = {}
 _columns_cache_lock = threading.Lock()
@@ -389,7 +389,7 @@ class TeradataCmd(Connection):
             self.cmd.close()
 
     def _connect(self, host, username, password):
-        self.cmd = Cmd(host, username, password)
+        self.cmd = _Cmd(host, username, password)
 
     def _insert(self, table_name, rows, fields=None, parse_dates=False):
         global _columns_cache
@@ -434,3 +434,6 @@ class TeradataCmd(Connection):
             if i == 0:
                 log.info(self.options)
         return stats
+
+class Cmd(Context):
+    __instance__ = TeradataCmd

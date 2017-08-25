@@ -14,6 +14,11 @@ def config(mocker):
     return mock_config
 
 @pytest.fixture(scope='session')
+def context():
+    from giraffez.connection import Context
+    Context._testing = True
+
+@pytest.fixture(scope='session')
 def tmpfiles(tmpdir_factory):
     import giraffez
     from collections import namedtuple

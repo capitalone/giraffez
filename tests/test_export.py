@@ -7,10 +7,10 @@ from giraffez.constants import *
 from giraffez.errors import *
 from giraffez.types import Columns
 
-@pytest.mark.usefixtures('config')
+@pytest.mark.usefixtures('config', 'context')
 class TestBulkExport(object):
     def test_export_results(self, mocker):
-        connect_mock = mocker.patch('giraffez.BulkExport._connect')
+        connect_mock = mocker.patch('giraffez.export.TeradataBulkExport._connect')
         query = "select * from db1.info"
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
@@ -46,7 +46,7 @@ class TestBulkExport(object):
         assert export.export.close.called == True
 
     def test_invalid_credentials(self, mocker):
-        connect_mock = mocker.patch('giraffez.BulkExport._connect')
+        connect_mock = mocker.patch('giraffez.export.TeradataBulkExport._connect')
         query = "select * from db1.info"
         export = giraffez.BulkExport()
         export.export = mocker.MagicMock()
@@ -58,7 +58,7 @@ class TestBulkExport(object):
             export._close()
 
     def test_parse_sql(self, mocker):
-        connect_mock = mocker.patch('giraffez.BulkExport._connect')
+        connect_mock = mocker.patch('giraffez.export.TeradataBulkExport._connect')
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),

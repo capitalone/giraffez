@@ -24,7 +24,7 @@ from .constants import *
 from .errors import *
 
 from .cmd import TeradataCmd
-from .connection import Connection
+from .connection import Connection, Context
 from .encoders import DateHandler, null_handler
 from .fmt import format_table
 from .io import ArchiveFileReader, CSVReader, FileReader, JSONReader, Reader
@@ -34,7 +34,7 @@ from .utils import get_version_info, pipeline, suppress_context
 from ._compat import *
 
 
-__all__ = ['TeradataBulkLoad']
+__all__ = ['BulkLoad']
 
 
 error_table_count = """
@@ -449,3 +449,7 @@ class TeradataBulkLoad(Connection):
         count = struct.unpack("I", data)[0]
         log.debug("Debug[2]", "Event[ErrorTable2]: c:{}".format(count))
         self.error_count = count
+
+
+class BulkLoad(Context):
+    __instance__ = TeradataBulkLoad

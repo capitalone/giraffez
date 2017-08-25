@@ -24,7 +24,7 @@ from .errors import *
 
 from ._teradatapt import InvalidCredentialsError
 from .config import Config
-from .connection import Connection
+from .connection import Connection, Context
 from .encoders import dict_to_json, TeradataEncoder
 from .fmt import truncate
 from .logging import log
@@ -34,7 +34,7 @@ from .utils import get_version_info, show_warning, suppress_context
 from ._compat import *
 
 
-__all__ = ['TeradataBulkExport']
+__all__ = ['BulkExport']
 
 
 class TeradataBulkExport(Connection):
@@ -256,3 +256,7 @@ class TeradataBulkExport(Connection):
                 break
             for row in data:
                 yield processor(row)
+
+
+class BulkExport(Context):
+    __instance__ = TeradataBulkExport

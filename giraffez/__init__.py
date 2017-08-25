@@ -29,7 +29,7 @@ user-friendly and very fast.
 """
 
 __title__ = 'giraffez'
-__version__ = '2.0.5'
+__version__ = '2.0.6'
 __authors__ = ['Christopher Marshall', 'Kyle Travis']
 __license__ = 'Apache 2.0'
 __all__     = ['BulkExport', 'BulkLoad', 'Cmd', 'Config', 'Secret']
@@ -58,7 +58,7 @@ from ._teradatapt import (
     EncoderError,
     TeradataError as TeradataPTError
 )
-from .cmd import TeradataCmd as Cmd
+from .cmd import Cmd
 from .config import Config
 from .constants import SILENCE, VERBOSE, DEBUG, INFO
 from .errors import (
@@ -68,12 +68,12 @@ from .errors import (
     ConnectionLock
 )
 from .encoders import TeradataEncoder as Encoder
-from .export import TeradataBulkExport as BulkExport
+from .export import BulkExport
 from .io import (
     Reader,
     Writer
 )
-from .load import TeradataBulkLoad as BulkLoad
+from .load import BulkLoad
 from .logging import log, setup_logging
 from .secret import Secret
 from .types import Column, Columns, Date, Decimal, Time, Timestamp

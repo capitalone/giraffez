@@ -8,10 +8,10 @@ from giraffez.errors import *
 from giraffez.types import Columns
 
 
-@pytest.mark.usefixtures('config')
+@pytest.mark.usefixtures('config', 'context')
 class TestMLoad(object):
     def test_bulkload_results(self, mocker):
-        bulkload_connect_mock = mocker.patch('giraffez.BulkLoad._connect')
+        bulkload_connect_mock = mocker.patch('giraffez.load.TeradataBulkLoad._connect')
         table = "db1.info"
         columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),

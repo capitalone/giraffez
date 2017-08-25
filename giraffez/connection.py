@@ -25,7 +25,37 @@ from .logging import log
 from .utils import show_warning, suppress_context
 
 
-__all__ = ['Connection']
+__all__ = ['Connection', 'Context']
+
+
+class Context(object):
+    __instance__ = None
+
+    def __new__(cls, *args, **kwargs):
+        allow_without_context = kwargs.get('allow_without_context')
+        if allow_without_context or getattr(Context, '_testing', False):
+            if allow_without_context:
+                kwargs.pop('allow_without_context')
+            return cls.__instance__(*args, **kwargs)
+        return super(Context, cls).__new__(cls, *args, **kwargs)
+
+    def __init__(self, *args, **kwargs):
+        if self.__instance__ is None:
+            raise GiraffeError("Context must specify an instance")
+        self._args = args
+        self._kwargs = kwargs
+
+    def __getattr__(self, value):
+        raise GiraffeError("""{} is being used outside of a with context, as of
+giraffez version 2.0.6 this behavior is officially deprecated.  Please see
+http://capitalone.io/giraffez/FAQ.html#with-context for more information.""".format(self.__instance__.__name__))
+
+    def __enter__(self):
+        self.__instance_object = self.__instance__(*self._args, **self._kwargs)
+        return self.__instance_object.__enter__()
+
+    def __exit__(self, exc_type, exc, exc_tb):
+        self.__instance_object.__exit__(exc_type, exc, exc_tb)
 
 
 class Connection(object):
@@ -39,7 +69,6 @@ class Connection(object):
         self.key_file = key_file
         self.dsn = dsn
         self.protect = protect
-        self.host = host
         self.silent = silent
 
         #: Stores options for log output
