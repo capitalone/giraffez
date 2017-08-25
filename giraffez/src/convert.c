@@ -192,13 +192,13 @@ PyObject* teradata_char_to_pystring(unsigned char **data, const uint64_t column_
 }
 
 PyObject* teradata_char_to_pystring_f(unsigned char **data, const uint64_t column_length, const uint64_t format_length) {
-    PyObject *str;
+    PyObject *str = teradata_char_to_pystring(data, column_length);
     if (format_length > 0 && format_length <= column_length) {
-        str = PyUnicode_FromStringAndSize((char*)*data, format_length);
-    } else {
-        str = PyUnicode_FromStringAndSize((char*)*data, column_length);
+        PyObject *slice = PySlice_New(PyLong_FromLong(0),
+                PyLong_FromUnsignedLongLong(format_length), PyLong_FromLong(1));
+        Py_SETREF(str, PyObject_GetItem(str, slice));
+        Py_DECREF(slice);
     }
-    *data += column_length;
     return str;
 }
 
