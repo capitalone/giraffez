@@ -13,10 +13,14 @@ def config(mocker):
     }
     return mock_config
 
-@pytest.fixture(scope='session')
-def context():
+@pytest.fixture(scope='class')
+def context(request):
     from giraffez.connection import Context
     Context._testing = True
+
+    def fin():
+        Context._testing = False
+    request.addfinalizer(fin)
 
 @pytest.fixture(scope='session')
 def tmpfiles(tmpdir_factory):

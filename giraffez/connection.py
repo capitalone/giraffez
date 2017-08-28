@@ -37,7 +37,7 @@ class Context(object):
             if allow_without_context:
                 kwargs.pop('allow_without_context')
             return cls.__instance__(*args, **kwargs)
-        return super(Context, cls).__new__(cls, *args, **kwargs)
+        return super(Context, cls).__new__(cls)
 
     def __init__(self, *args, **kwargs):
         if self.__instance__ is None:
