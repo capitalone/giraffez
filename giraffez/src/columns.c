@@ -77,6 +77,13 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
         element.NullLength = element.Length;
     }
     element.SafeName = safe_name(element.Name);
+    if (element.Title == NULL || strlen(element.Title) == 0) {
+        element.Title = strdup(element.SafeName);
+    } else {
+        char *tmp = element.Title;
+        element.Title = safe_name(tmp);
+        free(tmp);
+    }
     if (element.GDType == GD_CHAR && element.Format != NULL) {
         element.FormatLength = format_length(element.Format);
     }
@@ -86,6 +93,20 @@ void columns_append(GiraffeColumns *c, GiraffeColumn element) {
 }
 
 void columns_free(GiraffeColumns *c) {
+    GiraffeColumn *column;
+    size_t i;
+    for (i=0; i<c->length; i++) {
+        column = &c->array[i];
+        free(column->Database);
+        free(column->Table);
+        free(column->Name);
+        free(column->Alias);
+        free(column->Title);
+        free(column->Format);
+        free(column->Default);
+        free(column->Nullable);
+        free(column->SafeName);
+    }
     free(c->array);
     free(c->buffer);
     c->array = NULL;
@@ -147,6 +168,45 @@ void indicator_write(unsigned char **ind, size_t pos, int value) {
     (*ind)[pos/8] |= (value << (7 - (pos % 8)));
 }
 
+StatementInfoColumn* stmt_info_column_new() {
+    StatementInfoColumn *column;
+    column = (StatementInfoColumn*)malloc(sizeof(StatementInfoColumn));
+    column->ExtensionLayout = 0;
+    column->ExtensionType = 0;
+    column->ExtensionLength = 0;
+    column->Database = NULL;
+    column->Table = NULL;
+    column->Name = NULL;
+    column->Position = 0;
+    column->Alias = NULL;
+    column->Title = NULL;
+    column->Format = NULL;
+    column->Default = NULL;
+    column->IdentityColumn = NULL;
+    column->DefinitelyWritable = NULL;
+    column->NotDefinedNotNull = NULL;
+    column->CanReturnNull = NULL;
+    column->PermittedInWhere = NULL;
+    column->Writable = NULL;
+    column->Type = 0;
+    column->UDType = 0;
+    column->TypeName = NULL;
+    column->DataTypeMiscInfo = NULL;
+    column->Length = 0;
+    column->Precision = 0;
+    column->Interval = 0;
+    column->Scale = 0;
+    column->CharacterSetType = NULL;
+    column->TotalNumberCharacters = 0;
+    column->CaseSensitive = NULL;
+    column->NumericItemSigned = NULL;
+    column->UniquelyDescribesRow = NULL;
+    column->OnlyMemberUniqueIndex = NULL;
+    column->IsExpression = NULL;
+    column->PermittedInOrderBy = NULL;
+    return column;
+}
+
 void stmt_info_init(StatementInfo *s, size_t initial_size) {
     s->array = (StatementInfoColumn*)malloc(initial_size * sizeof(StatementInfoColumn));
     s->length = 0;
@@ -163,6 +223,33 @@ void stmt_info_append(StatementInfo *s, StatementInfoColumn element) {
 }
 
 void stmt_info_free(StatementInfo *s) {
+    StatementInfoColumn *column;
+    size_t i;
+    for (i=0; i<s->length; i++) {
+        column = &s->array[i];
+        free(column->Database);
+        free(column->Table);
+        free(column->Name);
+        free(column->Alias);
+        free(column->Title);
+        free(column->Format);
+        free(column->Default);
+        free(column->IdentityColumn);
+        free(column->DefinitelyWritable);
+        free(column->NotDefinedNotNull);
+        free(column->CanReturnNull);
+        free(column->PermittedInWhere);
+        free(column->Writable);
+        free(column->TypeName);
+        free(column->DataTypeMiscInfo);
+        free(column->CharacterSetType);
+        free(column->CaseSensitive);
+        free(column->NumericItemSigned);
+        free(column->UniquelyDescribesRow);
+        free(column->OnlyMemberUniqueIndex);
+        free(column->IsExpression);
+        free(column->PermittedInOrderBy);
+    }
     free(s->array);
     s->array = NULL;
     s->length = s->size = 0;
@@ -212,7 +299,7 @@ GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t lengt
     stmt_info_init(s, 1);
     start = *data;
     while ((*data - start) < length) {
-        c = (StatementInfoColumn*)malloc(sizeof(StatementInfoColumn));
+        c = stmt_info_column_new();
         unpack_uint16_t(data, &c->ExtensionLayout);
         unpack_uint16_t(data, &c->ExtensionType);
         unpack_uint16_t(data, &c->ExtensionLength);
@@ -265,11 +352,11 @@ GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t lengt
         column->Length = c->Length;
         column->Precision = c->Precision;
         column->Scale = c->Scale;
-        column->Alias = c->Alias;
-        column->Title = c->Title;
-        column->Format = c->Format;
-        column->Default = c->Default;
-        column->Nullable = c->CanReturnNull;
+        column->Alias = strdup(c->Alias);
+        column->Title = strdup(c->Title);
+        column->Format = strdup(c->Format);
+        column->Default = strdup(c->Default);
+        column->Nullable = strdup(c->CanReturnNull);
         columns_append(columns, *column);
     }
     stmt_info_free(s);

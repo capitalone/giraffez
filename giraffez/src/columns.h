@@ -131,11 +131,14 @@ void           columns_free(GiraffeColumns *c);
 
 void indicator_set(GiraffeColumns *columns, unsigned char **data);
 void indicator_clear(unsigned char **ind, size_t n);
-int indicator_read(unsigned char *ind, size_t pos);
+int  indicator_read(unsigned char *ind, size_t pos);
 void indicator_write(unsigned char **ind, size_t pos, int value);
-void stmt_info_init(StatementInfo *s, size_t initial_size);
-void stmt_info_append(StatementInfo *s, StatementInfoColumn element);
-void stmt_info_free(StatementInfo *s);
+
+StatementInfoColumn* stmt_info_column_new();
+void                 stmt_info_init(StatementInfo *s, size_t initial_size);
+void                 stmt_info_append(StatementInfo *s, StatementInfoColumn element);
+void                 stmt_info_free(StatementInfo *s);
+
 char* safe_name(const char *name);
 uint64_t format_length(const char *format);
 GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t length);

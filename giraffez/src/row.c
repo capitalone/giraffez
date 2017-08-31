@@ -69,11 +69,11 @@ PyObject* teradata_row_to_pydict(const TeradataEncoder *e, unsigned char **data,
         column = &e->Columns->array[i];
         if (indicator_read(e->Columns->buffer, i)) {
             *data += column->NullLength;
-            PyDict_SetItemString(row, column->Name, e->NullValue);
+            PyDict_SetItemString(row, column->Title, e->NullValue);
             continue;
         }
         Py_RETURN_ERROR(item = e->UnpackItemFunc(e, data, column));
-        PyDict_SetItemString(row, column->Name, item);
+        PyDict_SetItemString(row, column->Title, item);
         Py_DECREF(item);
     }
     return row;

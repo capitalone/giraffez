@@ -1,12 +1,28 @@
 giraffez Changelog
 ======================
 
+Version 2.0.8
+-------------
+Aug 31 2017
+
+- Fix regression in behavior with dict return type where the column names
+  are not preferring the alias where provided.
+
 Version 2.0.7
 -------------
 Aug 29 2017
 
 - Fix an issue with Context which prevented the use of arguments to
   the __init__ of a subclass
+
+Version 2.0.6
+-------------
+Aug 25 2017
+
+- Fix error caused by non-ascii utf-8 being cut short with new CHAR
+  handling logic.
+- Add context guards on classes that should use with context to ensure
+  connections are properly closed.
 
 Version 2.0.5
 -------------
