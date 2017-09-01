@@ -172,6 +172,8 @@
  | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#N"><strong>N</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
@@ -182,18 +184,28 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.checkpoint">checkpoint() (giraffez.load.TeradataBulkLoad method)</a>
+</li>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.cleanup">cleanup() (giraffez.load.TeradataBulkLoad method)</a>
+</li>
       <li><a href="api.html#giraffez.types.Column">Column (class in giraffez.types)</a>
 </li>
       <li><a href="api.html#giraffez.types.Columns">Columns (class in giraffez.types)</a>
 </li>
+      <li><a href="api.html#giraffez.export.TeradataBulkExport.columns">columns (giraffez.export.TeradataBulkExport attribute)</a>
+
+      <ul>
+        <li><a href="api.html#giraffez.load.TeradataBulkLoad.columns">(giraffez.load.TeradataBulkLoad attribute)</a>
+</li>
+      </ul></li>
       <li><a href="api.html#giraffez.config.Config">Config (class in giraffez.config)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#giraffez.errors.ConfigNotFound">ConfigNotFound</a>
 </li>
       <li><a href="api.html#giraffez.errors.ConfigReadOnly">ConfigReadOnly</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#giraffez.errors.ConfigurationError">ConfigurationError</a>
 </li>
       <li><a href="api.html#giraffez.errors.ConnectionLock">ConnectionLock</a>
@@ -236,9 +248,13 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#giraffez.cmd.TeradataCmd.fetch_columns">fetch_columns() (giraffez.cmd.TeradataCmd method)</a>
 </li>
+      <li><a href="api.html#giraffez.errors.FileNotFound">FileNotFound</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#giraffez.errors.FileNotFound">FileNotFound</a>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.finish">finish() (giraffez.load.TeradataBulkLoad method)</a>
+</li>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.from_file">from_file() (giraffez.load.TeradataBulkLoad method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -298,10 +314,16 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#giraffez.cmd.TeradataCmd.insert">insert() (giraffez.cmd.TeradataCmd method)</a>
+      <li><a href="api.html#giraffez.export.TeradataBulkExport.idle_time">idle_time (giraffez.export.TeradataBulkExport attribute)</a>
+
+      <ul>
+        <li><a href="api.html#giraffez.load.TeradataBulkLoad.idle_time">(giraffez.load.TeradataBulkLoad attribute)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#giraffez.cmd.TeradataCmd.insert">insert() (giraffez.cmd.TeradataCmd method)</a>
+</li>
       <li><a href="api.html#giraffez.errors.InvalidCredentialsError">InvalidCredentialsError</a>
 </li>
       <li><a href="api.html#giraffez.types.Row.items">items() (giraffez.types.Row method)</a>
@@ -337,10 +359,32 @@
   </ul></td>
 </tr></table>
 
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.print_error_table">print_error_table (giraffez.load.TeradataBulkLoad attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.put">put() (giraffez.load.TeradataBulkLoad method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#giraffez.export.TeradataBulkExport.query">query (giraffez.export.TeradataBulkExport attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#giraffez.cmd.Cursor.readall">readall() (giraffez.cmd.Cursor method)</a>
+</li>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.release">release() (giraffez.load.TeradataBulkLoad method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -372,6 +416,10 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.table">table (giraffez.load.TeradataBulkLoad attribute)</a>
+</li>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.tables">tables (giraffez.load.TeradataBulkLoad attribute)</a>
+</li>
       <li><a href="FAQ.html#term-teradata-call-level-interface-version-2-cliv2"><strong>Teradata Call-Level Interface Version 2 (CLIv2)</strong></a>
 </li>
       <li><a href="FAQ.html#term-teradata-parallel-transporter-api-tpt-api"><strong>Teradata Parallel Transporter API (TPT API)</strong></a>
@@ -382,17 +430,33 @@
 </li>
       <li><a href="api.html#giraffez.cmd.TeradataCmd">TeradataCmd (class in giraffez.cmd)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#giraffez.encoders.TeradataEncoder">TeradataEncoder (class in giraffez.encoders)</a>
 </li>
       <li><a href="api.html#giraffez.types.Time">Time (class in giraffez.types)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#giraffez.types.Timestamp">Timestamp (class in giraffez.types)</a>
 </li>
+      <li><a href="api.html#giraffez.export.TeradataBulkExport.to_archive">to_archive() (giraffez.export.TeradataBulkExport method)</a>
+</li>
       <li><a href="api.html#giraffez.cmd.Cursor.to_dict">to_dict() (giraffez.cmd.Cursor method)</a>
+
+      <ul>
+        <li><a href="api.html#giraffez.export.TeradataBulkExport.to_dict">(giraffez.export.TeradataBulkExport method)</a>
+</li>
+      </ul></li>
+      <li><a href="api.html#giraffez.export.TeradataBulkExport.to_json">to_json() (giraffez.export.TeradataBulkExport method)</a>
 </li>
       <li><a href="api.html#giraffez.cmd.Cursor.to_list">to_list() (giraffez.cmd.Cursor method)</a>
+
+      <ul>
+        <li><a href="api.html#giraffez.export.TeradataBulkExport.to_list">(giraffez.export.TeradataBulkExport method)</a>
+</li>
+      </ul></li>
+      <li><a href="api.html#giraffez.export.TeradataBulkExport.to_str">to_str() (giraffez.export.TeradataBulkExport method)</a>
+</li>
+      <li><a href="api.html#giraffez.load.TeradataBulkLoad.total_count">total_count (giraffez.load.TeradataBulkLoad attribute)</a>
 </li>
   </ul></td>
 </tr></table>

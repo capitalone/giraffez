@@ -42,6 +42,7 @@ giraffez.export
     :members:
 
     .. autoclass:: giraffez.export.TeradataBulkExport
+        :members:
 
 giraffez.load
 #############
@@ -50,6 +51,7 @@ giraffez.load
     :members:
 
     .. autoclass:: giraffez.load.TeradataBulkLoad
+        :members:
 
 giraffez.secret
 ###############
