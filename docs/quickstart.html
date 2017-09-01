@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Quickstart &mdash; giraffez 2.0.6 documentation</title>
+  <title>Quickstart &mdash; giraffez 2.0.8 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.6 documentation" href="index.html"/>
+    <link rel="top" title="giraffez 2.0.8 documentation" href="index.html"/>
         <link rel="next" title="Advanced Usage" href="usage.html"/>
         <link rel="prev" title="Commands" href="command-line.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                2.0.6
+                2.0.8
               </div>
             
           
@@ -194,7 +194,7 @@
     <span class="n">results</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;select * from dbc.dbcinfo&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>This returns a <a class="reference internal" href="api.html#giraffez.cmd.Cursor" title="giraffez.cmd.Cursor"><code class="xref py py-class docutils literal"><span class="pre">Cursor</span></code></a> for the provided query and printing it shows the various options that are set for <code class="xref py py-meth docutils literal"><span class="pre">giraffez.cmd.TeradataCmd.execute()</span></code>:</p>
+<p>This returns a <a class="reference internal" href="api.html#giraffez.cmd.Cursor" title="giraffez.cmd.Cursor"><code class="xref py py-class docutils literal"><span class="pre">Cursor</span></code></a> for the provided query and printing it shows the various options that are set for <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.execute" title="giraffez.cmd.TeradataCmd.execute"><code class="xref py py-meth docutils literal"><span class="pre">execute</span></code></a>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 <span class="go">Cursor(statements=1, multi_statement=False, prepare=False, coerce_floats=True, parse_dates=False)</span>
 </pre></div>
@@ -216,7 +216,7 @@
 <span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Multiple parallel statement mode is helpful when you need to run insert statements in parallel or need to execute multiple queries at the same time (similar to a union but they are returned as different logical result sets).  Taking advantage of this only requires giving <code class="xref py py-meth docutils literal"><span class="pre">execute</span></code> multiple statements separated by a semi-colon and setting the <code class="docutils literal"><span class="pre">multi_statement</span></code> keyword argument:</p>
+<p>Multiple parallel statement mode is helpful when you need to run insert statements in parallel or need to execute multiple queries at the same time (similar to a union but they are returned as different logical result sets).  Taking advantage of this only requires giving <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.execute" title="giraffez.cmd.TeradataCmd.execute"><code class="xref py py-meth docutils literal"><span class="pre">execute</span></code></a> multiple statements separated by a semi-colon and setting the <code class="docutils literal"><span class="pre">multi_statement</span></code> keyword argument:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">        select * from dbc.dbcinfo;</span>
@@ -261,7 +261,7 @@
 <span class="s2">    &quot;&quot;&quot;</span><span class="p">,</span> <span class="n">panic</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The first statement will fail due to a syntax error and with panic turned off <code class="xref py py-meth docutils literal"><span class="pre">execute</span></code> will move onto the next statement without raising an exception.  The results end up looking like this:</p>
+<p>The first statement will fail due to a syntax error and with panic turned off <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.execute" title="giraffez.cmd.TeradataCmd.execute"><code class="xref py py-meth docutils literal"><span class="pre">execute</span></code></a> will move onto the next statement without raising an exception.  The results end up looking like this:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 <span class="gp">...</span>
@@ -276,7 +276,7 @@
 <span class="go">Column(total integer(4) N -(10)9)</span>
 </pre></div>
 </div>
-<p>However, in the case where there are more than one statement passed to <code class="xref py py-meth docutils literal"><span class="pre">execute</span></code> these will be the columns for the last statement to be executed successfully.  Luckily, getting the columns and other useful metadata (like if an error occured) is pretty easy:</p>
+<p>However, in the case where there are more than one statement passed to <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.execute" title="giraffez.cmd.TeradataCmd.execute"><code class="xref py py-meth docutils literal"><span class="pre">execute</span></code></a> these will be the columns for the last statement to be executed successfully.  Luckily, getting the columns and other useful metadata (like if an error occured) is pretty easy:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">statement</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">statements</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Statment[{}]:&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
 <span class="gp">... </span>    <span class="k">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">statement</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span>
@@ -338,8 +338,8 @@
 </div>
 <div class="section" id="loading-large-amounts-of-data">
 <h2>Loading large amounts of data<a class="headerlink" href="#loading-large-amounts-of-data" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> is best utilized for loading large (&gt; ~100k rows) datasets. It makes use of the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> bulk update driver which is generally faster than using something like <code class="xref py py-meth docutils literal"><span class="pre">insert</span></code> (which just generates insert statements).  It also has less of a performance impact on Teradata server when dealing with larger datasets.  While <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> uses the bulk update driver it is not meant to be a direct wrapper of the mload functionality, rather it is a more friendly abstraction but with mload performance.</p>
-<p>Just like with <code class="xref py py-meth docutils literal"><span class="pre">insert</span></code>, fields and delimiter for the input data are inferred from the header (or from a JSON stream):</p>
+<p><a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> is best utilized for loading large (&gt; ~100k rows) datasets. It makes use of the <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">Teradata Parallel Transporter API</span></a> bulk update driver which is generally faster than using something like <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.insert" title="giraffez.cmd.TeradataCmd.insert"><code class="xref py py-meth docutils literal"><span class="pre">insert</span></code></a> (which just generates insert statements).  It also has less of a performance impact on Teradata server when dealing with larger datasets.  While <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> uses the bulk update driver it is not meant to be a direct wrapper of the mload functionality, rather it is a more friendly abstraction but with mload performance.</p>
+<p>Just like with <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd.insert" title="giraffez.cmd.TeradataCmd.insert"><code class="xref py py-meth docutils literal"><span class="pre">insert</span></code></a>, fields and delimiter for the input data are inferred from the header (or from a JSON stream):</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">BulkLoad</span><span class="p">(</span><span class="s2">&quot;database.table_name&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">load</span><span class="p">:</span>
     <span class="n">load</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;input.txt&quot;</span><span class="p">)</span>
 </pre></div>
@@ -434,7 +434,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.6',
+            VERSION:'2.0.8',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

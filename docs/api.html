@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; giraffez 2.0.6 documentation</title>
+  <title>API Reference &mdash; giraffez 2.0.8 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.6 documentation" href="index.html"/>
+    <link rel="top" title="giraffez 2.0.8 documentation" href="index.html"/>
         <link rel="next" title="Frequently Asked Questions" href="FAQ.html"/>
         <link rel="prev" title="Advanced Usage" href="usage.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                2.0.6
+                2.0.8
               </div>
             
           
@@ -226,6 +226,143 @@ is complete:</p>
 </pre></div>
 </div>
 <p>Using the <code class="docutils literal"><span class="pre">with</span></code> context ensures proper exit-handling and disconnection.</p>
+<dl class="method">
+<dt id="giraffez.cmd.TeradataCmd.execute">
+<code class="descname">execute</code><span class="sig-paren">(</span><em>command</em>, <em>coerce_floats=True</em>, <em>parse_dates=False</em>, <em>header=False</em>, <em>sanitize=True</em>, <em>silent=False</em>, <em>panic=None</em>, <em>multi_statement=False</em>, <em>prepare_only=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd.execute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute commands using CLIv2.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>command</strong> (<em>str</em>) – The SQL command to be executed</li>
+<li><strong>coerce_floats</strong> (<em>bool</em>) – Coerce Teradata decimal types into Python floats</li>
+<li><strong>parse_dates</strong> (<em>bool</em>) – Parses Teradata datetime types into Python datetimes</li>
+<li><strong>header</strong> (<em>bool</em>) – Include row header</li>
+<li><strong>sanitize</strong> (<em>bool</em>) – Whether or not to call <code class="xref py py-func docutils literal"><span class="pre">prepare_statement()</span></code>
+on the command</li>
+<li><strong>silent</strong> (<em>bool</em>) – Silence console logging (within this function only)</li>
+<li><strong>panic</strong> (<em>bool</em>) – If <code class="code docutils literal"><span class="pre">True</span></code>, when an error is encountered it will be
+raised.</li>
+<li><strong>multi_statement</strong> (<em>bool</em>) – Execute in multi-statement mode</li>
+<li><strong>prepare_only</strong> (<em>bool</em>) – Only prepare the command (no results)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a cursor over the results of each statement in the command</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#giraffez.cmd.Cursor" title="giraffez.cmd.Cursor"><code class="xref py py-class docutils literal"><span class="pre">Cursor</span></code></a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><strong>giraffez.TeradataError</strong> – if the query is invalid</li>
+<li><a class="reference internal" href="#giraffez.errors.GiraffeError" title="giraffez.errors.GiraffeError"><strong>giraffez.errors.GiraffeError</strong></a> – if the return data could not be decoded</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="giraffez.cmd.TeradataCmd.exists">
+<code class="descname">exists</code><span class="sig-paren">(</span><em>object_name</em>, <em>silent=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd.exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check that object (table or view) <code class="code docutils literal"><span class="pre">object_name</span></code> exists, by executing a <code class="code docutils literal"><span class="pre">show</span> <span class="pre">table</span> <span class="pre">object_name</span></code> query, 
+followed by a <code class="code docutils literal"><span class="pre">show</span> <span class="pre">view</span> <span class="pre">object_name</span></code> query if <code class="code docutils literal"><span class="pre">object_name</span></code> is not a table.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>object_name</strong> (<em>str</em>) – The name of the object to check for existence.</li>
+<li><strong>silent</strong> (<em>bool</em>) – Silence console logging (within this function only)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><code class="code docutils literal"><span class="pre">True</span></code> if the object exists, <code class="code docutils literal"><span class="pre">False</span></code> otherwise.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">bool</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="giraffez.cmd.TeradataCmd.fetch_columns">
+<code class="descname">fetch_columns</code><span class="sig-paren">(</span><em>table_name</em>, <em>silent=False</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd.fetch_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the column information for <code class="code docutils literal"><span class="pre">table_name</span></code> by executing a <code class="code docutils literal"><span class="pre">select</span> <span class="pre">top</span> <span class="pre">1</span> <span class="pre">*</span> <span class="pre">from</span> <span class="pre">table_name</span></code> query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>table_name</strong> (<em>str</em>) – The fully-qualified name of the table to retrieve schema for</li>
+<li><strong>silent</strong> (<em>bool</em>) – Silence console logging (within this function only)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">the columns of the table</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#giraffez.types.Columns" title="giraffez.types.Columns"><code class="xref py py-class docutils literal"><span class="pre">Columns</span></code></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="giraffez.cmd.TeradataCmd.insert">
+<code class="descname">insert</code><span class="sig-paren">(</span><em>table_name</em>, <em>rows</em>, <em>fields=None</em>, <em>delimiter=None</em>, <em>null='NULL'</em>, <em>parse_dates=False</em>, <em>quotechar='&quot;'</em><span class="sig-paren">)</span><a class="headerlink" href="#giraffez.cmd.TeradataCmd.insert" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load a text file into the specified <code class="code docutils literal"><span class="pre">table_name</span></code> or Insert Python <code class="code docutils literal"><span class="pre">list</span></code> rows into the specified <code class="code docutils literal"><span class="pre">table_name</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>table_name</strong> (<em>str</em>) – The name of the destination table</li>
+<li><strong>rows</strong> (<em>list/str</em>) – A list of rows <strong>or</strong> the name of an input file. Each row
+must be a <code class="code docutils literal"><span class="pre">list</span></code> of field values.</li>
+<li><strong>fields</strong> (<em>list</em>) – The names of the target fields, in the order that
+the data will be presented (defaults to <code class="code docutils literal"><span class="pre">None</span></code> for all columns
+in the table).</li>
+<li><strong>delimiter</strong> (<em>str</em>) – The delimiter used by the input file (or <code class="code docutils literal"><span class="pre">None</span></code>
+to infer it from the header).</li>
+<li><strong>null</strong> (<em>str</em>) – The string used to indicated nulled values in the
+file (defaults to <code class="code docutils literal"><span class="pre">'NULL'</span></code>).</li>
+<li><strong>quotechar</strong> (<em>str</em>) – The character used to quote fields containing special
+characters, like the delimiter.</li>
+<li><strong>parse_dates</strong> (<em>bool</em>) – If <code class="code docutils literal"><span class="pre">True</span></code>, attempts to coerce date fields
+into a standard format (defaults to <code class="code docutils literal"><span class="pre">False</span></code>).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first simple">
+<li><a class="reference internal" href="#giraffez.errors.GiraffeEncodeError" title="giraffez.errors.GiraffeEncodeError"><strong>giraffez.errors.GiraffeEncodeError</strong></a> – if the number of values in a row does not match
+the length of <code class="code docutils literal"><span class="pre">fields</span></code></li>
+<li><a class="reference internal" href="#giraffez.errors.GiraffeError" title="giraffez.errors.GiraffeError"><strong>giraffez.errors.GiraffeError</strong></a> – if <code class="code docutils literal"><span class="pre">panic</span></code> is set and the insert statement
+caused an error.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dictionary containing counts of applied rows and errors</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><code class="xref py py-class docutils literal"><span class="pre">dict</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>For most insertions, this will be faster and produce less strain on
+Teradata than using <a class="reference internal" href="#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">TeradataBulkLoad</span></code></a> (<a class="reference internal" href="#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a>).</p>
+<p>Requires that any input file be a properly delimited text file, with a
+header that corresponds to the target fields for insertion. Valid delimiters
+include ‘|’, ‘,’, and &lt;tab&gt; or a properly encoded JSON stream.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -1089,7 +1226,7 @@ names as keys, and the row’s fields as values.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'2.0.6',
+            VERSION:'2.0.8',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

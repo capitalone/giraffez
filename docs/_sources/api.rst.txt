@@ -8,6 +8,7 @@ giraffez.cmd
     :members:
 
     .. autoclass:: giraffez.cmd.TeradataCmd
+        :members:
 
 giraffez.config
 ###############
