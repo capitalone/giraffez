@@ -144,8 +144,8 @@ class TeradataBulkExport(Connection):
         try:
             self.export.set_query(statement)
         except InvalidCredentialsError as error:
-            if args.protect:
-                Config.lock_connection(args.conf, args.dsn, args.key)
+            if self.protect:
+                Config.lock_connection(self.config, self.dsn, self.key_file)
             raise error
 
     def to_archive(self, writer):

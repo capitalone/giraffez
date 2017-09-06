@@ -343,10 +343,11 @@ GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t lengt
             *data += (c->ExtensionLength - (*data-ext));
         }
         stmt_info_append(s, *c);
+        free(c);
     }
     for (i=0; i<s->length; i++) {
         c = &s->array[i];
-        column = (GiraffeColumn*)malloc(sizeof(GiraffeColumn));
+        column = column_new();
         column->Name = strdup(c->Name);
         column->Type = c->Type;
         column->Length = c->Length;
@@ -358,6 +359,7 @@ GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t lengt
         column->Default = strdup(c->Default);
         column->Nullable = strdup(c->CanReturnNull);
         columns_append(columns, *column);
+        free(column);
     }
     stmt_info_free(s);
     return columns;

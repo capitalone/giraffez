@@ -98,7 +98,7 @@ class Connection(object):
                 log.info("Connection", "Connection to '{}' established successfully.".format(self.dsn))
         except InvalidCredentialsError as error:
             if self.protect:
-                Config.lock_connection(self.config, self.dsn, self.key)
+                Config.lock_connection(self.config, self.dsn, self.key_file)
             raise error
 
     def _close(self, exc=None):

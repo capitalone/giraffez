@@ -1,6 +1,14 @@
 giraffez Changelog
 ======================
 
+Version 2.0.9
+-------------
+Sep 6 2017
+
+- Attempted fix of regression introduced in previous commit to cleanup
+  C code creating columns.  Some values must not be initialized properly
+  as this changed caused free() invalid pointer errors.
+
 Version 2.0.8
 -------------
 Aug 31 2017

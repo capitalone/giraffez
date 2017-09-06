@@ -1044,6 +1044,7 @@ GiraffeColumns* giraffez_columns_from_pyobject(PyObject *columns_obj) {
         }
         Py_XDECREF(item);
         columns_append(columns, *column);
+        free(column);
         Py_DECREF(column_obj);
     }
     Py_DECREF(iterator);
