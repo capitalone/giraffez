@@ -373,7 +373,7 @@ class InsertCommand(Command):
             load.options("output", args.table, 1)
             load.options("null", args.null, 5)
             start_time = time.time()
-            result = load.from_file(args.table, args.input_file, null=args.null, delimiter=args.delimiter,
+            result = load.insert(args.table, args.input_file, null=args.null, delimiter=args.delimiter,
                 parse_dates=args.parse_dates, quotechar=args.quote_char)
             log.info("Results", "{} errors; {} rows in {}".format(result['errors'], result['count'], readable_time(time.time() - start_time)))
 
