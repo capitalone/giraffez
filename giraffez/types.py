@@ -87,9 +87,9 @@ class Column(object):
                 column = {"name": column[0], "type": column[1], "length": column[2], "precision": column[3], "scale": column[4], "nullable": column[5], "default": column[6], "format": column[7]}
             else:
                 raise GiraffeTypeError("Column information is not valid")
-        self.original_name = str(ensure_str(column.get("name"))).strip('"').lower()
-        self.alias = str(column.get("alias", "")).strip('"').lower()
-        self.title = str(column.get("title", "")).strip('"').lower()
+        self.original_name = ensure_str(column.get("name")).strip('"').lower()
+        self.alias = (column.get("alias", "")).strip('"').lower()
+        self.title = (column.get("title", "")).strip('"').lower()
         self.type = column.get("type")
         if self.type in cmd_type_map:
             self.tpt_type = self.type

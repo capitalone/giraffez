@@ -226,7 +226,7 @@ class Writer(object):
 
     def writen(self, buf):
         self.write(buf)
-        self.write("\n")
+        self.write(u"\n")
 
     def __enter__(self):
         return self

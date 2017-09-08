@@ -1,6 +1,12 @@
 giraffez Changelog
 ======================
 
+Version 2.0.11
+-------------
+Sep 8 2017
+
+- Fix python2.7 issue with column names being converted from unicode to str
+
 Version 2.0.9
 -------------
 Sep 6 2017
