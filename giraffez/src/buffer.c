@@ -37,7 +37,7 @@ void buffer_writef(buffer_t *b, const char *fmt, ...) {
     int length;
     va_list vargs;
     va_start(vargs, fmt);
-    length = vsprintf(b->data, fmt, vargs);
+    length = vsprintf(b->data+b->pos, fmt, vargs);
     va_end(vargs);
     b->pos += length;
     b->length += length;
