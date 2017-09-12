@@ -404,7 +404,7 @@ int teradata_decimal32_to_cstring(unsigned char **data, const uint16_t column_sc
     int32_t l, x, y, scale;
     unpack_int32_t(data, &l);
     if (column_scale > 0) {
-        const char *fmt = l < 0 ? "-%ld.%0*ld" : "%ld.%0*ld";
+        const char *fmt = l < 0 ? "-%d.%0*d" : "%d.%0*d";
         scale = (int32_t)pow(10, column_scale);
         x = labs(l / scale);
         y = labs(l % scale);

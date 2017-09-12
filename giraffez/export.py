@@ -71,7 +71,7 @@ class TeradataBulkExport(Connection):
     .. code-block:: python
 
        with giraffez.BulkExport('dbc.dbcinfo') as export:
-           print(export.header)
+           print('|'.join(export.columns.names))
            for row in export.to_list():
                print(row)
     """
