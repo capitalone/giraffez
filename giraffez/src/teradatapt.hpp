@@ -349,10 +349,11 @@ namespace Giraffez {
                 for (i = 0; i < len; i++) {
                     // TODO: check to ensure that the supplied value is valid as a
                     // a column
+                    // TODO: should probably just improve with better abstraction
                     Py_RETURN_ERROR((column_name = PyList_GetItem(column_list, i)));
                     for (j=0; j<encoder->Columns->length; j++) {
                         column = &encoder->Columns->array[j];
-                        if (strcmp(column->Name, PyUnicode_AsUTF8(column_name)) == 0) {
+                        if (PyOS_stricmp(column->Name, PyUnicode_AsUTF8(column_name)) == 0) {
                             table_schema->AddColumn(column->Name, (TD_DataType)column->TPTType, column->Length,
                                 column->Precision, column->Scale);
                             column_names << "\"" << column->Name << "\",";

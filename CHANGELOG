@@ -1,6 +1,21 @@
 giraffez Changelog
 ======================
 
+Version 2.0.14
+-------------
+Sep 18 2017
+
+- Fix columns not set in BulkLoad in `from_file`
+- Use PyOS_stricmp instead of strcmp for case-insensitive comparison of
+  column_list when setting schema for BulkLoad
+- Raise exception on duplicate columns in input for BulkLoad
+
+Version 2.0.13
+-------------
+Sep 12 2017
+
+- Decimal 32-bit fix on OSX
+
 Version 2.0.12
 -------------
 Sep 12 2017
@@ -12,6 +27,12 @@ Version 2.0.11
 Sep 8 2017
 
 - Fix python2.7 issue with column names being converted from unicode to str
+
+Version 2.0.10
+-------------
+Sep 7 2017
+
+- Fix incorrect method name on command-line insert
 
 Version 2.0.9
 -------------

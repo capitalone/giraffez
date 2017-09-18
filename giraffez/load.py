@@ -169,7 +169,13 @@ class TeradataBulkLoad(Connection):
     def columns(self, field_names):
         if not isinstance(field_names, list):
             raise GiraffeError("Must set .columns property as type <List>")
-        self._columns = field_names
+        fields = []
+        for field in field_names:
+            field = field.lower()
+            if field in fields:
+                raise GiraffeError("Cannot set duplicate column: '{}'".format(field))
+            fields.append(field)
+        self._columns = fields
 
     def finish(self):
         """
@@ -239,9 +245,9 @@ class TeradataBulkLoad(Connection):
         with Reader(filename, delimiter=delimiter, quotechar=quotechar) as f:
             if not isinstance(f.delimiter, basestring):
                 raise GiraffeError("Expected 'delimiter' to be str, received {}".format(type(delimiter)))
+            self.columns = f.header
             if isinstance(f, ArchiveFileReader):
                 self.mload.set_encoding(ROW_ENCODING_RAW)
-                self.columns = f.header
                 self.preprocessor = lambda s: s
             if parse_dates:
                 self.preprocessor = DateHandler(self.columns)
