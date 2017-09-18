@@ -85,7 +85,7 @@ class Cursor(object):
 
     def _columns(self):
         columns = self.conn.columns()
-        log.debug("Debug[2]", self.conn.columns(debug=True))
+        log.debug("Debug[2]", repr(self.conn.columns(debug=True)))
         for column in columns:
             log.verbose("Debug[1]", repr(column))
         return columns
