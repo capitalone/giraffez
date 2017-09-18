@@ -1,6 +1,12 @@
 giraffez Changelog
 ======================
 
+Version 2.0.15
+-------------
+Sep 18 2017
+
+- No longer use extremely broken PyOS_stricmp
+
 Version 2.0.14
 -------------
 Sep 18 2017

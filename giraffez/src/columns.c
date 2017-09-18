@@ -281,6 +281,11 @@ char* safe_name(const char *name) {
     return s;
 }
 
+int compare_name(const char *l, const char *r) {
+	for (; tolower(*l)==tolower(*r) && *l; l++, r++);
+    return (unsigned char)tolower(*l) - (unsigned char)tolower(*r);
+}
+
 GiraffeColumns* columns_from_stmtinfo(unsigned char **data, const uint32_t length) {
     StatementInfoColumn *c;
     StatementInfo *s;
