@@ -360,6 +360,18 @@ serialize_only_tests = [
         "input_value": b'\x00\x03\x00\xe2\x98\x83',
         "expected_value": "☃",
     },
+    {
+        "name": "int from string",
+        "column": Integer,
+        "input_value": b'\x00\x2a\x00\x00\x00',
+        "expected_value": "42",
+    },
+    {
+        "name": "float from string",
+        "column": ("col1", FLOAT_NN, 8, 0, 0),
+        "input_value": b'\x00\xcd\xcc\xcc\xcc\xcc\xcc\x10@',
+        "expected_value": "4.2",
+    },
 ]
 
 error_tests = [
@@ -522,6 +534,23 @@ class TestEncoder(object):
         ]
         with pytest.raises(EncoderError):
             result_text = encoder.serialize([42, 'value2'])
+
+    def test_buffer_writef_pos(self, encoder):
+        """
+        Ensure that when encoding to a string, the fields which are written
+        using the buffer_writef function are written to the correct location
+        of the buffer and do not overwrite other fields.
+        """
+        encoder.columns = [
+            ('col1', TD_VARCHAR, 50, 0, 0),
+            ('col2', TD_INTEGER, 4, 0, 0),
+            ('col3', TD_FLOAT, 8, 0, 0),
+        ]
+        expected_bytes = b'\x00\x04\x00test*\x00\x00\x00\x9a\x99\x99\x99\x99\x99\t@'
+        expected_text = "test|42|3.200000"
+        encoder |= ENCODER_SETTINGS_STRING
+        result_text = encoder.read(expected_bytes)
+        assert result_text == expected_text
 
 
 

@@ -321,7 +321,13 @@ class FmtCommand(Command):
                         break
                     sys.stdout.write(line)
                 return
-        with io.open(args.input_file) as f:
+        with Reader(args.input_file) as f:
+            processor = identity
+            filter_func = identity
+            if isinstance(f, ArchiveFileReader):
+                encoder = TeradataEncoder(encoding=ENCODER_SETTINGS_STRING)
+                encoder.columns = f.columns
+                processor = encoder.read
             if args.header:
                 print(f.header)
             if args.regex:
@@ -329,12 +335,12 @@ class FmtCommand(Command):
                 if len(parts) < 3 or parts[0] != "s":
                     raise GiraffeError("Regex pattern '{}' not recoginzed.".format(args.regex))
                 pattern = re.compile(parts[1])
-                processor = lambda line: pattern.sub(parts[2], line)
+                filter_func = lambda line: pattern.sub(parts[2], line)
             i = 0
             for i, line in enumerate(f, 1):
                 if args.head and args.head < i:
                     break
-                sys.stdout.write(processor(line))
+                sys.stdout.write(filter_func(processor(line)))
 
 
 class InsertCommand(Command):

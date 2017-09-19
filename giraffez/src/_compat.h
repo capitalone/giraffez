@@ -72,7 +72,9 @@
 
   #define _PyLong_Check(ob) (PyLong_Check(ob) || PyInt_Check(ob))
   #define _PyFloat_FromString(ob) PyFloat_FromString(ob, NULL)
-  #define PyLong_FromUnicodeObject(ob, b) PyLong_FromUnicode(PyUnicode_AS_UNICODE(ob), PyUnicode_GetSize(ob), b)
+  #define PyLong_FromUnicodeObject(ob, b) (PyUnicode_Check(ob) ? \
+      PyLong_FromUnicode(PyUnicode_AS_UNICODE(ob), PyUnicode_GetSize(ob), b) : \
+      PyLong_FromString(PyString_AsString(ob), NULL, b))
 
   #define PyException_HEAD PyObject_HEAD PyObject *dict;\
              PyObject *args; PyObject *traceback;\

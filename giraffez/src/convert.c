@@ -614,7 +614,7 @@ PyObject* teradata_byteint_from_pylong(PyObject *item, const uint16_t column_len
     PyObject *temp = NULL;
     int8_t b;
     if (!_PyLong_Check(item)) {
-        if (!PyUnicode_Check(item)) {
+        if (!PyStr_Check(item)) {
             PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
         }
@@ -637,7 +637,7 @@ PyObject* teradata_smallint_from_pylong(PyObject *item, const uint16_t column_le
     PyObject *temp = NULL;
     int16_t h;
     if (!_PyLong_Check(item)) {
-        if (!PyUnicode_Check(item)) {
+        if (!PyStr_Check(item)) {
             PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
         }
@@ -660,7 +660,7 @@ PyObject* teradata_int_from_pylong(PyObject *item, const uint16_t column_length,
     PyObject *temp = NULL;
     int32_t l;
     if (!_PyLong_Check(item)) {
-        if (!PyUnicode_Check(item)) {
+        if (!PyStr_Check(item)) {
             PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
         }
@@ -683,7 +683,7 @@ PyObject* teradata_bigint_from_pylong(PyObject *item, const uint16_t column_leng
     PyObject *temp = NULL;
     int64_t q;
     if (!_PyLong_Check(item)) {
-        if (!PyUnicode_Check(item)) {
+        if (!PyStr_Check(item)) {
             PyErr_Format(EncoderError, "Expected integer/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
         }
@@ -711,7 +711,12 @@ PyObject* teradata_float_from_pyfloat(PyObject *item, const uint16_t column_leng
             if ((s = PyUnicode_AsASCIIString(item)) == NULL) {
                 return NULL;
             }
+#if PY_MAJOR_VERSION < 3
+        } else if (PyString_Check(item)) {
+            s = item;
+#endif
         } else {
+            PyErr_Format(EncoderError, "Expected number/string type and received '%s'", Py_TYPE(item)->tp_name);
             return NULL;
         }
         if ((f = _PyFloat_FromString(s)) == NULL) {

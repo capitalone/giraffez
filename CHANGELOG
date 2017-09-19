@@ -1,6 +1,13 @@
 giraffez Changelog
 ======================
 
+Version 2.0.16
+-------------
+Sep 19 2017
+
+- Fix giraffez fmt command
+- Fix python 2.7 str conversion to int and float 
+
 Version 2.0.15
 -------------
 Sep 18 2017
