@@ -1,6 +1,12 @@
 giraffez Changelog
 ======================
 
+Version 2.0.17
+-------------
+Sep 20 2017
+
+- Fix MANIFEST.in to include all .c files (fixes #41)
+
 Version 2.0.16
 -------------
 Sep 19 2017
