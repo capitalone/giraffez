@@ -250,6 +250,8 @@ class TeradataBulkExport(Connection):
             coerce_floats = self.coerce_floats
         if coerce_floats:
             self.export.set_encoding(DECIMAL_AS_FLOAT)
+        else:
+            self.export.set_encoding(DECIMAL_AS_STRING)
         while True:
             data = self.export.get_buffer()
             if not data:

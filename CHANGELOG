@@ -1,6 +1,13 @@
 giraffez Changelog
 ======================
 
+Version 2.0.18
+-------------
+Oct 10 2017
+
+- Fix memory leak in conversion from decimal to pyfloats
+- Fix ignored setting coerce_floats when set to false and using either list or dict as results output
+
 Version 2.0.17
 -------------
 Sep 20 2017

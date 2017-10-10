@@ -492,7 +492,16 @@ int teradata_decimal128_to_cstring(unsigned char **data, const uint16_t column_s
 }
 
 PyObject* cstring_to_pyfloat(const char *buf, const int length) {
-    return _PyFloat_FromString(cstring_to_pystring(buf, length));
+    PyObject *tmp, *obj;
+    if ((tmp = cstring_to_pystring(buf, length)) == NULL) {
+        return NULL;
+    }
+    if ((obj = _PyFloat_FromString(tmp)) == NULL) {
+        Py_XDECREF(tmp);
+        return NULL;
+    }
+    Py_DECREF(tmp);
+    return obj;
 }
 
 PyObject* cstring_to_giraffez_decimal(const char *buf, const int length) {
