@@ -120,7 +120,9 @@ PyObject* teradata_row_to_pystring(const TeradataEncoder *e, unsigned char **dat
         if (indicator_read(e->Columns->buffer, i)) {
             *data += column->NullLength;
             buffer_write(e->buffer, e->NullValueStr, e->NullValueStrLen);
-            buffer_write(e->buffer, e->DelimiterStr, e->DelimiterStrLen);
+            if (i != e->Columns->length-1) {
+                buffer_write(e->buffer, e->DelimiterStr, e->DelimiterStrLen);
+            }
             continue;
         }
         switch (column->GDType) {

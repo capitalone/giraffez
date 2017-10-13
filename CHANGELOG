@@ -1,6 +1,12 @@
 giraffez Changelog
 ======================
 
+Version 2.0.19
+-------------
+Oct 13 2017
+
+- Fix row string serialization attaching extra delimiters to rows when NULL
+
 Version 2.0.18
 -------------
 Oct 10 2017
