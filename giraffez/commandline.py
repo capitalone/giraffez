@@ -315,12 +315,7 @@ class FmtCommand(Command):
                     pass
                 log.info("Lines: ", i)
                 return
-            elif args.head:
-                for i, line in enumerate(f, 1):
-                    if args.head < i:
-                        break
-                    sys.stdout.write(line)
-                return
+            
         with Reader(args.input_file) as f:
             processor = identity
             filter_func = identity
