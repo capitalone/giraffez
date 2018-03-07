@@ -58,7 +58,7 @@ class Crypto(object):
         return self.unpad(cipher.decrypt(enc[self.bs:])).decode("utf-8")
 
     def encrypt(self, raw):
-        raw = self.pad(raw)
+        raw = self.pad(raw).encode("utf-8")
         iv = os.urandom(self.bs)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return base64.b64encode(iv + cipher.encrypt(raw))

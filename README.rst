@@ -15,21 +15,21 @@ Giraffez is a client library for `Teradata <http://www.teradata.com/>`_, made to
 Features
 ########
 
-- `Command-line tool <http://capitalone.io/giraffez/command-line.html>`_
-- `Python API <http://capitalone.io/giraffez/api.html#giraffez-modules>`_ - expressive, powerful, and great for `working with other packages <http://capitalone.io/giraffez/api.html#working-with-other-packages>`_ (e.g. `pandas <http://pandas.pydata.org>`_)
-- `Execute <http://capitalone.io/giraffez/command-line.html#cmd>`_ SQL statements using the Teradata CLIv2 library -- performing ad hoc queries and commands
-- `Insert <http://capitalone.io/giraffez/command-line.html#insert>`_ into existing Teradata tables using the CLIv2 drivers
-- `Archive <http://capitalone.io/giraffez/command-line.html#archiving>`_ Teradata tables to save space. These can easily be `transformed to flatfiles <http://capitalone.io/giraffez/command-line.html#fmt>`_ or `loaded <http://capitalone.io/giraffez/command-line.html#load>`_ back into Teradata
-- `BulkExport <http://capitalone.io/giraffez/command-line.html#export>`_ from Teradata to a flatfile or archival format, retaining data type information
-- `BulkLoad <http://capitalone.io/giraffez/command-line.html#load>`_ into existing Teradata tables using the Teradata PT Update (MLOAD)
-- `Config <http://capitalone.io/giraffez/command-line.html#config>`_ - manage connection information and credentials securely using the ``giraffez config`` and ``giraffez secret`` commands
-- `Interactive shell <http://capitalone.io/giraffez/command-line.html#shell>`_ for executing Teradata queries -- much like BTEQ, but with a friendly interface
-- `Run <http://capitalone.io/giraffez/command-line.html#run>`_ job files in YAML format
+- `Command-line tool <https://capitalone.github.io/giraffez/command-line.html>`_
+- `Python API <https://capitalone.github.io/giraffez/api.html#giraffez-modules>`_ - expressive, powerful, and great for `working with other packages <https://capitalone.github.io/giraffez/api.html#working-with-other-packages>`_ (e.g. `pandas <http://pandas.pydata.org>`_)
+- `Execute <https://capitalone.github.io/giraffez/command-line.html#cmd>`_ SQL statements using the Teradata CLIv2 library -- performing ad hoc queries and commands
+- `Insert <https://capitalone.github.io/giraffez/command-line.html#insert>`_ into existing Teradata tables using the CLIv2 drivers
+- `Archive <https://capitalone.github.io/giraffez/command-line.html#archiving>`_ Teradata tables to save space. These can easily be `transformed to flatfiles <https://capitalone.github.io/giraffez/command-line.html#fmt>`_ or `loaded <https://capitalone.github.io/giraffez/command-line.html#load>`_ back into Teradata
+- `BulkExport <https://capitalone.github.io/giraffez/command-line.html#export>`_ from Teradata to a flatfile or archival format, retaining data type information
+- `BulkLoad <https://capitalone.github.io/giraffez/command-line.html#load>`_ into existing Teradata tables using the Teradata PT Update (MLOAD)
+- `Config <https://capitalone.github.io/giraffez/command-line.html#config>`_ - manage connection information and credentials securely using the ``giraffez config`` and ``giraffez secret`` commands
+- `Interactive shell <https://capitalone.github.io/giraffez/command-line.html#shell>`_ for executing Teradata queries -- much like BTEQ, but with a friendly interface
+- `Run <https://capitalone.github.io/giraffez/command-line.html#run>`_ job files in YAML format
 
 Links
 #####
 
-- `Documentation <http://capitalone.io/giraffez>`_
+- `Documentation <https://capitalone.github.io/giraffez>`_
 
 Quick Install
 #############
@@ -38,7 +38,7 @@ Quick Install
 
   $ pip install giraffez
 
-See the `setup instructions <http://capitalone.io/giraffez/intro.html#giraffez-setup>`_ for requirements and details on how to configure your environment.
+See the `setup instructions <https://capitalone.github.io/giraffez/intro.html#giraffez-setup>`_ for requirements and details on how to configure your environment.
 
 Contributors
 ############
