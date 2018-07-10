@@ -53,6 +53,7 @@ TeradataConnection* __teradata_new() {
     TeradataConnection *conn;
     conn = (TeradataConnection*)malloc(sizeof(TeradataConnection));
     conn->result = 0;
+    conn->rowcount = 0;
     conn->connected = NOT_CONNECTED;
     conn->request_status = REQUEST_CLOSED;
     conn->dbc = (dbcarea_t*)malloc(sizeof(dbcarea_t));
@@ -273,6 +274,14 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
     count = 0;
     // Find first statement info parcel only
     while (__teradata_fetch_record(conn) == OK && count < MAX_PARCEL_ATTEMPTS) {
+        // Watch for PclSUCCESS parcel and check rowcount (aka ActivityCount)
+        if (conn->dbc->fet_parcel_flavor == PclSUCCESS) {
+            unsigned char** data = (unsigned char**)&conn->dbc->fet_data_ptr;
+            int rowcount = (*data)[2] | (*data)[3] << 8 | (*data)[4] << 16 | (*data)[5] << 24;
+
+            // TODO What is the best way to propagate this value back up to a Cursor?
+            conn->rowcount = rowcount;
+        }
         if ((row = teradata_handle_record(e, conn->dbc->fet_parcel_flavor,
                 (unsigned char**)&conn->dbc->fet_data_ptr,
                 conn->dbc->fet_ret_data_len)) == NULL) {

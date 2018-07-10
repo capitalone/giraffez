@@ -50,6 +50,7 @@ typedef struct TeradataConnection {
     Int32 result;
     int connected;
     int request_status;
+    int rowcount;
 } TeradataConnection;
 
 typedef struct TeradataErr {

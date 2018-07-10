@@ -95,6 +95,16 @@ static PyObject* Cmd_columns(Cmd *self, PyObject *args, PyObject *kwargs) {
     return giraffez_columns_to_pyobject(self->encoder->Columns);
 }
 
+static PyObject* Cmd_rowcount(Cmd *self, PyObject *args, PyObject *kwargs) {
+    PyObject *debug = NULL;
+    static char *kwlist[] = {"debug", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", kwlist, &debug)) {
+        return NULL;
+    }
+
+    return PyLong_FromLong(self->conn->rowcount);
+}
+
 static PyObject* Cmd_execute(Cmd *self, PyObject *args, PyObject *kwargs) {
     char *command = NULL;
     int prepare_only = 0;
@@ -160,6 +170,7 @@ static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
 static PyMethodDef Cmd_methods[] = {
     {"close", (PyCFunction)Cmd_close, METH_NOARGS, ""},
     {"columns", (PyCFunction)Cmd_columns, METH_VARARGS|METH_KEYWORDS, ""},
+    {"rowcount", (PyCFunction)Cmd_rowcount, METH_VARARGS|METH_KEYWORDS, ""},
     {"execute", (PyCFunction)Cmd_execute, METH_VARARGS|METH_KEYWORDS, ""},
     {"fetchone", (PyCFunction)Cmd_fetchone, METH_NOARGS, ""},
     {"set_encoding", (PyCFunction)Cmd_set_encoding, METH_VARARGS, ""},
