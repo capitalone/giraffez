@@ -87,6 +87,14 @@ uint16_t __teradata_connect(TeradataConnection *conn, const char *host, const ch
     conn->dbc->maximum_parcel = 'H';
     conn->dbc->max_decimal_returned = 38;
     conn->dbc->charset_type = 'N';
+    // The date is set explicitly to only use the Teradata format.  The
+    // Teradata CLIv2 documentation indicates that the Teradata format will
+    // always be available, but the other date type, ANSI, may not be
+    // available.  Since the Teradata date format (integer date) is the
+    // preferred date format anyway, this can be set explicitly to safely
+    // address issues like Teradata server configurations where the default
+    // date format is set to ANSI.
+    conn->dbc->date_form = 'T';
     conn->dbc->tx_semantics = 'T';
     conn->dbc->consider_APH_resps = 'Y';
     snprintf(conn->session_charset, sizeof(conn->session_charset), "%-*s",
