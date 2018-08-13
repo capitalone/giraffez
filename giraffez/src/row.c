@@ -144,7 +144,7 @@ PyObject* teradata_row_to_pystring(const TeradataEncoder *e, unsigned char **dat
                 break;
             case GD_FLOAT:
                 unpack_float(data, &d);
-                buffer_writef(e->buffer, "%f", d);
+                buffer_writef(e->buffer, "%.16g", d);
                 break;
             case GD_DECIMAL:
                 if ((n = teradata_decimal_to_cstring(data, column->Length, column->Scale, item)) < 0) {
