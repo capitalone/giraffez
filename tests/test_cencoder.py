@@ -547,8 +547,30 @@ class TestEncoder(object):
             ('col3', TD_FLOAT, 8, 0, 0),
         ]
         expected_bytes = b'\x00\x04\x00test*\x00\x00\x00\x9a\x99\x99\x99\x99\x99\t@'
-        expected_text = "test|42|3.200000"
+        expected_text = "test|42|3.2"
         encoder |= ENCODER_SETTINGS_STRING
+        result_text = encoder.read(expected_bytes)
+        assert result_text == expected_text
+
+    def test_buffer_writef_float(self, encoder):
+        """
+        Ensure that maximum precision is available when using sprintf to
+        convert a float to a decimal string.  In the case of having a C double
+        (IEEE 64-bit double-precision floating point number) up to 17
+        significant digits are available when converting to a decimal string.
+        """
+        encoder.columns = [
+            ('col1', TD_INTEGER, 4, 0, 0),
+            ('col2', TD_FLOAT, 8, 0, 0),
+        ]
+        expected_bytes = b'\x00*\x00\x00\x00\xe38\x8e\xffd\xcd\xcdA'
+        expected_text = "42|999999999.111111"
+        encoder |= ENCODER_SETTINGS_STRING
+        result_text = encoder.read(expected_bytes)
+        assert result_text == expected_text
+
+        expected_bytes = b'\x00*\x00\x00\x00\xd0G\xbb\xff\xff\xff\xff?'
+        expected_text = "42|1.999999999"
         result_text = encoder.read(expected_bytes)
         assert result_text == expected_text
 
