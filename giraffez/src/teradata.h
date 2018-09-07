@@ -50,7 +50,22 @@ typedef struct TeradataConnection {
     Int32 result;
     int connected;
     int request_status;
-    int rowcount;
+
+    /* TODO: What type to use for 'rowcount'?
+     *
+     * The Teradata API returns a 32 byte unsigned integer for this value.
+     * That means we at least want to support up to UINT32_MAX. However,
+     * it'd also be nice to allow for -1 as an indicator for any errors
+     * or that the value hasn't been updated yet.
+     *
+     * I see a few options:
+     *  long - Should be big enough but lacks potential cross-platform
+     *          sizing consistency
+     *  ssize_t - Same idea as long, but again could fail on 32-bit systems?
+     *  int64_t - Explicitly define that this field needs to be large
+     *              to support UINT32_MAX _and_ negative values
+     */
+    long rowcount;
 } TeradataConnection;
 
 typedef struct TeradataErr {
