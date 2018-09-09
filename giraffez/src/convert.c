@@ -116,6 +116,13 @@ void unpack_int32_t(unsigned char **data, int32_t *dst) {
     *dst |= (*((*data)++) & 0xffLL) << 24;
 }
 
+void unpack_uint32_t(unsigned char **data, uint32_t *dst) {
+    *dst = *((*data)++);
+    *dst |= (*((*data)++) & 0xffULL) << 8;
+    *dst |= (*((*data)++) & 0xffULL) << 16;
+    *dst |= (*((*data)++) & 0xffULL) << 24;
+}
+
 void unpack_int64_t(unsigned char **data, int64_t *dst) {
     *dst = *((*data)++);
     *dst |= (*((*data)++) & 0xffLL) << 8;

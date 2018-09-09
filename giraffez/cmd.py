@@ -83,6 +83,10 @@ class Cursor(object):
         if self.prepare_only:
             self.columns = self._columns()
 
+    @property
+    def rowcount(self):
+        return self.conn.rowcount()
+
     def _columns(self):
         columns = self.conn.columns()
         log.debug("Debug[2]", repr(self.conn.columns(debug=True)))
