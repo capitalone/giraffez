@@ -111,7 +111,7 @@ namespace Giraffez {
             if PyLong_Check(value) {
                 TConn::AddAttribute(key, (int)PyLong_AsLong(value));
             } else if (PyStr_Check(value)) {
-                TConn::AddAttribute(key, PyUnicode_AsUTF8(value));
+                TConn::AddAttribute(key, (char*)PyUnicode_AsUTF8(value));
             } else {
                 // TODO: err
             }
