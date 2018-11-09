@@ -110,7 +110,7 @@ namespace Giraffez {
             if PyLong_Check(value) {
                 this->conn->AddAttribute(key, (int)PyLong_AsLong(value));
             } else if (PyStr_Check(value)) {
-                this->conn->AddAttribute(key, PyUnicode_AsUTF8(value));
+                this->conn->AddAttribute(key, (char*)PyUnicode_AsUTF8(value));
             } else {
                 // TODO: err
             }

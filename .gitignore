@@ -57,3 +57,4 @@ tests/tmp/
 docs/_build/
 docs/.doctrees
 docs/.buildinfo
+.pytest_cache/
