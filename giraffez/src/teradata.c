@@ -126,7 +126,7 @@ PyObject* teradata_close(TeradataConnection *conn) {
 }
 
 TeradataConnection* teradata_connect(const char *host, const char *username,
-        const char *password) {
+        const char *password, const char *logon_mech, const char *logon_mech_data) {
     int status;
     TeradataConnection *conn;
     conn = teradata_new();
@@ -156,6 +156,7 @@ TeradataConnection* teradata_connect(const char *host, const char *username,
     conn->dbc->maximum_parcel = 'H';
     conn->dbc->max_decimal_returned = 38;
     conn->dbc->charset_type = 'N';
+
     // The date is set explicitly to only use the Teradata format.  The
     // Teradata CLIv2 documentation indicates that the Teradata format will
     // always be available, but the other date type, ANSI, may not be
@@ -173,6 +174,14 @@ TeradataConnection* teradata_connect(const char *host, const char *username,
     conn->dbc->logon_ptr = conn->logonstr;
     conn->dbc->logon_len = (UInt32)strlen(conn->logonstr);
     conn->dbc->func = DBFCON;
+    if (logon_mech != NULL) {
+        snprintf(conn->dbc->logmech_name, sizeof(conn->dbc->logmech_name), "%-*s",
+            (int)(sizeof(conn->dbc->logmech_name)-strlen(logon_mech)), logon_mech);
+        if (logon_mech_data != NULL) {
+            sprintf(conn->dbc->logmech_data_ptr, "%s", logon_mech_data);
+            conn->dbc->logmech_data_len = (UInt32)strlen(conn->dbc->logmech_data_ptr);
+        }
+    }
     DBCHCL(&conn->result, conn->cnta, conn->dbc);
     if (conn->result != OK) {
         PyErr_Format(TeradataError, "%d: CLIv2[connect]: %s", conn->result, conn->dbc->msg_text);

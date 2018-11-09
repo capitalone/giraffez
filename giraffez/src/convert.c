@@ -438,6 +438,8 @@ int teradata_decimal64_to_cstring(unsigned char **data, const uint16_t column_sc
     } else {
 #ifdef _MSC_VER
         return sprintf(buf, "%I64d", q);
+#elif defined(__APPLE__)
+        return sprintf(buf, "%lld", q);
 #else
         return sprintf(buf, "%ld", q);
 #endif
@@ -757,10 +759,10 @@ PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_l
     int32_t l = 0;
     
     if (PyStr_Check(item)) {
-        Py_RETURN_ERROR((str = PyUnicode_AsUTF8(item)));
+        Py_RETURN_ERROR((str = (char*)PyUnicode_AsUTF8(item)));
     } else {
         Py_RETURN_ERROR((temp = PyObject_Str(item)));
-        Py_RETURN_ERROR((str = PyUnicode_AsUTF8(temp)));
+        Py_RETURN_ERROR((str = (char*)PyUnicode_AsUTF8(temp)));
         Py_DECREF(temp);
     }
 

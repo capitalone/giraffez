@@ -90,10 +90,12 @@ class Connection(object):
             password = conn.get("password")
             if password is None:
                 raise suppress_context(ConfigurationError("Connection '{}' missing password value".format(self.dsn)))
+            logon_mech = conn.get("logon_mech", None)
+            logon_mech_data = conn.get("logon_mech_data", None)
         try:
             if not self.silent:
                 log.info("Connection", "Connecting to data source '{}' ...".format(self.dsn))
-            self._connect(host, username, password)
+            self._connect(host, username, password, logon_mech, logon_mech_data)
             if not self.silent:
                 log.info("Connection", "Connection to '{}' established successfully.".format(self.dsn))
         except InvalidCredentialsError as error:
@@ -104,7 +106,7 @@ class Connection(object):
     def _close(self, exc=None):
         pass
 
-    def _connect(self, host, username, password):
+    def _connect(self, host, username, password, logon_mech, logon_mech_data):
         pass
 
     def __enter__(self):

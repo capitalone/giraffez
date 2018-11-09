@@ -259,7 +259,7 @@ void cursor_free(TeradataCursor *cursor);
 PyObject* teradata_check_error(TeradataConnection *conn, TeradataCursor *cursor);
 PyObject* teradata_close(TeradataConnection *conn);
 TeradataConnection* teradata_connect(const char *host, const char *username,
-    const char *password);
+    const char *password, const char *logon_mech, const char *logon_mech_data);
 PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, TeradataCursor *cursor);
 PyObject* teradata_handle_record(TeradataEncoder *e, TeradataCursor *cursor, const uint32_t parcel_t, unsigned char **data,
     const uint32_t length);

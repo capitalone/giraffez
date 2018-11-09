@@ -29,12 +29,14 @@
 #include <schema.h>
 #include <DMLGroup.h>
 
+//teradata::client::API::Connection *gconn = new teradata::client::API::Connection();
+teradata::client::API::Connection gconn;
 
 namespace Giraffez {
     class Connection {
     private:
         std::string table_name;
-        const char *host, *username, *password;
+        const char *host, *username, *password, *logon_mech, *logon_mech_data;
         unsigned char *row_buffer;
     public:
         teradata::client::API::Connection *conn;
@@ -42,13 +44,16 @@ namespace Giraffez {
         int status;
         bool connected;
 
-        Connection(const char *host, const char *username, const char *password) {
+        Connection(const char *host, const char *username, const char *password, const char *logon_mech, const char *logon_mech_data) {
             this->host = strdup(host);
             this->username = strdup(username);
             this->password = strdup(password);
+            this->logon_mech = strdup(logon_mech);
+            this->logon_mech_data = strdup(logon_mech_data);
             this->row_buffer = (unsigned char*)malloc(sizeof(unsigned char)*TD_ROW_MAX_SIZE);
             this->encoder = encoder_new(NULL, 0);
             this->conn = new teradata::client::API::Connection();
+            //this->conn = &gconn;
         }
         ~Connection() {
             if (encoder != NULL) {
@@ -56,6 +61,8 @@ namespace Giraffez {
                 encoder = NULL;
             }
             free(this->row_buffer);
+            printf("here!!!!!!!!!!!!!!!!!!!!\n");
+            delete this->conn;
         }
 
         PyObject* SetEncoding(uint32_t settings) {
@@ -244,7 +251,7 @@ namespace Giraffez {
             if (prepare_only) {
                 cursor->req_proc_opt = 'P';
             }
-            if ((cmd = teradata_connect(host, username, password)) == NULL) {
+            if ((cmd = teradata_connect(host, username, password, logon_mech, logon_mech_data)) == NULL) {
                 goto error;
             }
             if (teradata_execute(cmd, e, cursor) == NULL) {
@@ -304,7 +311,7 @@ error:
             encoder_clear(encoder);
             cursor = cursor_new(query);
             cursor->req_proc_opt = 'P';
-            if ((cmd = teradata_connect(host, username, password)) == NULL) {
+            if ((cmd = teradata_connect(host, username, password, logon_mech, logon_mech_data)) == NULL) {
                 goto error;
             }
             if (teradata_execute(cmd, encoder, cursor) == NULL) {
@@ -327,7 +334,7 @@ error:
             table_name = std::string(tbl_name);
             cursor = cursor_new(strdup(("select top 1 * from " + table_name).c_str()));
             cursor->req_proc_opt = 'P';
-            if ((cmd = teradata_connect(host, username, password)) == NULL) {
+            if ((cmd = teradata_connect(host, username, password, logon_mech, logon_mech_data)) == NULL) {
                 goto error;
             }
             if (teradata_execute(cmd, encoder, cursor) == NULL) {

@@ -59,15 +59,15 @@ static PyObject* Cmd_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
 }
 
 static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
-    char *host=NULL, *username=NULL, *password=NULL;
+    char *host=NULL, *username=NULL, *password=NULL, *logon_mech=NULL, *logon_mech_data=NULL;
     uint32_t settings = 0;
 
-    static char *kwlist[] = {"host", "username", "password", "encoder_settings", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sss|i", kwlist, &host, &username, &password,
-            &settings)) {
+    static char *kwlist[] = {"host", "username", "password", "logon_mech", "logon_mech_data", "encoder_settings", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sssss|i", kwlist, &host, &username, &password,
+            &logon_mech, &logon_mech_data, &settings)) {
         return -1;
     }
-    if ((self->conn = teradata_connect(host, username, password)) == NULL) {
+    if ((self->conn = teradata_connect(host, username, password, logon_mech, logon_mech_data)) == NULL) {
         return -1;
     }
     self->encoder = encoder_new(NULL, settings);

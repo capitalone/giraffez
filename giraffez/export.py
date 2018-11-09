@@ -223,8 +223,8 @@ class TeradataBulkExport(Connection):
         self.export.close()
         log.info("Export", "Teradata PT request complete.")
 
-    def _connect(self, host, username, password):
-        self.export = Export(host, username, password)
+    def _connect(self, host, username, password, logon_mech, logon_mech_data):
+        self.export = Export(host, username, password, logon_mech, logon_mech_data)
         self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
             *get_version_info()))
 

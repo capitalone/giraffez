@@ -1,6 +1,16 @@
 giraffez Changelog
 ======================
 
+Version 2.1.0
+-------------
+Nov 9 2018
+
+- Add feature for specifying logon mechanism (enables LDAP and other logon
+functionality)
+- Fix a few more Python 3.7 affected calls to PyUnicode_AsUTF8
+- Resolves #63, unfortunately the bug is in the TTU and cannot be fix in
+giraffez
+
 Version 2.0.24
 -------------
 Sep 11 2018

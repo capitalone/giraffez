@@ -397,8 +397,8 @@ class TeradataBulkLoad(Connection):
         self.mload.close()
         log.info("BulkLoad", "Teradata PT request complete.")
 
-    def _connect(self, host, username, password):
-        self.mload = MLoad(host, username, password)
+    def _connect(self, host, username, password, logon_mech, logon_mech_data):
+        self.mload = MLoad(host, username, password, logon_mech, logon_mech_data)
         title, version = get_version_info()
         query_band = "UTILITYNAME={};VERSION={};".format(title, version)
         self.mload.add_attribute(TD_QUERY_BAND_SESS_INFO, query_band)

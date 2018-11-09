@@ -151,6 +151,8 @@ class Extension(_Extension):
                 self.define_macros.append(('WIN64', 1))
             else:
                 self.define_macros.append(('WIN32', 1))
+        elif platform.system() == 'Darwin':
+            self.extra_compile_args = ['-Wfatal-errors', '-Wno-empty-body']
         else:
             self.extra_compile_args = ['-Wfatal-errors']
         if develop:
@@ -290,7 +292,6 @@ class TeradataPTExtension(Extension):
             self.libraries.append("cliv2")
         elif platform.system() == 'Darwin':
             self.libraries.append("telapi")
-            self.libraries.append("pxicu")
             self.libraries.append("cliv2")
 
 

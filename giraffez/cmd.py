@@ -392,8 +392,8 @@ class TeradataCmd(Connection):
         if getattr(self, 'cmd', None):
             self.cmd.close()
 
-    def _connect(self, host, username, password):
-        self.cmd = _Cmd(host, username, password)
+    def _connect(self, host, username, password, logon_mech, logon_mech_data):
+        self.cmd = _Cmd(host, username, password, logon_mech, logon_mech_data)
 
     def _insert(self, table_name, rows, fields=None, parse_dates=False):
         global _columns_cache
