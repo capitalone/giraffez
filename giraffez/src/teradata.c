@@ -338,10 +338,10 @@ PyObject* teradata_handle_parcel_status(TeradataCursor *cursor, const uint32_t p
                 success = (struct CliSuccessType*)*data;
                 *data += sizeof(success);
                 uint32_t count = 0;
-                count = success->ActivityCount[0];
-                count |= success->ActivityCount[1] << 8;
-                count |= success->ActivityCount[2] << 16;
-                count |= success->ActivityCount[3] << 24;
+                count = (unsigned char)success->ActivityCount[0];
+                count |= (unsigned char)success->ActivityCount[1] << 8;
+                count |= (unsigned char)success->ActivityCount[2] << 16;
+                count |= (unsigned char)success->ActivityCount[3] << 24;
                 cursor->rowcount = (int64_t)count;
             }
             break;
