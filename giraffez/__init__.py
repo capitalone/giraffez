@@ -50,7 +50,7 @@ files and error message catalog.
 
 For more information, refer to this section in the giraffez
 documentation:
-    http://www.capitalone.io/giraffez/intro.html#environment.
+    https://capitalone.github.io/giraffez/intro.html#environment
 """.format(error))
 
 from ._teradata import TeradataError

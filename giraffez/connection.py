@@ -48,7 +48,7 @@ class Context(object):
     def __getattr__(self, value):
         raise GiraffeError("""{} is being used outside of a with context, as of
 giraffez version 2.0.6 this behavior is officially deprecated.  Please see
-http://capitalone.io/giraffez/FAQ.html#with-context for more information.""".format(self.__instance__.__name__))
+https://capitalone.github.io/giraffez/FAQ.html#with-context for more information.""".format(self.__instance__.__name__))
 
     def __enter__(self):
         self.__instance_object = self.__instance__(*self._args, **self._kwargs)
