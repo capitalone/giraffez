@@ -36,7 +36,7 @@ class TestBulkExport(object):
         export._close()
 
         # This ensures that the config was proper mocked
-        connect_mock.assert_called_with('db1', 'user123', 'pass456')
+        connect_mock.assert_called_with('db1', 'user123', 'pass456', None, None)
 
         assert results == expected_results
         assert isinstance(export.columns, giraffez.types.Columns) == True

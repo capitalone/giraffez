@@ -63,7 +63,7 @@ static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
     uint32_t settings = 0;
 
     static char *kwlist[] = {"host", "username", "password", "logon_mech", "logon_mech_data", "encoder_settings", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sssss|i", kwlist, &host, &username, &password,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ssszz|i", kwlist, &host, &username, &password,
             &logon_mech, &logon_mech_data, &settings)) {
         return -1;
     }

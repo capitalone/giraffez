@@ -29,8 +29,6 @@
 #include <schema.h>
 #include <DMLGroup.h>
 
-//teradata::client::API::Connection *gconn = new teradata::client::API::Connection();
-teradata::client::API::Connection gconn;
 
 namespace Giraffez {
     class Connection {
@@ -53,7 +51,6 @@ namespace Giraffez {
             this->row_buffer = (unsigned char*)malloc(sizeof(unsigned char)*TD_ROW_MAX_SIZE);
             this->encoder = encoder_new(NULL, 0);
             this->conn = new teradata::client::API::Connection();
-            //this->conn = &gconn;
         }
         ~Connection() {
             if (encoder != NULL) {
@@ -61,7 +58,6 @@ namespace Giraffez {
                 encoder = NULL;
             }
             free(this->row_buffer);
-            printf("here!!!!!!!!!!!!!!!!!!!!\n");
             delete this->conn;
         }
 

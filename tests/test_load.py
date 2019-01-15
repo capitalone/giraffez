@@ -41,7 +41,7 @@ class TestMLoad(object):
         exit_code = load.finish()
         load._close()
 
-        bulkload_connect_mock.assert_called_with('db1', 'user123', 'pass456')
+        bulkload_connect_mock.assert_called_with('db1', 'user123', 'pass456', None, None)
 
         assert load.mload.initiate.called == True
         assert load.mload.put_row.call_count == 3
