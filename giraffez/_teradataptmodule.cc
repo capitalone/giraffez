@@ -278,6 +278,11 @@ static int MLoad_init(MLoad *self, PyObject *args, PyObject *kwargs) {
         }
     }
     self->conn->AddAttribute(TD_SYSTEM_OPERATOR, TD_UPDATE);
+
+    // Charset is set to prefer UTF8.  There may need to be changes to
+    // the encoder if UTF8 is for whatever reason not supported, and
+    // may cause unexpected behavior.
+    self->conn->AddAttribute(TD_CHARSET, TERADATA_CHARSET);
     self->conn->AddAttribute(TD_DROPLOGTABLE, "Y");
     self->conn->AddAttribute(TD_DROPWORKTABLE, "Y");
     self->conn->AddAttribute(TD_DROPERRORTABLE, "Y");
