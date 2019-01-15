@@ -253,11 +253,14 @@ class TeradataBulkExport(Connection):
         else:
             self.export.set_encoding(DECIMAL_AS_STRING)
         while True:
-            data = self.export.get_buffer()
-            if not data:
-                break
-            for row in data:
-                yield processor(row)
+            try:
+                data = self.export.get_buffer()
+                if not data:
+                    return
+                for row in data:
+                    yield processor(row)
+            except StopIteration:
+                return
 
 
 class BulkExport(Context):
