@@ -46,8 +46,16 @@ namespace Giraffez {
             this->host = strdup(host);
             this->username = strdup(username);
             this->password = strdup(password);
-            this->logon_mech = strdup(logon_mech);
-            this->logon_mech_data = strdup(logon_mech_data);
+	    if (logon_mech != NULL) {
+                this->logon_mech = strdup(logon_mech);
+            } else {
+                this->logon_mech = NULL;
+            }
+	    if (logon_mech_data != NULL) {
+                this->logon_mech_data = strdup(logon_mech_data);
+            } else {
+                this->logon_mech_data = NULL;
+            }
             this->row_buffer = (unsigned char*)malloc(sizeof(unsigned char)*TD_ROW_MAX_SIZE);
             this->encoder = encoder_new(NULL, 0);
             this->conn = new teradata::client::API::Connection();

@@ -60,7 +60,8 @@ http://capitalone.io/giraffez/FAQ.html#with-context for more information.""".for
 
 class Connection(object):
     def __init__(self, host=None, username=None, password=None, log_level=INFO, config=None,
-            key_file=None, dsn=None, protect=False, silent=False):
+            key_file=None, dsn=None, protect=False, silent=False, logon_mech=None,
+            logon_mech_data=None):
         #: Log level initially set to SILENCE to ensure that using the
         #: Python API does not produce log output unless expressly set
         log.level = log_level

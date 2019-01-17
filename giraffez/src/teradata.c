@@ -34,7 +34,7 @@ TeradataCursor* cursor_new(const char *command) {
     TeradataCursor *cursor;
     cursor = (TeradataCursor*)malloc(sizeof(TeradataCursor));
     cursor->rc = 0;
-    cursor->err = (TeradataErr*)malloc(sizeof(TeradataErr));
+    cursor->err = NULL;
     cursor->rowcount = -1;
     cursor->req_proc_opt = 'B';
     cursor->command = strdup(command);
@@ -51,6 +51,7 @@ void cursor_free(TeradataCursor *cursor) {
     }
     if (cursor->command != NULL) {
         free(cursor->command);
+        cursor->command = NULL;
     }
     free(cursor);
     cursor = NULL;

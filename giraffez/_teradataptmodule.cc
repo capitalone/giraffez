@@ -45,7 +45,7 @@ static PyObject* Export_new(PyTypeObject *type, PyObject *args, PyObject *kwargs
 
 static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
     char *host=NULL, *username=NULL, *password=NULL, *logon_mech=NULL, *logon_mech_data=NULL;
-    if (!PyArg_ParseTuple(args, "sssss", &host, &username, &password, &logon_mech, &logon_mech_data)) {
+    if (!PyArg_ParseTuple(args, "ssszz", &host, &username, &password, &logon_mech, &logon_mech_data)) {
         return -1;
     }
 
@@ -267,7 +267,7 @@ static PyObject* MLoad_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
 static int MLoad_init(MLoad *self, PyObject *args, PyObject *kwargs) {
     char *host=NULL, *username=NULL, *password=NULL, *logon_mech=NULL, *logon_mech_data=NULL;
-    if (!PyArg_ParseTuple(args, "sssss", &host, &username, &password, &logon_mech, &logon_mech_data)) {
+    if (!PyArg_ParseTuple(args, "ssszz", &host, &username, &password, &logon_mech, &logon_mech_data)) {
         return -1;
     }
     self->conn = new Giraffez::Connection(host, username, password, logon_mech, logon_mech_data);
