@@ -126,6 +126,7 @@ static PyObject* Cmd_execute(Cmd *self, PyObject *args, PyObject *kwargs) {
     }
     if (teradata_execute(self->conn, self->encoder, self->cursor) == NULL) {
         cursor_free(self->cursor);
+        self->cursor = NULL;
         return NULL;
     }
     Py_RETURN_NONE;
