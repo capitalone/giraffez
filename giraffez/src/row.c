@@ -169,6 +169,13 @@ PyObject* teradata_row_to_pystring(const TeradataEncoder *e, unsigned char **dat
                 }
                 buffer_write(e->buffer, item, n);
                 break;
+            case GD_NUMBER:
+                if ((n = teradata_number_to_cstring(data, item)) < 0) {
+                    PyErr_SetString(EncoderError, "Unexpected error while converting number");
+                    return NULL;
+                }
+                buffer_write(e->buffer, item, n);
+                break;
             default:
                 buffer_write(e->buffer, (char*)*data, column->Length);
                 *data += column->Length;
@@ -185,6 +192,7 @@ PyObject* teradata_item_to_pyobject(const TeradataEncoder *e, unsigned char **da
         const GiraffeColumn *column) {
     int n;
     char item[BUFFER_ITEM_SIZE];
+
     switch (column->GDType) {
         case GD_BYTEINT:
             return teradata_byteint_to_pylong(data);
@@ -211,6 +219,11 @@ PyObject* teradata_item_to_pyobject(const TeradataEncoder *e, unsigned char **da
             return e->UnpackTimeFunc(data, column->Length);
         case GD_TIMESTAMP:
             return e->UnpackTimestampFunc(data, column->Length);
+        case GD_NUMBER:
+            if ((n = teradata_number_to_cstring(data, item)) < 0) {
+                return NULL;
+            }
+            return e->UnpackDecimalFunc(item, n);
         case GD_BYTE:
             return teradata_byte_to_pybytes(data, column->Length);
         case GD_VARBYTE:
@@ -380,6 +393,8 @@ PyObject* teradata_item_from_pyobject(const TeradataEncoder *e, const GiraffeCol
             return teradata_datetime_from_pystring(item, column->Length, data, length);
         case GD_TIMESTAMP:
             return teradata_datetime_from_pystring(item, column->Length, data, length);
+        case GD_NUMBER:
+            return teradata_number_from_pystring(item, data, length);
         default:
             return teradata_char_from_pystring(item, column->Length, data, length);
     }

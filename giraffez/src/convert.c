@@ -447,6 +447,97 @@ int teradata_decimal64_to_cstring(unsigned char **data, const uint16_t column_sc
     return -1;
 }
 
+int teradata_number_to_cstring(unsigned char **data, char *str) {
+    int i = 0, j = 0;
+    uint64_t d, r;
+    char buf[38];
+    int sign;
+    TeradataNumber n = {
+        .length = 0,
+        .scale = 0,
+        .v1 = 0,
+        .v2 = 0,
+        .v3 = 0,
+        .v4 = 0,
+    };
+    memcpy(&n.length, *data, sizeof(n.length));
+    *data += sizeof(n.length);
+    if (n.length == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return 1;
+    }
+    memcpy(&n.scale, *data, sizeof(n.scale));
+    *data += sizeof(n.scale);
+    memcpy(n.data, *data, n.length-sizeof(n.scale));
+    *data += n.length-sizeof(n.scale);
+    sign = (n.data[n.length-3] >> 7) & 1;
+    if (sign) {
+        for (long unsigned int i = n.length - 2; i < sizeof(n.data); i++) {
+            n.data[i] = 0xff;
+        }
+        n.v1 = ~n.v1 + 1;
+        n.v2 = ~n.v2;
+        n.v3 = ~n.v3;
+        n.v4 = ~n.v4;
+        if (n.v1 == 0) {
+            n.v2 += 1;
+            if (n.v2 == 0) {
+                n.v3 += 1;
+                if (n.v3 == 0) {
+                    n.v4 += 1;
+                }
+            }
+        }
+    }
+    do {
+        r = n.v4;
+        d = r / 10;
+        r = ((r - d * 10) << 32) + n.v3;
+        n.v4 = d;
+        d = r / 10;
+        r = ((r - d * 10) << 32) + n.v2;
+        n.v3 = d;
+        d = r / 10;
+        r = ((r - d * 10) << 32) + n.v1;
+        n.v2 = d;
+        d = r / 10;
+        r = r - d * 10;
+        n.v1 = d;
+        buf[i++] = r + '0';
+    } while (i <= n.scale || n.v1 || n.v2 || n.v3 || n.v4);
+    if (sign) {
+        str[j++] = '-';
+    }
+
+    // leading zeros
+    if (n.scale > 0 && n.scale > i) {
+        for (int k=0;k<abs(n.scale);k++) {
+            str[j++] = '0';
+        }
+    }
+    while (i != 0) {
+        str[j++] = buf[--i];
+    }
+
+    // trailing zeros
+    if (n.scale < 0) {
+        for (int i=0;i<abs(n.scale);i++) {
+            str[j++] = '0';
+        }
+    }
+    str[j] = '\0';
+
+    if (n.scale <= 0) {
+        return j;
+    }
+    // insert decimal point
+    memmove(str + (j - n.scale) + 1, str + (j - n.scale), j);
+    str[(j++ - n.scale)] = '.';
+    return j;
+}
+
+
 
 int teradata_decimal128_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf) {
     char s[38];
@@ -778,6 +869,82 @@ PyObject* teradata_dateint_from_pystring(PyObject *item, const uint16_t column_l
 
     pack_int32_t(buf, l - 19000000);
     *packed_length += 4;
+    Py_RETURN_NONE;
+}
+
+int strpos(const char *s, int c) {
+    char *ptr;
+    if ((ptr = strchr(s, c)) == NULL) {
+        return -1;
+    }
+    return (int)(ptr-s);
+}
+
+PyObject* teradata_number_from_pystring(PyObject *item, unsigned char **buf, uint16_t *packed_length) {
+    char *s;
+    int i, j, sign = 0, r, count = 0;
+    PyObject *n, *nn = NULL, *str, *zero, *mask, *shift;
+    int8_t length = 0;
+    int16_t scale = 0;
+    uint32_t L;
+    if (PyUnicode_Check(item)) {
+        str = item;
+        Py_INCREF(str);
+    } else {
+        if ((str = PyObject_Str(item)) == NULL) {
+            return NULL;
+        }
+    }
+    if ((s = strdup(PyUnicode_AsUTF8(str))) == NULL) {
+        Py_XDECREF(str);
+        return NULL;
+    };
+    Py_XDECREF(str);
+    if ((i = strpos(s, '.')) != -1) {
+        scale = strlen(s)-i-1;
+        memmove(&s[i], &s[i+1], strlen(s)-i);
+    }
+    if ((i = strpos(s, '-')) != -1) {
+        sign = 1;
+    }
+
+    Py_RETURN_ERROR(n = PyLong_FromString(s, NULL, 10));
+    Py_RETURN_ERROR(zero = PyLong_FromLong(0));
+    Py_RETURN_ERROR(mask = PyLong_FromLong(4294967295));
+    Py_RETURN_ERROR(shift = PyLong_FromLong(32));
+
+    while (count < 5) {
+        if ((r = PyObject_RichCompareBool(n, zero, Py_EQ)) == -1) {
+            return NULL;
+        }
+        if (r) {
+            break;
+        }
+        count++;
+        nn = PyNumber_And(n, mask);
+        L = PyLong_AsLongLong(nn);
+        memcpy(*buf+length, &L, sizeof(L));
+        for (j = 0; j < sizeof(L); j++ ) {
+            if (sign) {
+                if ((L >> (8*j) & 0xff) == 255) break;
+            } else {
+                if ((L >> (8*j) & 0xff) == 0) break;
+            }
+            length += 1;
+        }
+        n = PyNumber_InPlaceRshift(n, shift);
+    }
+    (*buf)[length] = '\0';
+    memmove(*buf+sizeof(length)+sizeof(scale), *buf, length+1);
+    length += sizeof(scale);
+    memcpy(*buf, &length, sizeof(length));
+    memcpy(*buf+sizeof(length), &scale, sizeof(scale));
+    Py_DECREF(n);
+    Py_DECREF(zero);
+    Py_DECREF(mask);
+    Py_DECREF(shift);
+    Py_XDECREF(nn);
+    *packed_length += length+sizeof(length);
     Py_RETURN_NONE;
 }
 

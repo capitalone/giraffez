@@ -100,7 +100,27 @@ int teradata_decimal8_to_cstring(unsigned char **data, const uint16_t column_sca
 int teradata_decimal16_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
 int teradata_decimal32_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
 int teradata_decimal64_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
+
+
+typedef struct TeradataNumber {
+    int8_t length;
+    int16_t scale;
+
+    union {
+        struct {
+            uint32_t v1;
+            uint32_t v2;
+            uint32_t v3;
+            uint32_t v4;
+        };
+        unsigned char data[4*sizeof(uint32_t)];
+    };
+} TeradataNumber;
+
+int teradata_number_to_cstring(unsigned char **data, char *str);
+
 int teradata_decimal128_to_cstring(unsigned char **data, const uint16_t column_scale, char *buf);
+PyObject* teradata_number_from_pystring(PyObject *item, unsigned char **buf, uint16_t *packed_length);
 
 
 PyObject* cstring_to_pystring(const char *buf, const int length);

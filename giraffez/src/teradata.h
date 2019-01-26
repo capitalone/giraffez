@@ -134,6 +134,8 @@ typedef struct TeradataTypes {
         ARRAY_ND_N = 509,
         BIGINT_NN = 600,
         BIGINT_N = 601,
+        NUMBER_NN = 604,
+        NUMBER_N = 605,
         VARBYTE_NN = 688,
         VARBYTE_N = 689,
         BYTE_NN = 692,

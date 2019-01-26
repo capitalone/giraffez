@@ -42,6 +42,7 @@ def decimal_size(n):
 
 # Column helpers
 Decimal = lambda s, p: ('col1', DECIMAL_NN, decimal_size(s+p), s, p)
+Number = lambda s, p: ('col1', NUMBER_NN, decimal_size(s+p), s, p)
 Date = ('col1', DATE_NN, 4, 0, 0)
 Char = lambda s: ('col1', CHAR_NN, s, 0, 0)
 Integer = ('col1', INTEGER_NN, 4, 0, 0)
@@ -263,6 +264,28 @@ decimal_tests = [
     },
 ]
 
+number_tests = [
+    {
+        "name": "number_8",
+        "column": Number(38, 2),
+        "input_value": b'\x00\x03\x02\x00\x08',
+        "expected_value": "0.08",
+    },
+    {
+        "name": "number_8_negative",
+        "column": Number(38, 2),
+        "input_value": b'\x00\x03\x02\x00\xf8',
+        "expected_value": "-0.08",
+    },
+    {
+        "name": "number_128_overflow_scale",
+        "column": Number(38, 2),
+        "input_value": b'\x00\x12\x02\x00\xff\xff\xff\xff?"\x8a\tz\xc4\x86Z\xa8L;K',
+        "expected_value": "999999999999999999999999999999999999.99",
+    },
+
+]
+
 integer_tests = [
     {
         "name": "integer_32",
@@ -435,6 +458,7 @@ test_encoder_data = []
 test_encoder_data += date_tests
 test_encoder_data += character_tests
 test_encoder_data += decimal_tests
+test_encoder_data += number_tests
 test_encoder_data += integer_tests
 test_encoder_data += other_tests
 

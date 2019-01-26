@@ -477,6 +477,9 @@ uint16_t teradata_type_to_tpt_type(uint16_t t) {
         case BIGINT_NN:
         case BIGINT_N:
             return TD_BIGINT;
+        case NUMBER_NN:
+        case NUMBER_N:
+            return TD_NUMBER;
         case VARBYTE_NN:
         case VARBYTE_N:
             return TD_VARBYTE;
@@ -659,7 +662,7 @@ uint16_t teradata_type_from_tpt_type(uint16_t t) {
         case TD_PERIOD_TS_TZ:
             return PERIOD_TIMESTAMP_NNZ;
         case TD_NUMBER:
-            return INTEGER_NN;
+            return NUMBER_NN;
     }
     return CHAR_NN;
 }
@@ -724,6 +727,9 @@ uint16_t teradata_type_to_giraffez_type(uint16_t t) {
         case BIGINT_NN:
         case BIGINT_N:
             return GD_BIGINT;
+        case NUMBER_NN:
+        case NUMBER_N:
+            return GD_NUMBER;
         case VARBYTE_NN:
         case VARBYTE_N:
             return GD_VARBYTE;
