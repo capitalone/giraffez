@@ -69,6 +69,7 @@ class Cursor(object):
         self.parse_dates = parse_dates
         self.panic = panic
         self.processor = lambda x, y: Row(x, y)
+        self.conn.set_encoding(ROW_ENCODING_LIST)
         if not self.coerce_floats:
             self.conn.set_encoding(DECIMAL_AS_STRING)
         if self.parse_dates:
@@ -161,6 +162,11 @@ class Cursor(object):
         for row in self:
             n += 1
         return n
+
+    def to_raw(self):
+        self.conn.set_encoding(ROW_ENCODING_RAW)
+        self.processor = lambda x, y: y
+        return self
 
     def to_dict(self):
         """
