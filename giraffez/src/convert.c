@@ -880,9 +880,22 @@ int strpos(const char *s, int c) {
     return (int)(ptr-s);
 }
 
+int _clz(uint32_t x) {
+    int r = 0;
+    if (x < 1) return 0;
+    while (x >>= 1) r++;
+    return (31 - r);
+}
+
+#ifdef _MSC_VER
+  #define clz _clz
+#else
+  #define clz __builtin_clz
+#endif
+
 PyObject* teradata_number_from_pystring(PyObject *item, unsigned char **buf, uint16_t *packed_length) {
     char *s;
-    int i, j, sign = 0, r, count = 0;
+    int i, j, sign = 0, b, r, count = 0;
     PyObject *n, *nn = NULL, *str, *zero, *mask, *shift;
     int8_t length = 0;
     int16_t scale = 0;
@@ -906,6 +919,7 @@ PyObject* teradata_number_from_pystring(PyObject *item, unsigned char **buf, uin
     }
     if ((i = strpos(s, '-')) != -1) {
         sign = 1;
+        memmove(&s[i], &s[i+1], strlen(s)-i);
     }
 
     Py_RETURN_ERROR(n = PyLong_FromString(s, NULL, 10));
@@ -922,16 +936,16 @@ PyObject* teradata_number_from_pystring(PyObject *item, unsigned char **buf, uin
         }
         count++;
         nn = PyNumber_And(n, mask);
-        L = PyLong_AsLongLong(nn);
-        memcpy(*buf+length, &L, sizeof(L));
-        for (j = 0; j < sizeof(L); j++ ) {
-            if (sign) {
-                if ((L >> (8*j) & 0xff) == 255) break;
-            } else {
-                if ((L >> (8*j) & 0xff) == 0) break;
-            }
-            length += 1;
+        L = PyLong_AsUnsignedLongLong(nn);
+
+        // Find the MSB to determine length of bytes written. Bitwise Or with 1
+        // is performed to handle possible input where the argument is 0.
+        b = clz(L | 1);
+        if (sign) {
+            L = ~L + 1;
         }
+        memcpy(*buf+length, &L, sizeof(L));
+        length += (32 - b) / 8 + (b % 8 == 0 ? 0 : 1);
         n = PyNumber_InPlaceRshift(n, shift);
     }
     (*buf)[length] = '\0';
