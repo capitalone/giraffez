@@ -142,8 +142,8 @@ class CSVReader(FileReader):
         return next(self.reader)
 
     def __iter__(self):
-        while True:
-            yield next(self.reader)
+        for line in self.reader:
+            yield line
 
 
 class JSONReader(FileReader):

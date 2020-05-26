@@ -2,33 +2,77 @@
 
 import pytest
 
+from giraffez._teradata import RequestEnded, StatementEnded, StatementInfoEnded
 import giraffez
 from giraffez.constants import *
 from giraffez.errors import *
 from giraffez.types import *
 
+
+class ResultsHelper:
+    """
+    Helps to emulate how exceptions are raised when working with the CLIv2 so
+    that the control flow will be adequately represented.
+    """
+
+    def __init__(self, rows):
+        self.first = True
+        self.index = 0
+        self.rows = rows
+
+    def get(self):
+        if self.first:
+            self.first = False
+            raise StatementInfoEnded
+
+        if self.index >= len(self.rows):
+            raise RequestEnded
+
+        row = self.rows[self.index]
+        self.index += 1
+        return row
+
+    def __call__(self):
+        return self.get()
+
+
 @pytest.mark.usefixtures('config', 'context')
 class TestCmd(object):
     def test_results(self, mocker):
         connect_mock = mocker.patch('giraffez.cmd.TeradataCmd._connect')
+        mock_columns = mocker.patch("giraffez.cmd.Cursor._columns")
 
         cmd = giraffez.Cmd()
         query = "select * from db1.info"
-        columns = [
+        columns = Columns([
             ("col1", VARCHAR_NN, 50, 0, 0),
             ("col2", VARCHAR_N, 50, 0, 0),
             ("col3", VARCHAR_N, 50, 0, 0),
-        ]
+        ])
+
+        mock_columns.return_value = columns
+
         rows = [
             ["value1", "value2", "value3"],
             ["value1", "value2", "value3"],
             ["value1", "value2", "value3"],
         ]
 
+        expected_rows = [
+            {"col1": "value1", "col2": "value2", "col3": "value3"},
+            {"col1": "value1", "col2": "value2", "col3": "value3"},
+            {"col1": "value1", "col2": "value2", "col3": "value3"},
+        ]
+        cmd.cmd = mocker.MagicMock()
+        cmd.cmd.fetchone.side_effect = ResultsHelper(rows)
+        result = list(cmd.execute(query))
+
+        assert [x.items() for x in result] == expected_rows
+
         cmd._close()
         
         # This ensures that the config was proper mocked
-        connect_mock.assert_called_with('db1', 'user123', 'pass456')
+        connect_mock.assert_called_with('db1', 'user123', 'pass456', None, None)
 
     def test_invalid_credentials(self, mocker):
         connect_mock = mocker.patch('giraffez.cmd.TeradataCmd._connect')

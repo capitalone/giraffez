@@ -42,6 +42,7 @@ typedef enum GiraffeTypes {
     GD_DATE,
     GD_TIME,
     GD_TIMESTAMP,
+    GD_NUMBER,
     GD_BYTE,
     GD_VARBYTE
 } GiraffeTypes;

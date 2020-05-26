@@ -161,7 +161,7 @@ PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
     Py_INCREF(obj);
     e->NullValue = obj;
     if (PyStr_Check(obj)) {
-        if ((null = PyUnicode_AsUTF8(obj)) == NULL) {
+        if ((null = (char*)PyUnicode_AsUTF8(obj)) == NULL) {
             return NULL;
         }
     } else if (PyBytes_Check(obj)) {
@@ -170,7 +170,7 @@ PyObject* encoder_set_null(TeradataEncoder *e, PyObject *obj) {
         }
     } else {
         tmp = PyObject_Str(obj);
-        if ((null = PyUnicode_AsUTF8(tmp)) == NULL) {
+        if ((null = (char*)PyUnicode_AsUTF8(tmp)) == NULL) {
             return NULL;
         }
     }

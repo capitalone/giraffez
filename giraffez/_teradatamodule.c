@@ -29,13 +29,18 @@ extern "C" {
 typedef struct {
     PyObject_HEAD
     TeradataConnection *conn;
+    TeradataCursor     *cursor;
     TeradataEncoder    *encoder;
 } Cmd;
 
 static void Cmd_dealloc(Cmd *self) {
     if (self->conn != NULL) {
-        __teradata_free(self->conn);
+        teradata_free(self->conn);
         self->conn = NULL;
+    }
+    if (self->cursor != NULL) {
+        cursor_free(self->cursor);
+        self->cursor = NULL;
     }
     if (self->encoder != NULL) {
         encoder_free(self->encoder);
@@ -48,23 +53,23 @@ static PyObject* Cmd_new(PyTypeObject *type, PyObject *args, PyObject *kwargs) {
     Cmd *self;
     self = (Cmd*)type->tp_alloc(type, 0);
     self->conn = NULL;
+    self->cursor = NULL;
     self->encoder = NULL;
     return (PyObject*)self;
 }
 
 static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
-    char *host=NULL, *username=NULL, *password=NULL;
+    char *host=NULL, *username=NULL, *password=NULL, *logon_mech=NULL, *logon_mech_data=NULL;
     uint32_t settings = 0;
 
-    static char *kwlist[] = {"host", "username", "password", "encoder_settings", NULL};
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sss|i", kwlist, &host, &username, &password,
-            &settings)) {
+    static char *kwlist[] = {"host", "username", "password", "logon_mech", "logon_mech_data", "encoder_settings", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "ssszz|i", kwlist, &host, &username, &password,
+            &logon_mech, &logon_mech_data, &settings)) {
         return -1;
     }
-    if ((self->conn = teradata_connect(host, username, password)) == NULL) {
+    if ((self->conn = teradata_connect(host, username, password, logon_mech, logon_mech_data)) == NULL) {
         return -1;
     }
-
     self->encoder = encoder_new(NULL, settings);
     if (self->encoder == NULL) {
         PyErr_Format(PyExc_ValueError, "Could not create encoder, settings value 0x%06x is invalid.", settings);
@@ -74,7 +79,12 @@ static int Cmd_init(Cmd *self, PyObject *args, PyObject *kwargs) {
 }
 
 static PyObject* Cmd_close(Cmd *self) {
-    __teradata_close(self->conn);
+    if (self->conn->connected == CONNECTED) {
+        self->conn->dbc->func = DBFDSC;
+        Py_BEGIN_ALLOW_THREADS
+        DBCHCL(&self->conn->result, self->conn->cnta, self->conn->dbc);
+        Py_END_ALLOW_THREADS
+    }
     self->conn->connected = NOT_CONNECTED;
     Py_RETURN_NONE;
 }
@@ -107,29 +117,30 @@ static PyObject* Cmd_execute(Cmd *self, PyObject *args, PyObject *kwargs) {
         return NULL;
     }
     encoder_clear(self->encoder);
-    if (prepare_only) {
-        self->conn->dbc->req_proc_opt = 'P';
-    } else {
-        self->conn->dbc->req_proc_opt = 'B';
+    if (self->cursor != NULL) {
+        cursor_free(self->cursor);
     }
-    if (teradata_execute(self->conn, self->encoder, command) == NULL) {
+    self->cursor = cursor_new(command);
+    if (prepare_only) {
+        self->cursor->req_proc_opt = 'P';
+    }
+    if (teradata_execute(self->conn, self->encoder, self->cursor) == NULL) {
+        cursor_free(self->cursor);
+        self->cursor = NULL;
         return NULL;
     }
     Py_RETURN_NONE;
 }
 
 static PyObject* Cmd_fetchone(Cmd *self) {
-    PyObject* row = NULL;
-    while (__teradata_fetch_record(self->conn) == OK) {
-        if ((row = teradata_handle_record(self->encoder, self->conn->dbc->fet_parcel_flavor,
-                (unsigned char**)&self->conn->dbc->fet_data_ptr,
-                self->conn->dbc->fet_ret_data_len)) == NULL) {
-            return NULL;
-        } else if (row != Py_None) {
-            return row;
-        }
+    return teradata_fetch_row(self->conn, self->encoder, self->cursor);
+}
+
+static PyObject* Cmd_rowcount(Cmd *self) {
+    if (self->cursor->rowcount == -1) {
+        Py_RETURN_NONE;
     }
-    return teradata_check_error(self->conn);
+    return PyLong_FromLong(self->cursor->rowcount);
 }
 
 static PyObject* Cmd_set_encoding(Cmd *self, PyObject *args) {
@@ -162,6 +173,7 @@ static PyMethodDef Cmd_methods[] = {
     {"columns", (PyCFunction)Cmd_columns, METH_VARARGS|METH_KEYWORDS, ""},
     {"execute", (PyCFunction)Cmd_execute, METH_VARARGS|METH_KEYWORDS, ""},
     {"fetchone", (PyCFunction)Cmd_fetchone, METH_NOARGS, ""},
+    {"rowcount", (PyCFunction)Cmd_rowcount, METH_NOARGS, ""},
     {"set_encoding", (PyCFunction)Cmd_set_encoding, METH_VARARGS, ""},
     {NULL}  /* Sentinel */
 };

@@ -223,8 +223,8 @@ class TeradataBulkExport(Connection):
         self.export.close()
         log.info("Export", "Teradata PT request complete.")
 
-    def _connect(self, host, username, password):
-        self.export = Export(host, username, password)
+    def _connect(self, host, username, password, logon_mech, logon_mech_data):
+        self.export = Export(host, username, password, logon_mech, logon_mech_data)
         self.export.add_attribute(TD_QUERY_BAND_SESS_INFO, "UTILITYNAME={};VERSION={};".format(
             *get_version_info()))
 
@@ -253,11 +253,14 @@ class TeradataBulkExport(Connection):
         else:
             self.export.set_encoding(DECIMAL_AS_STRING)
         while True:
-            data = self.export.get_buffer()
-            if not data:
-                break
-            for row in data:
-                yield processor(row)
+            try:
+                data = self.export.get_buffer()
+                if not data:
+                    return
+                for row in data:
+                    yield processor(row)
+            except StopIteration:
+                return
 
 
 class BulkExport(Context):

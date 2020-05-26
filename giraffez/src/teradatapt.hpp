@@ -30,26 +30,35 @@
 #include <DMLGroup.h>
 
 
-typedef teradata::client::API::Connection TConn;
-
-
 namespace Giraffez {
-    class Connection : public TConn {
+    class Connection {
     private:
         std::string table_name;
-        const char *host, *username, *password;
+        const char *host, *username, *password, *logon_mech, *logon_mech_data;
         unsigned char *row_buffer;
     public:
+        teradata::client::API::Connection *conn;
         TeradataEncoder *encoder;
         int status;
         bool connected;
 
-        Connection(const char *host, const char *username, const char *password) {
+        Connection(const char *host, const char *username, const char *password, const char *logon_mech, const char *logon_mech_data) {
             this->host = strdup(host);
             this->username = strdup(username);
             this->password = strdup(password);
+	    if (logon_mech != NULL) {
+                this->logon_mech = strdup(logon_mech);
+            } else {
+                this->logon_mech = NULL;
+            }
+	    if (logon_mech_data != NULL) {
+                this->logon_mech_data = strdup(logon_mech_data);
+            } else {
+                this->logon_mech_data = NULL;
+            }
             this->row_buffer = (unsigned char*)malloc(sizeof(unsigned char)*TD_ROW_MAX_SIZE);
-            encoder = encoder_new(NULL, 0);
+            this->encoder = encoder_new(NULL, 0);
+            this->conn = new teradata::client::API::Connection();
         }
         ~Connection() {
             if (encoder != NULL) {
@@ -57,6 +66,7 @@ namespace Giraffez {
                 encoder = NULL;
             }
             free(this->row_buffer);
+            delete this->conn;
         }
 
         PyObject* SetEncoding(uint32_t settings) {
@@ -80,11 +90,11 @@ namespace Giraffez {
         }
 
         void AddAttribute(TD_Attribute key, const char *value) {
-            TConn::AddAttribute(key, (char*)value);
+            this->conn->AddAttribute(key, (char*)value);
         }
 
         void AddAttribute(TD_Attribute key, TD_IntValue value) {
-            TConn::AddAttribute(key, value);
+            this->conn->AddAttribute(key, value);
         }
 
         PyObject* AddAttribute(PyObject *attrs) {
@@ -109,9 +119,9 @@ namespace Giraffez {
 
         PyObject* AddAttribute(TD_Attribute key, PyObject *value) {
             if PyLong_Check(value) {
-                TConn::AddAttribute(key, (int)PyLong_AsLong(value));
+                this->conn->AddAttribute(key, (int)PyLong_AsLong(value));
             } else if (PyStr_Check(value)) {
-                TConn::AddAttribute(key, (char*)PyUnicode_AsUTF8(value));
+                this->conn->AddAttribute(key, (char*)PyUnicode_AsUTF8(value));
             } else {
                 // TODO: err
             }
@@ -119,7 +129,7 @@ namespace Giraffez {
         }
 
         PyObject* ApplyRows() {
-            if ((status = TConn::ApplyRows()) >= TD_ERROR) {
+            if ((status = this->conn->ApplyRows()) >= TD_ERROR) {
                 return this->HandleError();
             }
             Py_RETURN_NONE;
@@ -128,7 +138,7 @@ namespace Giraffez {
         PyObject* Checkpoint() {
             char *data = NULL;
             TD_Length length = 0;
-            if ((status = TConn::Checkpoint(&data, &length)) != TD_END_METHOD) {
+            if ((status = this->conn->Checkpoint(&data, &length)) != TD_END_METHOD) {
                 return Py_BuildValue("i", status);
             }
             return PyBytes_FromStringAndSize(data, length);
@@ -144,7 +154,7 @@ namespace Giraffez {
 
         PyObject* EndAcquisition() {
             status = 0;
-            if ((status = TConn::EndAcquisition()) >= TD_ERROR) {
+            if ((status = this->conn->EndAcquisition()) >= TD_ERROR) {
                 return this->HandleError();
             }
             Py_RETURN_NONE;
@@ -153,7 +163,7 @@ namespace Giraffez {
         PyObject* GetBuffer() {
             unsigned char *data = NULL;
             int length;
-            if ((int)TConn::GetBuffer((char**)&data, (TD_Length*)&length) == TD_END_METHOD) {
+            if ((int)this->conn->GetBuffer((char**)&data, (TD_Length*)&length) == TD_END_METHOD) {
                 Py_RETURN_NONE;
             }
             return encoder->UnpackRowsFunc(encoder, &data, length);
@@ -163,14 +173,14 @@ namespace Giraffez {
             char *data = NULL;
             TD_Length length = 0;
             // TODO: check TD_Unavailable and raise different exception.  Necessary?
-            if ((status = TConn::GetEvent(event_type, &data, &length, index)) >= TD_ERROR) {
+            if ((status = this->conn->GetEvent(event_type, &data, &length, index)) >= TD_ERROR) {
                 return this->HandleError();
             }
             return PyBytes_FromStringAndSize(data, length);
         }
 
         PyObject* Initiate() {
-            if ((status = TConn::Initiate()) >= TD_ERROR) {
+            if ((status = this->conn->Initiate()) >= TD_ERROR) {
                 return this->HandleError();
             }
             connected = true;
@@ -178,7 +188,8 @@ namespace Giraffez {
         }
 
         PyObject* PutRow(char *data, TD_Length length) {
-            if ((status = TConn::PutRow(data, length)) != TD_SUCCESS) {
+            // TODO(chris): trace/debug output when environment variable is set
+            if ((status = this->conn->PutRow(data, length)) != TD_SUCCESS) {
                 return this->HandleError();
             }
             Py_RETURN_NONE;
@@ -192,45 +203,31 @@ namespace Giraffez {
                 return NULL;
             }
             status = 0;
-            if ((status = TConn::PutRow((char*)this->row_buffer, (TD_Length)length)) != TD_SUCCESS) {
+            if ((status = this->conn->PutRow((char*)this->row_buffer, (TD_Length)length)) != TD_SUCCESS) {
                 return this->HandleError();
             }
             Py_RETURN_NONE;
         }
 
         PyObject* Release(char *tbl_name) {
-            table_name = std::string(tbl_name);
-            TeradataEncoder *e;
-            int status;
-            e = encoder_new(NULL, ENCODER_SETTINGS_DEFAULT);
-            TeradataConnection *cmd;
-            std::string query = "release mload "  + table_name;
-            if ((cmd = teradata_connect(host, username, password)) == NULL) {
-                return NULL;
-            }
-            if (teradata_execute_rc(cmd, e, strdup(query.c_str()), &status) == NULL) {
-                if (status != TD_ERROR_CANNOT_RELEASE_MLOAD) {
+            TeradataErr *err = NULL;
+            std::string query = "release mload " + std::string(tbl_name);
+            if ((err = this->ExecuteCommand(query, false)) != NULL) {
+                if (err->Code != TD_ERROR_CANNOT_RELEASE_MLOAD) {
                     return NULL;
                 }
                 PyErr_Clear();
                 query = query + " in apply";
-                if (teradata_execute_rc(cmd, e, strdup(query.c_str()), &status) == NULL) {
+                if ((err = this->ExecuteCommand(query, false)) != NULL) {
                     return NULL;
                 }
-            }
-            if (teradata_close(cmd) == NULL) {
-                return NULL;
-            }
-            if (e != NULL) {
-                encoder_free(e);
-                e = NULL;
             }
             Py_RETURN_NONE;
         }
 
         PyObject* Terminate() {
             if (connected) {
-                if ((status = TConn::Terminate()) >= TD_ERROR) {
+                if ((status = this->conn->Terminate()) >= TD_ERROR) {
                     return this->HandleError();
                 }
                 connected = false;
@@ -240,39 +237,63 @@ namespace Giraffez {
 
         PyObject* HandleError() {
             if (status == TD_CALL_ENDACQ) {
-                this->EndAcquisition();
+                this->conn->EndAcquisition();
             }
             char *error_msg = NULL;
             TD_ErrorType error_type;
-            Connection::GetErrorInfo(&error_msg, &error_type);
+            this->conn->GetErrorInfo(&error_msg, &error_type);
             PyErr_Format(TeradataError, "%d: %s", status, error_msg);
             return NULL;
         }
 
-        PyObject* Exists(const char *tbl_name) {
-            table_name = std::string(tbl_name);
-            TeradataEncoder *e;
-            int status;
-            e = encoder_new(NULL, 0);
+        TeradataErr* ExecuteCommand(std::string query, bool prepare_only) {
             TeradataConnection *cmd;
-            std::string query;
+            TeradataCursor *cursor;
+            TeradataEncoder *e;
+            e = encoder_new(NULL, ENCODER_SETTINGS_DEFAULT);
+            cursor = cursor_new(strdup(query.c_str()));
+            if (prepare_only) {
+                cursor->req_proc_opt = 'P';
+            }
+            if ((cmd = teradata_connect(host, username, password, logon_mech, logon_mech_data)) == NULL) {
+                goto error;
+            }
+            if (teradata_execute(cmd, e, cursor) == NULL) {
+                goto error;
+            }
+            if (!prepare_only) {
+                if (teradata_fetch_all(cmd, e, cursor) == NULL) {
+                    goto error;
+                }
+            }
+            if (teradata_close(cmd) == NULL) {
+                goto error;
+            }
+            return NULL;
+error:
+            TeradataErr *err = NULL;
+            if (cursor->err != NULL) {
+                err = (TeradataErr*)malloc(sizeof(TeradataErr));
+                *err = *cursor->err;
+            }
+            cursor_free(cursor);
+            encoder_free(e);
+            return err;
+        }
+
+        PyObject* Exists(const char *tbl_name) {
+            TeradataErr *err = NULL;
             PyObject *ret;
             ret = Py_False;
             Py_INCREF(ret);
-            Py_RETURN_ERROR(cmd = teradata_connect(host, username, password));
-            query = "show table " + table_name;
-            if (teradata_execute_rc(cmd, e, strdup(query.c_str()), &status) == NULL) {
-                if (status != TD_ERROR_OBJECT_NOT_EXIST) {
+            std::string query = "show table " + std::string(tbl_name);
+            if ((err = this->ExecuteCommand(query, false)) != NULL) {
+                if (err->Code != TD_ERROR_OBJECT_NOT_EXIST) {
                     return NULL;
                 }
                 PyErr_Clear();
             }
-            Py_RETURN_ERROR(teradata_close(cmd));
-            if (e != NULL) {
-                encoder_free(e);
-                e = NULL;
-            }
-            if (status == TD_SUCCESS) {
+            if (err->Code == TD_SUCCESS) {
                 // TODO: ref correct?
                 ret = Py_True;
             }
@@ -280,45 +301,61 @@ namespace Giraffez {
         }
 
         PyObject* DropTable(const char *tbl_name) {
-            std::string query = std::string(tbl_name);
-            TeradataEncoder *e;
-            int status;
-            e = encoder_new(NULL, 0);
-            TeradataConnection *cmd;
-            query = "drop table " + query;
-            Py_RETURN_ERROR(cmd = teradata_connect(host, username, password));
-            Py_RETURN_ERROR(teradata_execute_rc(cmd, e, strdup(query.c_str()), &status));
-            Py_RETURN_ERROR(teradata_close(cmd));
-            if (e != NULL) {
-                encoder_free(e);
-                e = NULL;
+            TeradataErr *err = NULL;
+            std::string query = "drop table " + std::string(tbl_name);
+            if ((err = this->ExecuteCommand(query, false)) != NULL) {
+                return NULL;
             }
             Py_RETURN_NONE;
         }
 
         PyObject* SetQuery(const char *query) {
-            this->AddAttribute(TD_SELECT_STMT, query);
-            encoder_clear(encoder);
             TeradataConnection *cmd;
-            Py_RETURN_ERROR(cmd = teradata_connect(host, username, password));
-            Py_RETURN_ERROR(teradata_execute_p(cmd, encoder, query));
-            Py_RETURN_ERROR(teradata_close(cmd));
+            TeradataCursor *cursor;
+            encoder_clear(encoder);
+            cursor = cursor_new(query);
+            cursor->req_proc_opt = 'P';
+            if ((cmd = teradata_connect(host, username, password, logon_mech, logon_mech_data)) == NULL) {
+                goto error;
+            }
+            if (teradata_execute(cmd, encoder, cursor) == NULL) {
+                goto error;
+            }
+            if (teradata_close(cmd) == NULL) {
+                goto error;
+            }
+            this->AddAttribute(TD_SELECT_STMT, query);
             Py_RETURN_NONE;
+error:
+            cursor_free(cursor);
+            return NULL;
         }
 
         PyObject* SetTable(char *tbl_name) {
-            table_name = std::string(tbl_name);
-            this->AddAttribute(TD_TARGET_TABLE, strdup(table_name.c_str()));
-            this->AddAttribute(TD_LOG_TABLE, strdup((table_name + "_log").c_str()));
-            this->AddArrayAttribute(TD_WORK_TABLE, 1, strdup((table_name + "_wt").c_str()), NULL);
-            this->AddArrayAttribute(TD_ERROR_TABLE_1, 1, strdup((table_name + "_e1").c_str()), NULL);
-            this->AddArrayAttribute(TD_ERROR_TABLE_2, 1, strdup((table_name + "_e2").c_str()), NULL);
-            encoder_clear(encoder);
             TeradataConnection *cmd;
-            Py_RETURN_ERROR(cmd = teradata_connect(host, username, password));
-            Py_RETURN_ERROR(teradata_execute_p(cmd, encoder, ("select top 1 * from " + table_name).c_str()));
-            Py_RETURN_ERROR(teradata_close(cmd));
+            TeradataCursor *cursor;
+            encoder_clear(encoder);
+            table_name = std::string(tbl_name);
+            cursor = cursor_new(strdup(("select top 1 * from " + table_name).c_str()));
+            cursor->req_proc_opt = 'P';
+            if ((cmd = teradata_connect(host, username, password, logon_mech, logon_mech_data)) == NULL) {
+                goto error;
+            }
+            if (teradata_execute(cmd, encoder, cursor) == NULL) {
+                goto error;
+            }
+            if (teradata_close(cmd) == NULL) {
+                goto error;
+            }
+            this->conn->AddAttribute(TD_TARGET_TABLE, strdup(table_name.c_str()));
+            this->conn->AddAttribute(TD_LOG_TABLE, strdup((table_name + "_log").c_str()));
+            this->conn->AddArrayAttribute(TD_WORK_TABLE, 1, strdup((table_name + "_wt").c_str()), NULL);
+            this->conn->AddArrayAttribute(TD_ERROR_TABLE_1, 1, strdup((table_name + "_e1").c_str()), NULL);
+            this->conn->AddArrayAttribute(TD_ERROR_TABLE_2, 1, strdup((table_name + "_e2").c_str()), NULL);
             Py_RETURN_NONE;
+error:
+            cursor_free(cursor);
+            return NULL;
         }
 
         PyObject* SetSchema(PyObject *column_list, DMLOption dml_option) {
@@ -372,13 +409,13 @@ namespace Giraffez {
                 << safe_column_names.str().substr(0, safe_column_names.str().size() - 1)
                 << ");";
             //std::cerr << "DML: " << dml.str() << std::endl;
-            this->AddSchema(table_schema);
+            this->conn->AddSchema(table_schema);
             //this->SetInputSchema(table_schema);
             delete table_schema;
             dml_group = new DMLGroup();
             dml_group->AddStatement(strdup(dml.str().c_str()));
             dml_group->AddDMLOption(dml_option);
-            if ((status = this->AddDMLGroup(dml_group, &dml_group_index)) >= TD_ERROR) {
+            if ((status = this->conn->AddDMLGroup(dml_group, &dml_group_index)) >= TD_ERROR) {
                 return this->HandleError();
             }
             delete dml_group;

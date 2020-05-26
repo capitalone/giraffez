@@ -15,7 +15,7 @@ class TestContext(object):
         with giraffez.Cmd() as cmd:
             pass
         
-        connect_mock.assert_called_with('db1', 'user123', 'pass456')
+        connect_mock.assert_called_with('db1', 'user123', 'pass456', None, None)
 
     def test_without_context(self, mocker):
         connect_mock = mocker.patch('giraffez.cmd.TeradataCmd._connect')
@@ -34,7 +34,7 @@ class TestContext(object):
         cmd = giraffez.Cmd(allow_without_context=True)
         cmd.execute(query)
 
-        connect_mock.assert_called_with('db1', 'user123', 'pass456')
+        connect_mock.assert_called_with('db1', 'user123', 'pass456', None, None)
 
     def test_allow_with_context(self, mocker):
         connect_mock = mocker.patch('giraffez.cmd.TeradataCmd._connect')
@@ -43,7 +43,7 @@ class TestContext(object):
         with giraffez.Cmd(allow_without_context=True) as cmd:
             pass
 
-        connect_mock.assert_called_with('db1', 'user123', 'pass456')
+        connect_mock.assert_called_with('db1', 'user123', 'pass456', None, None)
 
     def test_with_context_and_args(self, mocker):
         connect_mock = mocker.patch('giraffez.export.TeradataBulkExport._connect')
@@ -55,5 +55,5 @@ class TestContext(object):
             assert export.query == query
             assert export.coerce_floats == False
 
-        connect_mock.assert_called_with('db1', 'user123', 'pass456')
+        connect_mock.assert_called_with('db1', 'user123', 'pass456', None, None)
         close_mock.assert_called_once()

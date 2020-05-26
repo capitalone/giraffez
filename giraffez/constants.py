@@ -140,6 +140,8 @@ ARRAY_ND_NN                     = 508
 ARRAY_ND_N                      = 509
 BIGINT_NN                       = 600
 BIGINT_N                        = 601
+NUMBER_NN                       = 604
+NUMBER_N                        = 605
 VARBYTE_NN                      = 688
 VARBYTE_N                       = 689
 BYTE_NN                         = 692
@@ -251,6 +253,8 @@ COL_TYPE_NAMES = {
     ARRAY_ND_N: "ARRAY_ND_N",
     BIGINT_NN: "BIGINT_NN",
     BIGINT_N: "BIGINT_N",
+    NUMBER_NN: "NUMBER_NN",
+    NUMBER_N: "NUMBER_N",
     VARBYTE_NN: "VARBYTE_NN",
     VARBYTE_N: "VARBYTE_N",
     BYTE_NN: "BYTE_NN",
@@ -339,6 +343,7 @@ NULLABLE_TYPES = {
     ARRAY_1D_N,
     ARRAY_ND_N,
     BIGINT_N,
+    NUMBER_N,
     VARBYTE_N,
     BYTE_N,
     LONG_VARBYTE_N,
@@ -440,7 +445,9 @@ ALL_INTEGER_TYPES = {
     INTEGER_N,
     INTEGER_NN,
     BIGINT_N,
-    BIGINT_NN
+    BIGINT_NN,
+    NUMBER_N,
+    NUMBER_NN
 }
 
 FLOAT_TYPES = {
@@ -701,6 +708,8 @@ tpt_type_map = {
     ARRAY_ND_N: TD_CHAR,
     BIGINT_NN: TD_BIGINT,
     BIGINT_N: TD_BIGINT,
+    NUMBER_NN: TD_BIGINT,
+    NUMBER_N: TD_BIGINT,
     VARBYTE_NN: TD_VARBYTE,
     VARBYTE_N: TD_VARBYTE,
     BYTE_NN: TD_BYTE,
@@ -809,7 +818,7 @@ cmd_type_map = {
     TD_PERIOD_TIME_TZ: PERIOD_TIME_NNZ,
     TD_PERIOD_TS: PERIOD_TIMESTAMP_NN,
     TD_PERIOD_TS_TZ: PERIOD_TIMESTAMP_NNZ,
-    TD_NUMBER: INTEGER_NN, # not sure on this one
+    TD_NUMBER: NUMBER_NN,
 }
 
 # giraffez data types
@@ -835,6 +844,7 @@ GD_VARCHAR          = 8
 GD_DATE             = 9
 GD_TIME             = 10
 GD_TIMESTAMP        = 11
+GD_NUMBER           = 12
 
 gd_type_map = {
     BLOB_NN: GD_DEFAULT,
@@ -883,6 +893,8 @@ gd_type_map = {
     ARRAY_ND_N: GD_DEFAULT,
     BIGINT_NN: GD_BIGINT,
     BIGINT_N: GD_BIGINT,
+    NUMBER_NN: GD_NUMBER,
+    NUMBER_N: GD_NUMBER,
     VARBYTE_NN: GD_VARCHAR,
     VARBYTE_N: GD_VARCHAR,
     BYTE_NN: GD_CHAR,

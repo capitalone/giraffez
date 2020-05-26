@@ -44,12 +44,18 @@ static PyObject* Export_new(PyTypeObject *type, PyObject *args, PyObject *kwargs
 }
 
 static int Export_init(Export *self, PyObject *args, PyObject *kwargs) {
-    char *host=NULL, *username=NULL, *password=NULL;
-    if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
+    char *host=NULL, *username=NULL, *password=NULL, *logon_mech=NULL, *logon_mech_data=NULL;
+    if (!PyArg_ParseTuple(args, "ssszz", &host, &username, &password, &logon_mech, &logon_mech_data)) {
         return -1;
     }
 
-    self->conn = new Giraffez::Connection(host, username, password);
+    self->conn = new Giraffez::Connection(host, username, password, logon_mech, logon_mech_data);
+    if (logon_mech != NULL) {
+        self->conn->AddAttribute(TD_LOGON_MECH, logon_mech);
+        if (logon_mech_data != NULL) {
+            self->conn->AddAttribute(TD_LOGON_MECH_DATA, logon_mech_data);
+        }
+    }
     self->conn->AddAttribute(TD_SYSTEM_OPERATOR, TD_EXPORT);
     self->conn->AddAttribute(TD_TDP_ID, host);
     self->conn->AddAttribute(TD_USER_NAME, username);
@@ -244,6 +250,11 @@ typedef struct {
 } MLoad;
 
 static void MLoad_dealloc(MLoad *self) {
+    // NOTE(chris): on macOS with TTU version 15.10.x this causes a
+    // double-free. Since this happens in the TTU, there is no way giraffez can
+    // fix it other than simply not cleaning up the object here, but that seems
+    // pretty irresponsible, even if only doing so when on macOS with that
+    // particular version.
     delete self->conn;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
@@ -255,12 +266,23 @@ static PyObject* MLoad_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 }
 
 static int MLoad_init(MLoad *self, PyObject *args, PyObject *kwargs) {
-    char *host=NULL, *username=NULL, *password=NULL;
-    if (!PyArg_ParseTuple(args, "sss", &host, &username, &password)) {
+    char *host=NULL, *username=NULL, *password=NULL, *logon_mech=NULL, *logon_mech_data=NULL;
+    if (!PyArg_ParseTuple(args, "ssszz", &host, &username, &password, &logon_mech, &logon_mech_data)) {
         return -1;
     }
-    self->conn = new Giraffez::Connection(host, username, password);
+    self->conn = new Giraffez::Connection(host, username, password, logon_mech, logon_mech_data);
+    if (logon_mech != NULL) {
+        self->conn->AddAttribute(TD_LOGON_MECH, logon_mech);
+        if (logon_mech_data != NULL) {
+            self->conn->AddAttribute(TD_LOGON_MECH_DATA, logon_mech_data);
+        }
+    }
     self->conn->AddAttribute(TD_SYSTEM_OPERATOR, TD_UPDATE);
+
+    // Charset is set to prefer UTF8.  There may need to be changes to
+    // the encoder if UTF8 is for whatever reason not supported, and
+    // may cause unexpected behavior.
+    self->conn->AddAttribute(TD_CHARSET, TERADATA_CHARSET);
     self->conn->AddAttribute(TD_DROPLOGTABLE, "Y");
     self->conn->AddAttribute(TD_DROPWORKTABLE, "Y");
     self->conn->AddAttribute(TD_DROPERRORTABLE, "Y");

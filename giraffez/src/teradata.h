@@ -43,7 +43,7 @@ static const size_t _ = sizeof(D8XIIIRX);
 typedef struct DBCAREA dbcarea_t;
 
 typedef struct TeradataConnection {
-    dbcarea_t* dbc;
+    dbcarea_t *dbc;
     char cnta[4];
     char logonstr[1024];
     char session_charset[36];
@@ -56,6 +56,14 @@ typedef struct TeradataErr {
     int  Code;
     char *Msg;
 } TeradataErr;
+
+typedef struct TeradataCursor {
+    int rc;
+    TeradataErr *err;
+    int64_t rowcount;
+    char req_proc_opt;
+    char *command;
+} TeradataCursor;
 
 typedef enum TeradataStatus {
     TD_SUCCESS = 0,
@@ -126,6 +134,8 @@ typedef struct TeradataTypes {
         ARRAY_ND_N = 509,
         BIGINT_NN = 600,
         BIGINT_N = 601,
+        NUMBER_NN = 604,
+        NUMBER_N = 605,
         VARBYTE_NN = 688,
         VARBYTE_N = 689,
         BYTE_NN = 692,
@@ -237,29 +247,30 @@ typedef struct TeradataTypes {
     } TptTypes;
 } TeradataTypes;
 
-TeradataErr* __teradata_read_error(char *dataptr);
-TeradataErr* __teradata_read_failure(char *dataptr);
-TeradataConnection* __teradata_new();
-uint16_t __teradata_init(TeradataConnection *conn);
-uint16_t __teradata_connect(TeradataConnection *conn, const char *host, const char *username,
-    const char *password);
-uint16_t __teradata_fetch(TeradataConnection *conn);
-uint16_t __teradata_fetch_record(TeradataConnection *conn);
-uint16_t __teradata_execute(TeradataConnection *conn, const char *command);
-uint16_t __teradata_end_request(TeradataConnection *conn);
-void __teradata_close(TeradataConnection *conn);
-void __teradata_free(TeradataConnection *conn);
+TeradataConnection* teradata_new();
+uint16_t teradata_fetch_parcel(TeradataConnection *conn);
+uint16_t teradata_end_request(TeradataConnection *conn);
+void teradata_free(TeradataConnection *conn);
 
-PyObject* teradata_check_error(TeradataConnection *conn);
+TeradataErr* teradata_error(int code, char *msg);
+void teradata_error_free(TeradataErr *err);
+
+TeradataCursor* cursor_new(const char *command);
+void cursor_free(TeradataCursor *cursor);
+
+PyObject* teradata_check_error(TeradataConnection *conn, TeradataCursor *cursor);
 PyObject* teradata_close(TeradataConnection *conn);
 TeradataConnection* teradata_connect(const char *host, const char *username,
-    const char *password);
-PyObject* teradata_execute_rc(TeradataConnection *conn, TeradataEncoder *e, const char *command, int *rc);
-PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const char *command);
-PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command);
-PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data,
+    const char *password, const char *logon_mech, const char *logon_mech_data);
+PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, TeradataCursor *cursor);
+PyObject* teradata_handle_record(TeradataEncoder *e, TeradataCursor *cursor, const uint32_t parcel_t, unsigned char **data,
     const uint32_t length);
+PyObject* teradata_handle_parcel_status(TeradataCursor *cursor, const uint32_t parcel_t, unsigned char **data, const uint32_t length);
+PyObject* teradata_handle_parcel_state(TeradataEncoder *encoder, const uint32_t parcel_t, unsigned char **data, const uint32_t length);
+PyObject* teradata_handle_parcel_record(TeradataEncoder *encoder, const uint32_t parcel_t, unsigned char **data, const uint32_t length);
 
+PyObject* teradata_fetch_all(TeradataConnection *conn, TeradataEncoder *encoder, TeradataCursor *cursor);
+PyObject* teradata_fetch_row(TeradataConnection *conn, TeradataEncoder *encoder, TeradataCursor *cursor);
 uint16_t teradata_type_to_tpt_type(uint16_t t);
 uint16_t teradata_type_from_tpt_type(uint16_t t);
 uint16_t teradata_type_to_giraffez_type(uint16_t t);

@@ -29,27 +29,35 @@ PyObject *EndStatementError;
 PyObject *EndStatementInfoError;
 PyObject *EndRequestError;
 
-TeradataErr* __teradata_read_error(char *dataptr) {
-    TeradataErr *err;
-    struct CliErrorType *e;
-    err = (TeradataErr*)malloc(sizeof(TeradataErr));
-    e = (struct CliErrorType*)dataptr;
-    err->Code = e->Code;
-    err->Msg = e->Msg;
-    return err;
+
+TeradataCursor* cursor_new(const char *command) {
+    TeradataCursor *cursor;
+    cursor = (TeradataCursor*)malloc(sizeof(TeradataCursor));
+    cursor->rc = 0;
+    cursor->err = NULL;
+    cursor->rowcount = -1;
+    cursor->req_proc_opt = 'B';
+    cursor->command = strdup(command);
+    return cursor;
 }
 
-TeradataErr* __teradata_read_failure(char *dataptr) {
-    TeradataErr *err;
-    struct CliFailureType *e;
-    err = (TeradataErr*)malloc(sizeof(TeradataErr));
-    e = (struct CliFailureType*)dataptr;
-    err->Code = e->Code;
-    err->Msg = e->Msg;
-    return err;
+void cursor_free(TeradataCursor *cursor) {
+    if (cursor == NULL) {
+        return;
+    }
+    if (cursor->err != NULL) {
+        free(cursor->err);
+        cursor->err = NULL;
+    }
+    if (cursor->command != NULL) {
+        free(cursor->command);
+        cursor->command = NULL;
+    }
+    free(cursor);
+    cursor = NULL;
 }
 
-TeradataConnection* __teradata_new() {
+TeradataConnection* teradata_new() {
     TeradataConnection *conn;
     conn = (TeradataConnection*)malloc(sizeof(TeradataConnection));
     conn->result = 0;
@@ -60,13 +68,75 @@ TeradataConnection* __teradata_new() {
     return conn;
 }
 
-uint16_t __teradata_init(TeradataConnection *conn) {
-    DBCHINI(&conn->result, conn->cnta, conn->dbc);
+uint16_t teradata_fetch_parcel(TeradataConnection *conn) {
+    Py_BEGIN_ALLOW_THREADS
+    DBCHCL(&conn->result, conn->cnta, conn->dbc);
+    Py_END_ALLOW_THREADS
     return conn->result;
 }
 
-uint16_t __teradata_connect(TeradataConnection *conn, const char *host, const char *username,
-        const char *password) {
+uint16_t teradata_end_request(TeradataConnection *conn) {
+    if (conn->request_status == REQUEST_CLOSED) {
+        return conn->result;
+    }
+    conn->dbc->i_sess_id = conn->dbc->o_sess_id;
+    conn->dbc->i_req_id = conn->dbc->o_req_id;
+    conn->dbc->func = DBFERQ;
+    DBCHCL(&conn->result, conn->cnta, conn->dbc);
+    if (conn->result == OK) {
+        conn->request_status = REQUEST_CLOSED;
+    }
+    return conn->result;
+}
+
+void teradata_free(TeradataConnection *conn) {
+    if (conn != NULL) {
+        if (conn->dbc != NULL) {
+            free(conn->dbc);
+        }
+        free(conn);
+        conn = NULL;
+    }
+}
+
+PyObject* teradata_close(TeradataConnection *conn) {
+    if (conn == NULL) {
+        Py_RETURN_NONE;
+    }
+    if (teradata_end_request(conn) != OK) {
+        PyErr_Format(TeradataError, "%d: %s", conn->result, conn->dbc->msg_text);
+        return NULL;
+    }
+    if (conn->connected == CONNECTED) {
+        conn->dbc->func = DBFDSC;
+        Py_BEGIN_ALLOW_THREADS
+        DBCHCL(&conn->result, conn->cnta, conn->dbc);
+        Py_END_ALLOW_THREADS
+    }
+    // TODO: this presumably cleans up some of the global variables
+    // used by CLIv2 and if done when working with multiple sessions
+    // concurrently will cause a segfault. It is possible that
+    // running it at all isn't really necessary and this can get cleaned
+    // up with the process dying. Alternatives might be using atexit
+    // calls to clean it up formally before the process exits and
+    // also providing a function that can be called should it be necessary
+    // for someone to clean this up (for like long running processes).
+    // DBCHCLN(&conn->result, conn->cnta);
+    teradata_free(conn);
+    Py_RETURN_NONE;
+}
+
+TeradataConnection* teradata_connect(const char *host, const char *username,
+        const char *password, const char *logon_mech, const char *logon_mech_data) {
+    int status;
+    TeradataConnection *conn;
+    conn = teradata_new();
+    DBCHINI(&conn->result, conn->cnta, conn->dbc);
+    if (conn->result != OK) {
+        PyErr_Format(TeradataError, "%d: CLIv2[init]: %s", conn->result, conn->dbc->msg_text);
+        teradata_free(conn);
+        return NULL;
+    }
     conn->dbc->change_opts = 'Y';
     conn->dbc->resp_mode = 'I';
     conn->dbc->use_presence_bits = 'N';
@@ -87,6 +157,7 @@ uint16_t __teradata_connect(TeradataConnection *conn, const char *host, const ch
     conn->dbc->maximum_parcel = 'H';
     conn->dbc->max_decimal_returned = 38;
     conn->dbc->charset_type = 'N';
+
     // The date is set explicitly to only use the Teradata format.  The
     // Teradata CLIv2 documentation indicates that the Teradata format will
     // always be available, but the other date type, ANSI, may not be
@@ -104,166 +175,94 @@ uint16_t __teradata_connect(TeradataConnection *conn, const char *host, const ch
     conn->dbc->logon_ptr = conn->logonstr;
     conn->dbc->logon_len = (UInt32)strlen(conn->logonstr);
     conn->dbc->func = DBFCON;
+    if (logon_mech != NULL) {
+        snprintf(conn->dbc->logmech_name, sizeof(conn->dbc->logmech_name), "%-*s",
+            (int)(sizeof(conn->dbc->logmech_name)-strlen(logon_mech)), logon_mech);
+        if (logon_mech_data != NULL) {
+            sprintf(conn->dbc->logmech_data_ptr, "%s", logon_mech_data);
+            conn->dbc->logmech_data_len = (UInt32)strlen(conn->dbc->logmech_data_ptr);
+        }
+    }
     DBCHCL(&conn->result, conn->cnta, conn->dbc);
-    return conn->result;
-}
-
-uint16_t __teradata_fetch(TeradataConnection *conn) {
+    if (conn->result != OK) {
+        PyErr_Format(TeradataError, "%d: CLIv2[connect]: %s", conn->result, conn->dbc->msg_text);
+        teradata_free(conn);
+        return NULL;
+    }
     conn->dbc->i_sess_id = conn->dbc->o_sess_id;
     conn->dbc->i_req_id = conn->dbc->o_req_id;
     conn->dbc->func = DBFFET;
-    return __teradata_fetch_record(conn);
-}
-
-uint16_t __teradata_fetch_record(TeradataConnection *conn) {
-    Py_BEGIN_ALLOW_THREADS
-    DBCHCL(&conn->result, conn->cnta, conn->dbc);
-    Py_END_ALLOW_THREADS
-    return conn->result;
-}
-
-uint16_t __teradata_execute(TeradataConnection *conn, const char *command) {
-    conn->dbc->req_ptr = (char*)command;
-    conn->dbc->req_len = (UInt32)strlen(command);
-    conn->dbc->func = DBFIRQ;
-    Py_BEGIN_ALLOW_THREADS
-    DBCHCL(&conn->result, conn->cnta, conn->dbc);
-    Py_END_ALLOW_THREADS
-    if (conn->result == OK) {
-        conn->request_status = REQUEST_OPEN;
-    }
-    return conn->result;
-}
-
-uint16_t __teradata_end_request(TeradataConnection *conn) {
-    if (conn->request_status == REQUEST_CLOSED) {
-        return conn->result;
-    }
-    conn->dbc->i_sess_id = conn->dbc->o_sess_id;
-    conn->dbc->i_req_id = conn->dbc->o_req_id;
-    conn->dbc->func = DBFERQ;
-    DBCHCL(&conn->result, conn->cnta, conn->dbc);
-    if (conn->result == OK) {
-        conn->request_status = REQUEST_CLOSED;
-    }
-    return conn->result;
-}
-
-void __teradata_close(TeradataConnection *conn) {
-    if (conn->connected == CONNECTED) {
-        conn->dbc->func = DBFDSC;
-        Py_BEGIN_ALLOW_THREADS
-        DBCHCL(&conn->result, conn->cnta, conn->dbc);
-        Py_END_ALLOW_THREADS
-    }
-    // TODO: this presumably cleans up some of the global variables
-    // used by CLIv2 and if done when working with multiple sessions
-    // concurrently will cause a segfault. It is possible that
-    // running it at all isn't really necessary and this can get cleaned
-    // up with the process dying. Alternatives might be using atexit
-    // calls to clean it up formally before the process exits and
-    // also providing a function that can be called should it be necessary
-    // for someone to clean this up (for like long running processes).
-    // DBCHCLN(&conn->result, conn->cnta);
-}
-
-void __teradata_free(TeradataConnection *conn) {
-    if (conn != NULL) {
-        if (conn->dbc != NULL) {
-            free(conn->dbc);
-        }
-        free(conn);
-        conn = NULL;
-    }
-}
-
-PyObject* check_parcel_error(TeradataConnection *conn) {
-    TeradataErr *err;
-    switch (conn->dbc->fet_parcel_flavor) {
-    case PclSUCCESS:
-        Py_RETURN_NONE;
-    case PclFAILURE:
-        err = __teradata_read_failure(conn->dbc->fet_data_ptr);
-        if (err->Code == TD_ERROR_INVALID_USER) {
-            PyErr_Format(InvalidCredentialsError, "%d: %s", err->Code, err->Msg);
-        } else {
-            PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
-        }
-        return NULL;
-    case PclERROR:
-        err = __teradata_read_error(conn->dbc->fet_data_ptr);
-        PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
-        return NULL;
-    }
-    return NULL;
-}
-
-PyObject* teradata_check_error(TeradataConnection *conn) {
-    if (conn->result == REQEXHAUST && conn->connected) {
-        if (__teradata_end_request(conn) != OK) {
-            PyErr_Format(TeradataError, "%d: %s", conn->result, conn->dbc->msg_text);
-            return NULL;
-        }
-        conn->connected = NOT_CONNECTED;
-    } else if (conn->result != OK) {
-        PyErr_Format(TeradataError, "%d: %s", conn->result, conn->dbc->msg_text);
-        return NULL;
-    }
-    Py_RETURN_NONE;
-}
-
-PyObject* teradata_close(TeradataConnection *conn) {
-    if (conn == NULL) {
-        Py_RETURN_NONE;
-    }
-    if (__teradata_end_request(conn) != OK) {
-        PyErr_Format(TeradataError, "%d: %s", conn->result, conn->dbc->msg_text);
-        return NULL;
-    }
-    __teradata_close(conn);
-    __teradata_free(conn);
-    conn = NULL;
-    Py_RETURN_NONE;
-}
-
-TeradataConnection* teradata_connect(const char *host, const char *username,
-        const char *password) {
-    int status;
-    TeradataConnection *conn;
-    conn = __teradata_new();
-    if ((status = __teradata_init(conn)) != OK) {
-        PyErr_Format(TeradataError, "%d: CLIv2[init]: %s", conn->result, conn->dbc->msg_text);
-        __teradata_free(conn);
-        return NULL;
-    }
-    if ((status = __teradata_connect(conn, host, username, password)) != OK) {
-        PyErr_Format(TeradataError, "%d: CLIv2[connect]: %s", conn->result, conn->dbc->msg_text);
-        __teradata_free(conn);
-        return NULL;
-    }
-    if ((status = __teradata_fetch(conn)) != OK) {
+    if ((status = teradata_fetch_parcel(conn)) != OK) {
         PyErr_Format(TeradataError, "%d: CLIv2[fetch]: %s", conn->result, conn->dbc->msg_text);
-        __teradata_free(conn);
+        teradata_free(conn);
         return NULL;
     } else {
-        if (check_parcel_error(conn) == NULL) {
-            __teradata_free(conn);
-            return NULL;
+        struct CliErrorType *error;
+        struct CliFailureType *failure;
+        switch (conn->dbc->fet_parcel_flavor) {
+            case PclERROR:
+                error = (struct CliErrorType*)conn->dbc->fet_data_ptr;
+                if (error->Code == TD_ERROR_INVALID_USER) {
+                    PyErr_Format(InvalidCredentialsError, "%d: %s", error->Code, error->Msg);
+                } else {
+                    PyErr_Format(TeradataError, "%d: %s", error->Code, error->Msg);
+                }
+                teradata_free(conn);
+                return NULL;
+            case PclFAILURE:
+                failure = (struct CliFailureType*)conn->dbc->fet_data_ptr;
+                if (failure->Code == TD_ERROR_INVALID_USER) {
+                    PyErr_Format(InvalidCredentialsError, "%d: %s", failure->Code, failure->Msg);
+                } else {
+                    PyErr_Format(TeradataError, "%d: %s", failure->Code, failure->Msg);
+                }
+                teradata_free(conn);
+                return NULL;
         }
     }
-    if (__teradata_end_request(conn) != OK) {
+    if (teradata_end_request(conn) != OK) {
         PyErr_Format(TeradataError, "%d: CLIv2[end_request]: %s", conn->result, conn->dbc->msg_text);
-        __teradata_free(conn);
+        teradata_free(conn);
         return NULL;
     }
     conn->connected = CONNECTED;
     return conn;
 }
 
-PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const char *command) {
-    PyObject *row = NULL;
+PyObject* teradata_check_error(TeradataConnection *conn, TeradataCursor *cursor) {
+    if (conn->result == TD_ERROR_REQUEST_EXHAUSTED && conn->connected == CONNECTED) {
+        if (teradata_end_request(conn) != OK) {
+            if (cursor != NULL) {
+                cursor->rc = conn->result;
+            }
+            PyErr_Format(TeradataError, "%d: %s", conn->result, conn->dbc->msg_text);
+            return NULL;
+        }
+    } else if (conn->result != OK) {
+        if (cursor != NULL) {
+            cursor->rc = conn->result;
+        }
+        PyErr_Format(TeradataError, "%d: %s", conn->result, conn->dbc->msg_text);
+        return NULL;
+    }
+    if (cursor != NULL) {
+        cursor->rc = conn->result;
+    }
+    Py_RETURN_NONE;
+}
+
+PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *encoder, TeradataCursor *cursor) {
     size_t count;
-    if (__teradata_execute(conn, command) != OK) {
+    conn->dbc->req_proc_opt = cursor->req_proc_opt;
+    conn->dbc->req_ptr = cursor->command;
+    conn->dbc->req_len = (UInt32)strlen(cursor->command);
+    conn->dbc->func = DBFIRQ;
+    Py_BEGIN_ALLOW_THREADS
+    DBCHCL(&conn->result, conn->cnta, conn->dbc);
+    Py_END_ALLOW_THREADS
+    if (conn->result == OK) {
+        conn->request_status = REQUEST_OPEN;
+    } else {
         PyErr_Format(TeradataError, "%d: CLIv2[execute_init]: %s", conn->result, conn->dbc->msg_text);
         return NULL;
     }
@@ -271,83 +270,109 @@ PyObject* teradata_execute(TeradataConnection *conn, TeradataEncoder *e, const c
     conn->dbc->i_req_id = conn->dbc->o_req_id;
     conn->dbc->func = DBFFET;
     count = 0;
-    // Find first statement info parcel only
-    while (__teradata_fetch_record(conn) == OK && count < MAX_PARCEL_ATTEMPTS) {
-        if ((row = teradata_handle_record(e, conn->dbc->fet_parcel_flavor,
-                (unsigned char**)&conn->dbc->fet_data_ptr,
-                conn->dbc->fet_ret_data_len)) == NULL) {
+    while (teradata_fetch_parcel(conn) == OK && count < MAX_PARCEL_ATTEMPTS) {
+        if (teradata_handle_parcel_status(cursor, conn->dbc->fet_parcel_flavor, (unsigned char**)&conn->dbc->fet_data_ptr, conn->dbc->fet_ret_data_len) == NULL) {
             return NULL;
         }
-        if (e != NULL && e->Columns != NULL) {
+        if (teradata_handle_parcel_state(encoder, conn->dbc->fet_parcel_flavor, (unsigned char**)&conn->dbc->fet_data_ptr, conn->dbc->fet_ret_data_len) == NULL) {
+            return NULL;
+        }
+        if (encoder != NULL && encoder->Columns != NULL) {
             Py_RETURN_NONE;
         }
         count++;
     }
-    return teradata_check_error(conn);
+    return teradata_check_error(conn, cursor);
 }
 
-PyObject* teradata_execute_rc(TeradataConnection *conn, TeradataEncoder *e, const char *command, int *rc) {
-    TeradataErr *err;
-    if (__teradata_execute(conn, command) != OK) {
-        PyErr_Format(TeradataError, "%d: CLIv2[execute_init]: %s", conn->result, conn->dbc->msg_text);
-        return NULL;
-    }
-    conn->dbc->i_sess_id = conn->dbc->o_sess_id;
-    conn->dbc->i_req_id = conn->dbc->o_req_id;
-    conn->dbc->func = DBFFET;
-    while (__teradata_fetch_record(conn) == OK) {
-        switch (conn->dbc->fet_parcel_flavor) {
-            case PclFAILURE:
-                err = __teradata_read_failure(conn->dbc->fet_data_ptr);
-                *rc = err->Code;
-                PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
-                return NULL;
-            case PclERROR:
-                err = __teradata_read_error(conn->dbc->fet_data_ptr);
-                *rc = err->Code;
-                PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
-                return NULL;
-        }
-    }
-    if (conn->result == TD_ERROR_REQUEST_EXHAUSTED && conn->connected == CONNECTED) {
-        if (__teradata_end_request(conn) != OK) {
-            *rc = conn->result;
-            PyErr_Format(TeradataError, "%d: %s", conn->result, conn->dbc->msg_text);
+PyObject* teradata_fetch_all(TeradataConnection *conn, TeradataEncoder *encoder, TeradataCursor *cursor) {
+    while (teradata_fetch_parcel(conn) == OK) {
+        if (teradata_handle_parcel_status(cursor, conn->dbc->fet_parcel_flavor,
+                    (unsigned char**)&conn->dbc->fet_data_ptr,
+                    conn->dbc->fet_ret_data_len) == NULL) {
             return NULL;
         }
-    } else if (conn->result != OK) {
-        *rc = conn->result;
-        PyErr_Format(TeradataError, "%d: %s", conn->result, conn->dbc->msg_text);
-        return NULL;
     }
-    *rc = conn->result;
+    return teradata_check_error(conn, cursor);
+}
+
+PyObject* teradata_fetch_row(TeradataConnection *conn, TeradataEncoder *encoder, TeradataCursor *cursor) {
+    PyObject *row = NULL;
+    while (teradata_fetch_parcel(conn) == OK) {
+        if ((row = teradata_handle_record(encoder, cursor, conn->dbc->fet_parcel_flavor,
+                (unsigned char**)&conn->dbc->fet_data_ptr,
+                conn->dbc->fet_ret_data_len)) == NULL) {
+            return NULL;
+        } else if (row != Py_None) {
+            return row;
+        }
+    }
+    return teradata_check_error(conn, NULL);
+}
+
+TeradataErr* teradata_error(int code, char *msg) {
+    TeradataErr *err;
+    err = (TeradataErr*)malloc(sizeof(TeradataErr));
+    err->Code = code;
+    err->Msg = strdup(msg);
+    return err;
+}
+
+void teradata_error_free(TeradataErr *err) {
+    if (err != NULL) {
+        if (err->Msg != NULL) {
+            free(err->Msg);
+        }
+        free(err);
+    }
+}
+
+PyObject* teradata_handle_parcel_status(TeradataCursor *cursor, const uint32_t parcel_t, unsigned char **data, const uint32_t length) {
+    struct CliSuccessType *success;
+    struct CliErrorType *error;
+    struct CliFailureType *failure;
+    switch (parcel_t) {
+        case PclSUCCESS:
+            if (cursor != NULL) {
+                // TODO: The IBM 370 mainframes return an integer (PclUInt32)
+                // instead of a char array, and should be handled.
+                success = (struct CliSuccessType*)*data;
+                *data += sizeof(success);
+                uint32_t count = 0;
+                count = (unsigned char)success->ActivityCount[0];
+                count |= (unsigned char)success->ActivityCount[1] << 8;
+                count |= (unsigned char)success->ActivityCount[2] << 16;
+                count |= (unsigned char)success->ActivityCount[3] << 24;
+                cursor->rowcount = (int64_t)count;
+            }
+            break;
+        case PclFAILURE:
+            failure = (struct CliFailureType*)*data;
+            if (cursor != NULL) {
+                cursor->err = teradata_error(failure->Code, failure->Msg);;
+            }
+            if (failure->Code == TD_ERROR_INVALID_USER) {
+                PyErr_Format(InvalidCredentialsError, "%d: %s", failure->Code, failure->Msg);
+                return NULL;
+            }
+            PyErr_Format(TeradataError, "%d: %s", failure->Code, failure->Msg);
+            return NULL;
+        case PclERROR:
+            error = (struct CliErrorType*)*data;
+            if (cursor != NULL) {
+                cursor->err = teradata_error(error->Code, error->Msg);
+            }
+            PyErr_Format(TeradataError, "%d: %s", error->Code, error->Msg);
+            return NULL;
+    }
     Py_RETURN_NONE;
 }
 
-PyObject* teradata_execute_p(TeradataConnection *conn, TeradataEncoder *e, const char *command) {
-    PyObject *result;
-    const char tmp = conn->dbc->req_proc_opt;
-    conn->dbc->req_proc_opt = 'P';
-    result = teradata_execute(conn, e, command);
-    conn->dbc->req_proc_opt = tmp;
-    return result;
-}
-
-PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, unsigned char **data, const uint32_t length) {
-    TeradataErr *err;
-    PyGILState_STATE state;
-    PyObject *row = NULL;
+PyObject* teradata_handle_parcel_state(TeradataEncoder *encoder, const uint32_t parcel_t, unsigned char **data, const uint32_t length) {
     switch (parcel_t) {
-        case PclRECORD:
-            state = PyGILState_Ensure();
-            if ((row = e->UnpackRowFunc(e, data, length)) == NULL) {
-                return NULL;
-            }
-            PyGILState_Release(state);
-            return row;
         case PclSTATEMENTINFO:
-            encoder_clear(e);
-            e->Columns = e->UnpackStmtInfoFunc(data, length);
+            encoder_clear(encoder);
+            encoder->Columns = encoder->UnpackStmtInfoFunc(data, length);
             break;
         case PclSTATEMENTINFOEND:
             PyErr_SetNone(EndStatementInfoError);
@@ -358,20 +383,32 @@ PyObject* teradata_handle_record(TeradataEncoder *e, const uint32_t parcel_t, un
         case PclENDREQUEST:
             PyErr_SetNone(EndRequestError);
             return NULL;
-        case PclFAILURE:
-            err = __teradata_read_failure((char*)*data);
-            if (err->Code == TD_ERROR_INVALID_USER) {
-                PyErr_Format(InvalidCredentialsError, "%d: %s", err->Code, err->Msg);
-            } else {
-                PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
-            }
-            return NULL;
-        case PclERROR:
-            err = __teradata_read_error((char*)*data);
-            PyErr_Format(TeradataError, "%d: %s", err->Code, err->Msg);
-            return NULL;
     }
     Py_RETURN_NONE;
+}
+
+PyObject* teradata_handle_parcel_record(TeradataEncoder *encoder, const uint32_t parcel_t, unsigned char **data, const uint32_t length) {
+    PyGILState_STATE state;
+    PyObject *row = NULL;
+    if (parcel_t == PclRECORD) {
+        state = PyGILState_Ensure();
+        if ((row = encoder->UnpackRowFunc(encoder, data, length)) == NULL) {
+            return NULL;
+        }
+        PyGILState_Release(state);
+        return row;
+    }
+    Py_RETURN_NONE;
+}
+
+PyObject* teradata_handle_record(TeradataEncoder *encoder, TeradataCursor *cursor, const uint32_t parcel_t, unsigned char **data, const uint32_t length) {
+    if (teradata_handle_parcel_status(cursor, parcel_t, data, length) == NULL) {
+        return NULL;
+    }
+    if (teradata_handle_parcel_state(encoder, parcel_t, data, length) == NULL) {
+        return NULL;
+    }
+    return teradata_handle_parcel_record(encoder, parcel_t, data, length);
 }
 
 uint16_t teradata_type_to_tpt_type(uint16_t t) {
@@ -440,6 +477,9 @@ uint16_t teradata_type_to_tpt_type(uint16_t t) {
         case BIGINT_NN:
         case BIGINT_N:
             return TD_BIGINT;
+        case NUMBER_NN:
+        case NUMBER_N:
+            return TD_NUMBER;
         case VARBYTE_NN:
         case VARBYTE_N:
             return TD_VARBYTE;
@@ -622,7 +662,7 @@ uint16_t teradata_type_from_tpt_type(uint16_t t) {
         case TD_PERIOD_TS_TZ:
             return PERIOD_TIMESTAMP_NNZ;
         case TD_NUMBER:
-            return INTEGER_NN;
+            return NUMBER_NN;
     }
     return CHAR_NN;
 }
@@ -687,6 +727,9 @@ uint16_t teradata_type_to_giraffez_type(uint16_t t) {
         case BIGINT_NN:
         case BIGINT_N:
             return GD_BIGINT;
+        case NUMBER_NN:
+        case NUMBER_N:
+            return GD_NUMBER;
         case VARBYTE_NN:
         case VARBYTE_N:
             return GD_VARBYTE;

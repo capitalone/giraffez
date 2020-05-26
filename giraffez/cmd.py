@@ -69,6 +69,7 @@ class Cursor(object):
         self.parse_dates = parse_dates
         self.panic = panic
         self.processor = lambda x, y: Row(x, y)
+        self.conn.set_encoding(ROW_ENCODING_LIST)
         if not self.coerce_floats:
             self.conn.set_encoding(DECIMAL_AS_STRING)
         if self.parse_dates:
@@ -82,6 +83,10 @@ class Cursor(object):
         self._execute(self.statements[self._cur])
         if self.prepare_only:
             self.columns = self._columns()
+
+    @property
+    def rowcount(self):
+        return self.conn.rowcount()
 
     def _columns(self):
         columns = self.conn.columns()
@@ -157,6 +162,11 @@ class Cursor(object):
         for row in self:
             n += 1
         return n
+
+    def to_raw(self):
+        self.conn.set_encoding(ROW_ENCODING_RAW)
+        self.processor = lambda x, y: y
+        return self
 
     def to_dict(self):
         """
@@ -388,8 +398,8 @@ class TeradataCmd(Connection):
         if getattr(self, 'cmd', None):
             self.cmd.close()
 
-    def _connect(self, host, username, password):
-        self.cmd = _Cmd(host, username, password)
+    def _connect(self, host, username, password, logon_mech, logon_mech_data):
+        self.cmd = _Cmd(host, username, password, logon_mech, logon_mech_data)
 
     def _insert(self, table_name, rows, fields=None, parse_dates=False):
         global _columns_cache
