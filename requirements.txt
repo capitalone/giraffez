@@ -1,2 +1,2 @@
 pyyaml>=3.11
-pycrypto>=2.6.1
+pycryptodome>=3.9.7

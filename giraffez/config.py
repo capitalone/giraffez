@@ -265,7 +265,7 @@ class Config(object):
 
     def read(self):
         with open(self._config_file, "rb") as f:
-            return yaml.load(f)
+            return yaml.load(f, Loader=yaml.SafeLoader)
 
     def reload(self):
         """
