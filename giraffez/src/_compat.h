@@ -88,6 +88,9 @@
           ob = Py_InitModule3(name, methods, doc);
 #endif    
 
+#if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 6
+  #define _PyObject_GC_UNTRACK PyObject_GC_UnTrack
+#endif
 
 #if defined(WIN32) || defined(WIN64)
 #define strdup _strdup

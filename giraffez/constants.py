@@ -19,7 +19,7 @@ Contains all constants used by giraffez, for settings and for
 communicating with Teradata.
 """
 
-ascii_giraffe = """
+ascii_giraffe = r"""
                ._ O O
                \_`-\|_
             ,""       \       giraffez

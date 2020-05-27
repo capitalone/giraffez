@@ -154,7 +154,7 @@ class Extension(_Extension):
         elif platform.system() == 'Darwin':
             self.extra_compile_args = ['-Wfatal-errors', '-Wno-empty-body']
         else:
-            self.extra_compile_args = ['-Wfatal-errors']
+            self.extra_compile_args = ['-Wfatal-errors','-std=c99']
         if develop:
             self.define_macros.append(("DEBUG_LOGGING", 1))
 
