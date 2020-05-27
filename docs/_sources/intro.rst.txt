@@ -8,7 +8,7 @@ Requirements
 Python packages
 
 - `PyYAML <http://pyyaml.org/>`_
-- `PyCrypto <https://www.dlitz.net/software/pycrypto/>`_
+- `PyCryptodome <https://www.pycryptodome.org/en/latest/>`_
 - *(optional)* `ujson <https://github.com/esnme/ultrajson>`_ (See the :ref:`FAQ <ujson>` for more information)
 
 Third-party libraries
