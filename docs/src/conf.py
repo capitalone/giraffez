@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'giraffez'
-copyright = u'2016, Capital One Services, LLC'
+copyright = u'2020, Capital One Services, LLC'
 author = u'Chris Marshall, Kyle Travis'
 
 # The version info for the project you're documenting, acts as replacement for
