@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Frequently Asked Questions &mdash; giraffez 2.0.12 documentation</title>
+  <title>Frequently Asked Questions &mdash; giraffez 2.1.0 documentation</title>
   
 
   
@@ -17,41 +17,35 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
-  
-  
-    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  
-
-  
-
-  
-        <link rel="index" title="Index"
-              href="genindex.html"/>
-        <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.12 documentation" href="index.html"/>
-        <link rel="prev" title="API Reference" href="api.html"/> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="API Reference" href="api.html" /> 
 </head>
 
-<body class="wy-body-for-nav" role="document">
+<body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -65,7 +59,7 @@
             
             
               <div class="version">
-                2.0.12
+                2.1.0
               </div>
             
           
@@ -116,7 +110,7 @@
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+      <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">giraffez</a>
@@ -124,9 +118,10 @@
       </nav>
 
 
-      
       <div class="wy-nav-content">
+        
         <div class="rst-content">
+        
           
 
 
@@ -176,11 +171,11 @@
 </div>
 <div class="section" id="what-are-the-teradata-call-level-interface-version-2-and-teradata-parallel-transporter-api-and-how-do-i-get-them">
 <span id="teradata-libraries"></span><h2>What are the Teradata Call-Level Interface Version 2 and Teradata Parallel Transporter API and how do I get them?<a class="headerlink" href="#what-are-the-teradata-call-level-interface-version-2-and-teradata-parallel-transporter-api-and-how-do-i-get-them" title="Permalink to this headline">¶</a></h2>
-<dl class="glossary docutils">
-<dt id="term-teradata-call-level-interface-version-2-cliv2"><em>Teradata Call-Level Interface Version 2 (CLIv2)</em></dt>
-<dd>The official Teradata C API, which provides an interface for communication with a Teradata server. This library is the same used by Teradata to create all their client-side tools. It is supported on most major platforms of Windows, Linux, Unix, and Unix-like operation systems (Mac OS) and supports processor architectures for x86 (32-bit and 64-bit), Power PC, Itanium 2, PA-RISC, and Opteron.</dd>
-<dt id="term-teradata-parallel-transporter-api-tpt-api"><em>Teradata Parallel Transporter API (TPT API)</em></dt>
-<dd>Official Teradata library that exposes many common and simplified interfaces to Teradata via C++. This library is built upon the CLIv2 and gives support for bulk operations such as BulkExport and BulkLoad.</dd>
+<dl class="glossary simple">
+<dt id="term-Teradata-Call-Level-Interface-Version-2-CLIv2"><em>Teradata Call-Level Interface Version 2 (CLIv2)</em></dt><dd><p>The official Teradata C API, which provides an interface for communication with a Teradata server. This library is the same used by Teradata to create all their client-side tools. It is supported on most major platforms of Windows, Linux, Unix, and Unix-like operation systems (Mac OS) and supports processor architectures for x86 (32-bit and 64-bit), Power PC, Itanium 2, PA-RISC, and Opteron.</p>
+</dd>
+<dt id="term-Teradata-Parallel-Transporter-API-TPT-API"><em>Teradata Parallel Transporter API (TPT API)</em></dt><dd><p>Official Teradata library that exposes many common and simplified interfaces to Teradata via C++. This library is built upon the CLIv2 and gives support for bulk operations such as BulkExport and BulkLoad.</p>
+</dd>
 </dl>
 <p>While these libraries have wide support, the platform-specific installation of these can vary wildly and be problematic. Since these are dependencies for almost all giraffez features, it means that these will need to be installed and configured correctly for giraffez to be able to work properly. If having trouble with these contact your system administrator and/or checkout the Teradata support forums. Teradata is a commercial product only, and these drivers are both under proprietary license, so getting these drivers may not be available outside of a relationship with Teradata.</p>
 <p>The CLIv2 is offered for free for Windows, Linux, HP-UX, AIX, and Solaris via <a class="reference external" href="http://downloads.teradata.com">http://downloads.teradata.com</a> (login required) and is bundled in the Teradata Tools and Utilities for Windows download. The TPT API is only available with the Teradata Tools and Utilities for Windows, and is distributed for other platforms via their <a class="reference external" href="https://tays.teradata.com">paid support portal</a> and via the media provided with the purchased server software. The TTU packages are not publicly offered for Linux or MacOS, however, both libraries <em>should</em> be available in this package (unsure if TPT was included in packages prior to 15.00).</p>
@@ -193,37 +188,35 @@
 <span id="export-header"></span><h2>Why are the column aliases incorrect when using BulkExport?<a class="headerlink" href="#why-are-the-column-aliases-incorrect-when-using-bulkexport" title="Permalink to this headline">¶</a></h2>
 <p><strong>Update</strong> This should no longer apply as the new method for fetching columns does not rely on the broken TPT API</p>
 <p>A regression was introduced after version 13.10 of the Teradata Parallel Transporter API that causes inconsistent behavior with column aliases in BulkExport operations.  When dealing with columns that are aliased the Teradata library does not return the name specified in the alias.  It seemed that when dealing with columns that are aliased that it would instead return the underlying column name or when dealing with computed fields returning a blank string.</p>
-<p>This affects any part of giraffez that makes use of the <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code></a> class (it does not affect <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a>).  Unfortunately, this is rooted in the proprietary Teradata libraries and cannot be fixed within giraffez, so the recommendation is to simply hardcode the column names with the query in those cases.</p>
+<p>This affects any part of giraffez that makes use of the <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal notranslate"><span class="pre">giraffez.BulkExport</span></code></a> class (it does not affect <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal notranslate"><span class="pre">giraffez.Cmd</span></code></a>).  Unfortunately, this is rooted in the proprietary Teradata libraries and cannot be fixed within giraffez, so the recommendation is to simply hardcode the column names with the query in those cases.</p>
 </div>
 <div class="section" id="why-implicitly-coerce-teradata-decimals">
 <h2>Why implicitly coerce Teradata decimals?<a class="headerlink" href="#why-implicitly-coerce-teradata-decimals" title="Permalink to this headline">¶</a></h2>
-<p>In previous versions of giraffez, Teradata decimal types fixed precision was preserved via Python’s <code class="docutils literal"><span class="pre">decimal.Decimal</span></code> type.  The decision was made to allow implicit conversion of Teradata decimal types to the Python float because of the many times unnecessary performance burden with using <code class="docutils literal"><span class="pre">decimal.Decimal</span></code> and this cost not being transparent when using <code class="docutils literal"><span class="pre">decimal.Decimal</span></code>.  For example, numpy will take a <code class="docutils literal"><span class="pre">decimal.Decimal</span></code> in place of a float because <code class="docutils literal"><span class="pre">decimal.Decimal</span></code> has the appropriate magic methods defined, but will be many times slower.  This cost ends up being invisible to users because the fixed-point arithmetic is hidden by the Python magic methods.  While giraffez is very convered with correctness, this decision was made to balance that with performance and what we feel is the most likely use case.</p>
+<p>In previous versions of giraffez, Teradata decimal types fixed precision was preserved via Python’s <code class="docutils literal notranslate"><span class="pre">decimal.Decimal</span></code> type.  The decision was made to allow implicit conversion of Teradata decimal types to the Python float because of the many times unnecessary performance burden with using <code class="docutils literal notranslate"><span class="pre">decimal.Decimal</span></code> and this cost not being transparent when using <code class="docutils literal notranslate"><span class="pre">decimal.Decimal</span></code>.  For example, numpy will take a <code class="docutils literal notranslate"><span class="pre">decimal.Decimal</span></code> in place of a float because <code class="docutils literal notranslate"><span class="pre">decimal.Decimal</span></code> has the appropriate magic methods defined, but will be many times slower.  This cost ends up being invisible to users because the fixed-point arithmetic is hidden by the Python magic methods.  While giraffez is very convered with correctness, this decision was made to balance that with performance and what we feel is the most likely use case.</p>
 </div>
 <div class="section" id="why-use-python-s-with-context">
 <span id="with-context"></span><h2>Why use python’s “with” context?<a class="headerlink" href="#why-use-python-s-with-context" title="Permalink to this headline">¶</a></h2>
-<p>Interacting with Teradata involves correctly managing a connection to the server.  In order to reduce complexity and opportunity for mistakes to be made, the giraffez python API classes <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal"><span class="pre">giraffez.Cmd</span></code></a>, <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkExport</span></code></a>, and <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal"><span class="pre">giraffez.BulkLoad</span></code></a> provide the python “magic” methods <code class="docutils literal"><span class="pre">__enter__</span></code> and <code class="docutils literal"><span class="pre">__exit__</span></code>, which allow easier automatic management of stateful resources.  These methods are called when an object is created as part of a <code class="docutils literal"><span class="pre">with</span></code> block, as in:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
+<p>Interacting with Teradata involves correctly managing a connection to the server.  In order to reduce complexity and opportunity for mistakes to be made, the giraffez python API classes <a class="reference internal" href="api.html#giraffez.cmd.TeradataCmd" title="giraffez.cmd.TeradataCmd"><code class="xref py py-class docutils literal notranslate"><span class="pre">giraffez.Cmd</span></code></a>, <a class="reference internal" href="api.html#giraffez.export.TeradataBulkExport" title="giraffez.export.TeradataBulkExport"><code class="xref py py-class docutils literal notranslate"><span class="pre">giraffez.BulkExport</span></code></a>, and <a class="reference internal" href="api.html#giraffez.load.TeradataBulkLoad" title="giraffez.load.TeradataBulkLoad"><code class="xref py py-class docutils literal notranslate"><span class="pre">giraffez.BulkLoad</span></code></a> provide the python “magic” methods <code class="docutils literal notranslate"><span class="pre">__enter__</span></code> and <code class="docutils literal notranslate"><span class="pre">__exit__</span></code>, which allow easier automatic management of stateful resources.  These methods are called when an object is created as part of a <code class="docutils literal notranslate"><span class="pre">with</span></code> block, as in:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">giraffez</span><span class="o">.</span><span class="n">Cmd</span><span class="p">()</span> <span class="k">as</span> <span class="n">cmd</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cmd</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">my_query</span><span class="p">):</span>
-        <span class="k">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Python guarantees that the object of a <code class="docutils literal"><span class="pre">with</span></code> statement will have its <code class="docutils literal"><span class="pre">__enter__</span></code> method called immediately, and its <code class="docutils literal"><span class="pre">__exit__</span></code> method called whenever leaving the following block.  This means that even if an exception is raised within the block, the managed object will be given a chance to clean up and exit gracefully.  Because the procedure for closing an underlying Teradata connection is complicated, it is important that these methods are always invoked at the proper time. If they are not, it is easy to create a situation where tables are left in a locked state indefinitely, or server resources are tied up by open idle connections.</p>
-<p>As of giraffez version 2.0.6, it is probitied to create instances of the above Teradata connection classes outside of a <code class="docutils literal"><span class="pre">with</span></code> context.  Usage of the giraffez python API without context managment is dangerous and discouraged.  If you feel that there is a legitimate need for allowing this behavior, please describe your use-case <a class="reference external" href="https://github.com/capitalone/giraffez/issues">in an issue</a>.</p>
+<p>Python guarantees that the object of a <code class="docutils literal notranslate"><span class="pre">with</span></code> statement will have its <code class="docutils literal notranslate"><span class="pre">__enter__</span></code> method called immediately, and its <code class="docutils literal notranslate"><span class="pre">__exit__</span></code> method called whenever leaving the following block.  This means that even if an exception is raised within the block, the managed object will be given a chance to clean up and exit gracefully.  Because the procedure for closing an underlying Teradata connection is complicated, it is important that these methods are always invoked at the proper time. If they are not, it is easy to create a situation where tables are left in a locked state indefinitely, or server resources are tied up by open idle connections.</p>
+<p>As of giraffez version 2.0.6, it is probitied to create instances of the above Teradata connection classes outside of a <code class="docutils literal notranslate"><span class="pre">with</span></code> context.  Usage of the giraffez python API without context managment is dangerous and discouraged.  If you feel that there is a legitimate need for allowing this behavior, please describe your use-case <a class="reference external" href="https://github.com/capitalone/giraffez/issues">in an issue</a>.</p>
 </div>
 </div>
 
 
            </div>
-           <div class="articleComments">
-            
-           </div>
+           
           </div>
           <footer>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
       
-        <a href="api.html" class="btn btn-neutral" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -232,11 +225,11 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2016, Capital One Services, LLC.
+        &copy; Copyright 2016, Capital One Services, LLC
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -249,36 +242,15 @@
   
 
 
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.0.12',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-
-  
-
-  
-  
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-  
-
-  
-  
   <script type="text/javascript">
       jQuery(function () {
-          SphinxRtdTheme.StickyNav.enable();
+          SphinxRtdTheme.Navigation.enable(true);
       });
   </script>
+
+  
+  
+    
    
 
 </body>
