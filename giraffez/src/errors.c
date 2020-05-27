@@ -85,7 +85,7 @@ static int TeradataError_clear(TeradataErrorObject *self) {
 }
 
 static void TeradataError_dealloc(TeradataErrorObject *self) {
-    _PyObject_GC_UNTRACK(self);
+    _PyObject_GC_UnTrack(self);
     TeradataError_clear(self);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }

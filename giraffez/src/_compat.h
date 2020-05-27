@@ -89,7 +89,9 @@
 #endif    
 
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 6
-  #define _PyObject_GC_UNTRACK PyObject_GC_UnTrack
+  #define _PyObject_GC_UnTrack PyObject_GC_UnTrack
+#else
+  #define _PyObject_GC_UnTrack _PyObject_GC_UNTRACK 
 #endif
 
 #if defined(WIN32) || defined(WIN64)

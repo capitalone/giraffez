@@ -895,7 +895,7 @@ int _clz(uint32_t x) {
 
 PyObject* teradata_number_from_pystring(PyObject *item, unsigned char **buf, uint16_t *packed_length) {
     char *s;
-    int i, j, sign = 0, b, r, count = 0;
+    int i, sign = 0, b, r, count = 0;
     PyObject *n, *nn = NULL, *str, *zero, *mask, *shift;
     int8_t length = 0;
     int16_t scale = 0;
