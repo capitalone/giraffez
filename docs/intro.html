@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Introduction &mdash; giraffez 2.0.12 documentation</title>
+  <title>Introduction &mdash; giraffez 2.1.0 documentation</title>
   
 
   
@@ -17,42 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
-  
-  
-    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  
-
-  
-
-  
-        <link rel="index" title="Index"
-              href="genindex.html"/>
-        <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="giraffez 2.0.12 documentation" href="index.html"/>
-        <link rel="next" title="Commands" href="command-line.html"/>
-        <link rel="prev" title="Welcome to giraffez’s documentation!" href="index.html"/> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Commands" href="command-line.html" />
+    <link rel="prev" title="Welcome to giraffez’s documentation!" href="index.html" /> 
 </head>
 
-<body class="wy-body-for-nav" role="document">
+<body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -66,7 +60,7 @@
             
             
               <div class="version">
-                2.0.12
+                2.1.0
               </div>
             
           
@@ -116,7 +110,7 @@
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+      <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">giraffez</a>
@@ -124,9 +118,10 @@
       </nav>
 
 
-      
       <div class="wy-nav-content">
+        
         <div class="rst-content">
+        
           
 
 
@@ -174,45 +169,45 @@
 <h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
 <p>Python packages</p>
 <ul class="simple">
-<li><a class="reference external" href="http://pyyaml.org/">PyYAML</a></li>
-<li><a class="reference external" href="https://www.dlitz.net/software/pycrypto/">PyCrypto</a></li>
-<li><em>(optional)</em> <a class="reference external" href="https://github.com/esnme/ultrajson">ujson</a> (See the <a class="reference internal" href="FAQ.html#ujson"><span class="std std-ref">FAQ</span></a> for more information)</li>
+<li><p><a class="reference external" href="http://pyyaml.org/">PyYAML</a></p></li>
+<li><p><a class="reference external" href="https://www.pycryptodome.org/en/latest/">PyCryptodome</a></p></li>
+<li><p><em>(optional)</em> <a class="reference external" href="https://github.com/esnme/ultrajson">ujson</a> (See the <a class="reference internal" href="FAQ.html#ujson"><span class="std std-ref">FAQ</span></a> for more information)</p></li>
 </ul>
 <p>Third-party libraries</p>
 <ul class="simple">
-<li><a class="reference external" href="http://downloads.teradata.com/download/connectivity/teradata-cliv2-for-linux">Teradata Call-Level Interface Version 2</a> (CLIv2)</li>
-<li><a class="reference external" href="https://developer.teradata.com/tools/articles/teradata-parallel-transporter/teradata-parallel-transporter-1-basics">Teradata Parallel Transporter API</a> (TPT API)</li>
+<li><p><a class="reference external" href="http://downloads.teradata.com/download/connectivity/teradata-cliv2-for-linux">Teradata Call-Level Interface Version 2</a> (CLIv2)</p></li>
+<li><p><a class="reference external" href="https://developer.teradata.com/tools/articles/teradata-parallel-transporter/teradata-parallel-transporter-1-basics">Teradata Parallel Transporter API</a> (TPT API)</p></li>
 </ul>
-<p>Features of giraffez like <code class="docutils literal"><span class="pre">giraffez</span> <span class="pre">config</span></code> and <code class="docutils literal"><span class="pre">giraffez</span> <span class="pre">secret</span></code> do not rely on either of the Third-party libraries, however, to reduce complexity of the package installation, all of the requirements must be installed and configured for any giraffez features.  This was mostly due to how pip works when installing a package with optional logical components.  Pip silences the installation output and only shows the output should an exception be encountered during the installation process.  This was creating a lot of confusion for users so the decision was made that all dependencies should be met when installing giraffez.</p>
+<p>Features of giraffez like <code class="docutils literal notranslate"><span class="pre">giraffez</span> <span class="pre">config</span></code> and <code class="docutils literal notranslate"><span class="pre">giraffez</span> <span class="pre">secret</span></code> do not rely on either of the Third-party libraries, however, to reduce complexity of the package installation, all of the requirements must be installed and configured for any giraffez features.  This was mostly due to how pip works when installing a package with optional logical components.  Pip silences the installation output and only shows the output should an exception be encountered during the installation process.  This was creating a lot of confusion for users so the decision was made that all dependencies should be met when installing giraffez.</p>
 <p>More information on these libraries can be found <a class="reference internal" href="FAQ.html#teradata-libraries"><span class="std std-ref">here</span></a>.</p>
 <p>If installing giraffez from a <a class="reference external" href="http://pythonwheels.com/">Python Wheel</a> there are some additional requirements:</p>
 <ul class="simple">
-<li><a class="reference external" href="https://pip.pypa.io/en/stable/">pip</a> &gt;= 8.1.2</li>
-<li><a class="reference external" href="http://pythonwheels.com/">wheel</a> &gt;= 0.29.0</li>
+<li><p><a class="reference external" href="https://pip.pypa.io/en/stable/">pip</a> &gt;= 8.1.2</p></li>
+<li><p><a class="reference external" href="http://pythonwheels.com/">wheel</a> &gt;= 0.29.0</p></li>
 </ul>
 <p>Some other requirements may be necessary if building from source:</p>
 <ul class="simple">
-<li>Python development headers or static or lib</li>
-<li>C/C++ compiler (tested with GCC and MSVC)</li>
-<li>Teradata CLIv2 and TPT API headers/lib files</li>
+<li><p>Python development headers or static or lib</p></li>
+<li><p>C/C++ compiler (tested with GCC and MSVC)</p></li>
+<li><p>Teradata CLIv2 and TPT API headers/lib files</p></li>
 </ul>
 </div>
 <div class="section" id="environment">
 <h2>Environment<a class="headerlink" href="#environment" title="Permalink to this headline">¶</a></h2>
-<p>giraffez attempts to find the required Teradata libraries automatically during install but can be manually specified by setting the <code class="docutils literal"><span class="pre">TERADATA_HOME</span></code> environment variable to the desired path.</p>
-<p>The <code class="docutils literal"><span class="pre">TERADATA_HOME</span></code> variable is only necessary during installation and only if the required Teradata libraries are not present in the default install directories.  Some users experience problems after a successful installation due to missing environment variables.  This is due to the fact that giraffez can install using the default locations to find and compile the giraffez C extensions, however, the Python runtime relies on environmental settings to load dynamically loaded shared libraries and this takes place before the defaults can be added by a Python package (i.e. giraffez can’t add the default paths/settings to Python at runtime to find these libraries).  This is generally addressed by ensuring that the correct environment variables are set for the respective platforms.</p>
+<p>giraffez attempts to find the required Teradata libraries automatically during install but can be manually specified by setting the <code class="docutils literal notranslate"><span class="pre">TERADATA_HOME</span></code> environment variable to the desired path.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">TERADATA_HOME</span></code> variable is only necessary during installation and only if the required Teradata libraries are not present in the default install directories.  Some users experience problems after a successful installation due to missing environment variables.  This is due to the fact that giraffez can install using the default locations to find and compile the giraffez C extensions, however, the Python runtime relies on environmental settings to load dynamically loaded shared libraries and this takes place before the defaults can be added by a Python package (i.e. giraffez can’t add the default paths/settings to Python at runtime to find these libraries).  This is generally addressed by ensuring that the correct environment variables are set for the respective platforms.</p>
 <p>For Windows, the locations for <cite>TELAPI.lib</cite> and <cite>opermsgs.dll</cite> must be in the Windows PATH variable.</p>
-<p>For Unix-like platforms, the path that contains <cite>libtelapi.so</cite> must be added to the <code class="docutils literal"><span class="pre">LD_LIBRARY_PATH</span></code> environment variable, and the path containing <cite>opermsgs.cat</cite> must be added to the <code class="docutils literal"><span class="pre">NLSPATH</span></code> environment variable with <code class="docutils literal"><span class="pre">%N</span></code> placed at the end.</p>
+<p>For Unix-like platforms, the path that contains <cite>libtelapi.so</cite> must be added to the <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment variable, and the path containing <cite>opermsgs.cat</cite> must be added to the <code class="docutils literal notranslate"><span class="pre">NLSPATH</span></code> environment variable with <code class="docutils literal notranslate"><span class="pre">%N</span></code> placed at the end.</p>
 <p>For all other issues installing and configuring Teradata libraries, use the documents provided by <a class="reference external" href="http://www.info.teradata.com/">Teradata Information</a> or by engaging with the <a class="reference external" href="https://community.teradata.com">Teradata Community</a>.</p>
 </div>
 <div class="section" id="install-update">
 <h2>Install / Update<a class="headerlink" href="#install-update" title="Permalink to this headline">¶</a></h2>
 <p>To install or update via pip:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">giraffez</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">giraffez</span>
 </pre></div>
 </div>
 <p>To install from source:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">capitalone</span><span class="o">/</span><span class="n">giraffez</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">capitalone</span><span class="o">/</span><span class="n">giraffez</span>
 <span class="n">cd</span> <span class="n">giraffez</span>
 <span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
 </pre></div>
@@ -221,14 +216,14 @@
 <div class="section" id="bash-auto-completion">
 <h2>Bash auto-completion<a class="headerlink" href="#bash-auto-completion" title="Permalink to this headline">¶</a></h2>
 <p>A bash auto-complete script is provided that can be installed fairly easily into the system by copying it into the bash-completion folder:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cp</span> <span class="n">giraffez</span><span class="o">-</span><span class="n">completion</span><span class="o">.</span><span class="n">bash</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">bash_completion</span><span class="o">.</span><span class="n">d</span><span class="o">/</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cp</span> <span class="n">giraffez</span><span class="o">-</span><span class="n">completion</span><span class="o">.</span><span class="n">bash</span> <span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="n">bash_completion</span><span class="o">.</span><span class="n">d</span><span class="o">/</span>
 </pre></div>
 </div>
 <p>It will be installed the next time you open a new terminal or if you want to activate in the current session:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">~/.</span><span class="n">bashrc</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">~/.</span><span class="n">bashrc</span>
 </pre></div>
 </div>
-<p>Note that this requires the use of bash as your shell. It will most likely work with other shells with little modification but has not been tested. Additionally, this puts the completion script in the system’s completion folder, but can be used locally by simply sourcing the file (i.e. <code class="docutils literal"><span class="pre">source</span> <span class="pre">&lt;path&gt;/giraffez-completion.bash</span></code>) in your shell’s rc file.</p>
+<p>Note that this requires the use of bash as your shell. It will most likely work with other shells with little modification but has not been tested. Additionally, this puts the completion script in the system’s completion folder, but can be used locally by simply sourcing the file (i.e. <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">&lt;path&gt;/giraffez-completion.bash</span></code>) in your shell’s rc file.</p>
 </div>
 <div class="section" id="compatibility-and-supported-platforms">
 <h2>Compatibility and Supported Platforms<a class="headerlink" href="#compatibility-and-supported-platforms" title="Permalink to this headline">¶</a></h2>
@@ -239,9 +234,7 @@
 
 
            </div>
-           <div class="articleComments">
-            
-           </div>
+           
           </div>
           <footer>
   
@@ -250,7 +243,7 @@
         <a href="command-line.html" class="btn btn-neutral float-right" title="Commands" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="index.html" class="btn btn-neutral" title="Welcome to giraffez’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to giraffez’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -259,11 +252,11 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2016, Capital One Services, LLC.
+        &copy; Copyright 2020, Capital One Services, LLC
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -276,36 +269,15 @@
   
 
 
-  
-
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'2.0.12',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-
-  
-
-  
-  
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-  
-
-  
-  
   <script type="text/javascript">
       jQuery(function () {
-          SphinxRtdTheme.StickyNav.enable();
+          SphinxRtdTheme.Navigation.enable(true);
       });
   </script>
+
+  
+  
+    
    
 
 </body>
